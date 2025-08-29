@@ -143,16 +143,14 @@ export default async function handler(req, res) {
     return res.status(oa.status).json({ error: "OpenAI error", detail: msg });
 }
 
-    const text = extractText(data);
+    const text = data?.output_text || "";
     res.setHeader("Access-Control-Allow-Origin", "*");
     if (text) {
       return res.status(200).json({ output: text });
     } else {
-      // Surface the raw payload so we can see what shape came back
-      return res.status(200).json({ output: "I couldn't find text in the model response.", detail: data });
-    }
-  } catch (e) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    return res.status(500).json({ error: String(e) });
-  }
+    return res.status(200).json({
+    output: "I couldn't parse a reply from the model.",
+    detail: data
+  });
+}
 }
