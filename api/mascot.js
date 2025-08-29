@@ -1,4 +1,5 @@
-// api/mascot.js — Healthmate (Responses API, gpt-4.1)
+// api/mascot.js — Healthmate (Responses API; robust text extraction)
+
 const RED_FLAGS = [
   /loss of consciousness|passed out/i,
   /seizure|convulsion/i,
@@ -20,6 +21,52 @@ While waiting:
 - Do not leave them alone. Monitor their breathing and responsiveness.
 
 *Information only — not a medical diagnosis. In an emergency call 000.*`;
+
+// Pull text out of different Responses API shapes
+function extractText(d) {
+  if (!d || typeof d !== "object") return "";
+
+  // 1) Convenience field (typical for the Responses API)
+  if (typeof d.output_text === "string" && d.output_text.trim()) return d.output_text.trim();
+
+  // 2) responses.output[].content[].text.value
+  if (Array.isArray(d.output)) {
+    for (const item of d.output) {
+      const content = item?.content;
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          const v = part?.text?.value || part?.content || part?.string;
+          if (typeof v === "string" && v.trim()) return v.trim();
+        }
+      }
+    }
+  }
+
+  // 3) chat/completions-like
+  if (Array.isArray(d.choices) && d.choices[0]?.message?.content) {
+    const c = d.choices[0].message.content;
+    if (Array.isArray(c)) {
+      const joined = c.map(p => (p?.text?.value || p?.content || "")).join("\n").trim();
+      if (joined) return joined;
+    } else if (typeof c === "string" && c.trim()) {
+      return c.trim();
+    }
+  }
+
+  // 4) data[].content[] structure (some SDKs)
+  if (Array.isArray(d.data)) {
+    for (const it of d.data) {
+      if (Array.isArray(it?.content)) {
+        for (const part of it.content) {
+          const v = part?.text?.value || part?.content;
+          if (typeof v === "string" && v.trim()) return v.trim();
+        }
+      }
+    }
+  }
+
+  return "";
+}
 
 export default async function handler(req, res) {
   // CORS
@@ -59,8 +106,10 @@ export default async function handler(req, res) {
       "You are the FifthQtr Healthmate, supporting past AFL/AFLW players and families with safe, compassionate, evidence-based guidance. You are not a doctor. Encourage GP follow-up. Include Australian pathways and helplines where appropriate. End every response with: 'This service provides general information only. Please see your GP for medical advice. In an emergency call 000.'";
 
     const payload = {
-      model: "gpt-4.1",
+      // gpt-4o-mini is broadly available + inexpensive
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       temperature: 0.3,
+      modalities: ["text"],                // be explicit
       input: [
         { role: "system", content: SYSTEM },
         { role: "user", content: text }
@@ -69,30 +118,18 @@ export default async function handler(req, res) {
 
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${key}`,
+      "Authorization": `Bearer ${key}`
     };
-    // Optional org/project scoping if your account enforces it:
     if (process.env.OPENAI_PROJECT_ID) headers["OpenAI-Project"] = process.env.OPENAI_PROJECT_ID;
     if (process.env.OPENAI_ORG_ID)     headers["OpenAI-Organization"] = process.env.OPENAI_ORG_ID;
 
     const resp = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers,
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
 
     const data = await resp.json().catch(() => ({}));
-
-    // DEBUG MODE: return raw info to the client (toggle via env)
-    if (process.env.DEBUG_HEALTHMATE === "1") {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.status(resp.status).json({
-        debug: true,
-        status: resp.status,
-        ok: resp.ok,
-        data
-      });
-    }
 
     if (!resp.ok) {
       const msg =
@@ -103,15 +140,11 @@ export default async function handler(req, res) {
       return res.status(resp.status).json({ error: "OpenAI error", detail: msg });
     }
 
-    const out = (typeof data?.output_text === "string" && data.output_text.trim())
-      ? data.output_text.trim()
-      : "";
-
+    const out = extractText(data);
     res.setHeader("Access-Control-Allow-Origin", "*");
-    if (out) {
-      return res.status(200).json({ output: out });
-    }
-    // Fallback: echo payload so we can see the shape
+    if (out) return res.status(200).json({ output: out });
+
+    // Fallback: return payload so we can inspect the shape if needed
     return res.status(200).json({ output: "I couldn't parse a reply from the model.", detail: data });
   } catch (e) {
     res.setHeader("Access-Control-Allow-Origin", "*");
