@@ -116,30 +116,34 @@
       else     { send.removeAttribute('disabled'); send.textContent = 'Send'; }
     }
 
-    async function sendMsg(text) {
-      const content = (text || msgInp.value || '').trim();
-      if (!content) return;
-      addMsg('user', content);
-      msgInp.value = '';
-      setSending(true);
-      try {
-        const r = await fetch(ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify({ message: content })
-        });
-        const ok = r.ok;
-        let data = null;
-        try { data = await r.json(); } catch {}
-        const output = data && data.output ? data.output : (ok ? 'Sorry — I could not generate a response.' : 'Sorry — network error.');
-        addMsg('assistant', output);
-      } catch (e) {
-        addMsg('assistant', 'Sorry — network error.');
-      } finally {
-        setSending(false);
-      }
-    }
+  async function sendMsg(text){
+  const content = (text || msgInp.value || '').trim();
+  if (!content) return;
+  addMsg('user', content);
+  msgInp.value = '';
+  setSending(true);
+  try {
+    const r = await fetch(ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message: content })
+    });
+    let data = null;
+    try { data = await r.json(); } catch {}
 
+    if (!r.ok) {
+      const detail = (data && (data.detail || data.error)) ? ` (${data.detail || data.error})` : '';
+      addMsg('assistant', 'Sorry — server error' + detail);
+      return;
+    }
+    addMsg('assistant', (data && data.output) ? data.output : 'Sorry — I could not generate a response.');
+  } catch (e) {
+    addMsg('assistant', 'Sorry — network error.');
+  } finally {
+    setSending(false);
+  }
+}
+    
     function copyForGP() {
       const header = `FifthQtr Healthmate — Conversation Summary\n(Date: ${new Date().toLocaleString()})\n\n`;
       const body = history.map(h => (h.role === 'user' ? 'You: ' : 'Healthmate: ') + h.text).join('\n\n');
