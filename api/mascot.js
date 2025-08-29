@@ -1,4 +1,4 @@
-// api/mascot.js — Healthmate (Responses API; robust text extraction)
+// api/mascot.js — Healthmate (Responses API; robust & model-switchable)
 
 const RED_FLAGS = [
   /loss of consciousness|passed out/i,
@@ -22,14 +22,10 @@ While waiting:
 
 *Information only — not a medical diagnosis. In an emergency call 000.*`;
 
-// Pull text out of different Responses API shapes
+// Extract text from common Responses API shapes
 function extractText(d) {
   if (!d || typeof d !== "object") return "";
-
-  // 1) Convenience field (typical for the Responses API)
   if (typeof d.output_text === "string" && d.output_text.trim()) return d.output_text.trim();
-
-  // 2) responses.output[].content[].text.value
   if (Array.isArray(d.output)) {
     for (const item of d.output) {
       const content = item?.content;
@@ -41,19 +37,13 @@ function extractText(d) {
       }
     }
   }
-
-  // 3) chat/completions-like
   if (Array.isArray(d.choices) && d.choices[0]?.message?.content) {
     const c = d.choices[0].message.content;
     if (Array.isArray(c)) {
       const joined = c.map(p => (p?.text?.value || p?.content || "")).join("\n").trim();
       if (joined) return joined;
-    } else if (typeof c === "string" && c.trim()) {
-      return c.trim();
-    }
+    } else if (typeof c === "string" && c.trim()) return c.trim();
   }
-
-  // 4) data[].content[] structure (some SDKs)
   if (Array.isArray(d.data)) {
     for (const it of d.data) {
       if (Array.isArray(it?.content)) {
@@ -64,7 +54,6 @@ function extractText(d) {
       }
     }
   }
-
   return "";
 }
 
@@ -95,7 +84,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "message required" });
     }
 
-    // Red flags first
+    // Red flags
     if (RED_FLAGS.some(r => r.test(text))) {
       res.setHeader("Access-Control-Allow-Origin", "*");
       return res.status(200).json({ output: ESCALATION });
@@ -105,11 +94,10 @@ export default async function handler(req, res) {
       process.env.MASCOT_SYSTEM_PROMPT ||
       "You are the FifthQtr Healthmate, supporting past AFL/AFLW players and families with safe, compassionate, evidence-based guidance. You are not a doctor. Encourage GP follow-up. Include Australian pathways and helplines where appropriate. End every response with: 'This service provides general information only. Please see your GP for medical advice. In an emergency call 000.'";
 
+    const model = process.env.OPENAI_MODEL || "gpt-4.1"; // set OPENAI_MODEL=gpt-4o-mini if you want
     const payload = {
-      // gpt-4o-mini is broadly available + inexpensive
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      model,
       temperature: 0.3,
-      modalities: ["text"],                // be explicit
       input: [
         { role: "system", content: SYSTEM },
         { role: "user", content: text }
@@ -144,7 +132,6 @@ export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     if (out) return res.status(200).json({ output: out });
 
-    // Fallback: return payload so we can inspect the shape if needed
     return res.status(200).json({ output: "I couldn't parse a reply from the model.", detail: data });
   } catch (e) {
     res.setHeader("Access-Control-Allow-Origin", "*");
