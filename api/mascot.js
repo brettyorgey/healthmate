@@ -132,11 +132,16 @@ export default async function handler(req, res) {
 
     const data = await oa.json().catch(() => ({}));
 
+    // After: const data = await oa.json().catch(() => ({}));
+
     if (!oa.ok) {
-      // Return details to the client so you see the real reason in the UI
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.status(oa.status).json({ error: "OpenAI error", detail: data?.error || data });
-    }
+      const msg =
+      data?.error?.message ||
+      data?.message ||
+      (typeof data === "string" ? data : JSON.stringify(data));
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    return res.status(oa.status).json({ error: "OpenAI error", detail: msg });
+}
 
     const text = extractText(data);
     res.setHeader("Access-Control-Allow-Origin", "*");
