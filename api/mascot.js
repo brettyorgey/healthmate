@@ -1,4 +1,4 @@
-// api/mascot.js — Healthmate (Responses API; robust & model-switchable)
+// api/mascot.js — Healthmate (Chat Completions API; robust & model-switchable)
 
 const RED_FLAGS = [
   /loss of consciousness|passed out/i,
@@ -21,41 +21,6 @@ While waiting:
 - Do not leave them alone. Monitor their breathing and responsiveness.
 
 *Information only — not a medical diagnosis. In an emergency call 000.*`;
-
-// Extract text from common Responses API shapes
-function extractText(d) {
-  if (!d || typeof d !== "object") return "";
-  if (typeof d.output_text === "string" && d.output_text.trim()) return d.output_text.trim();
-  if (Array.isArray(d.output)) {
-    for (const item of d.output) {
-      const content = item?.content;
-      if (Array.isArray(content)) {
-        for (const part of content) {
-          const v = part?.text?.value || part?.content || part?.string;
-          if (typeof v === "string" && v.trim()) return v.trim();
-        }
-      }
-    }
-  }
-  if (Array.isArray(d.choices) && d.choices[0]?.message?.content) {
-    const c = d.choices[0].message.content;
-    if (Array.isArray(c)) {
-      const joined = c.map(p => (p?.text?.value || p?.content || "")).join("\n").trim();
-      if (joined) return joined;
-    } else if (typeof c === "string" && c.trim()) return c.trim();
-  }
-  if (Array.isArray(d.data)) {
-    for (const it of d.data) {
-      if (Array.isArray(it?.content)) {
-        for (const part of it.content) {
-          const v = part?.text?.value || part?.content;
-          if (typeof v === "string" && v.trim()) return v.trim();
-        }
-      }
-    }
-  }
-  return "";
-}
 
 export default async function handler(req, res) {
   // CORS
@@ -84,7 +49,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "message required" });
     }
 
-    // Red flags
+    // Triage red flags first
     if (RED_FLAGS.some(r => r.test(text))) {
       res.setHeader("Access-Control-Allow-Origin", "*");
       return res.status(200).json({ output: ESCALATION });
@@ -94,24 +59,27 @@ export default async function handler(req, res) {
       process.env.MASCOT_SYSTEM_PROMPT ||
       "You are the FifthQtr Healthmate, supporting past AFL/AFLW players and families with safe, compassionate, evidence-based guidance. You are not a doctor. Encourage GP follow-up. Include Australian pathways and helplines where appropriate. End every response with: 'This service provides general information only. Please see your GP for medical advice. In an emergency call 000.'";
 
-    const model = process.env.OPENAI_MODEL || "gpt-4.1"; // set OPENAI_MODEL=gpt-4o-mini if you want
+    // Default to gpt-4o-mini (widely available, inexpensive). You can set OPENAI_MODEL=gpt-4.1 later if chat-completions supports it in your account.
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${key}`,
+    };
+    // Only include these if your account requires scoping
+    if (process.env.OPENAI_PROJECT_ID) headers["OpenAI-Project"] = process.env.OPENAI_PROJECT_ID;
+    if (process.env.OPENAI_ORG_ID)     headers["OpenAI-Organization"] = process.env.OPENAI_ORG_ID;
+
     const payload = {
       model,
       temperature: 0.3,
-      input: [
+      messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: text }
       ]
     };
 
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key}`
-    };
-    if (process.env.OPENAI_PROJECT_ID) headers["OpenAI-Project"] = process.env.OPENAI_PROJECT_ID;
-    if (process.env.OPENAI_ORG_ID)     headers["OpenAI-Organization"] = process.env.OPENAI_ORG_ID;
-
-    const resp = await fetch("https://api.openai.com/v1/responses", {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers,
       body: JSON.stringify(payload)
@@ -128,7 +96,8 @@ export default async function handler(req, res) {
       return res.status(resp.status).json({ error: "OpenAI error", detail: msg });
     }
 
-    const out = extractText(data);
+    const content = data?.choices?.[0]?.message?.content;
+    const out = (typeof content === "string" && content.trim()) ? content.trim() : "";
     res.setHeader("Access-Control-Allow-Origin", "*");
     if (out) return res.status(200).json({ output: out });
 
