@@ -132,7 +132,15 @@
     try { data = await r.json(); } catch {}
 
     if (!r.ok) {
-      const detail = (data && (data.detail || data.error)) ? ` (${data.detail || data.error})` : '';
+        const rawDetail = data && (data.detail ?? data.error);
+        const detail =
+        rawDetail
+          ? ` (${
+          typeof rawDetail === 'string'
+          ? rawDetail
+          : JSON.stringify(rawDetail)
+          })`
+          : '';
       addMsg('assistant', 'Sorry — server error' + detail);
       return;
     }
