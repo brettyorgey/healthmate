@@ -126,30 +126,49 @@ export default async function handler(req, res) {
     const { textOut, citations } = harvestMessageParts(assistantMsg);
 
     // De-duplicate citations; resolve filenames
-    const seen = new Set(); const unique = [];
-    for (const c of citations) if (c.file_id && !seen.has(c.file_id)) { seen.add(c.file_id); unique.push(c); }
+    const seen = new Set(); 
+    const unique = [];
+    for (const c of citations) {
+      if (c.file_id && !seen.has(c.file_id)) {
+        seen.add(c.file_id);
+        unique.push(c);
+      }
+    }
 
     const resolved = [];
     for (const c of unique.slice(0,12)) {
       try {
         const f = await fetch(`https://api.openai.com/v1/files/${c.file_id}`, {
           method: "GET",
-          headers: { "Authorization": `Bearer ${key}`, ...ASSISTANTS_BETA }
+          headers: { 
+            "Authorization": `Bearer ${key}`, 
+            "OpenAI-Beta": "assistants=v2" 
+          }
         }).then(r => r.json());
-        resolved.push({ ...c, filename: f?.filename || c.file_id });
-      } catch { resolved.push(c); }
+        resolved.push({ 
+          file_id: c.file_id, 
+          filename: f?.filename || c.file_id, 
+          quote: c.quote || "" 
+        });
+      } catch {
+        resolved.push(c);
+      }
     }
 
     let out = textOut || "";
-    if (resolved.length) {
-      const bullets = resolved.map((c,i)=>`- [${i+1}] ${c.filename}${c.quote ? ` — “${c.quote}”` : ""}`).join("\n");
-      out += `\n\n**Sources**\n${bullets}`;
+    if (out) {
+      out += `\n\nThis service provides general information only. Please see your GP for medical advice. In an emergency call 000.`;
     }
-    if (out) out += `\n\nThis service provides general information only. Please see your GP for medical advice. In an emergency call 000.`;
 
     cors(res);
-    return res.status(200).json({ output: out || "No response" });
-
+    return res.status(200).json({
+      output: out || "No response",
+      sources: resolved.map(x => ({
+        file_id: x.file_id,
+        filename: x.filename,
+        quote: x.quote || ""
+      }))
+    });
   } catch (e) {
     cors(res);
     return res.status(500).json({ error: String(e) });
