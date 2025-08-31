@@ -12,152 +12,55 @@
       --muted: #4b5563;
       --brand: #0ea5e9;
     }
-    body {
-      margin: 0;
-      background: var(--page-bg);
-      color: var(--text);
+    body { margin:0; background:var(--page-bg); color:var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
-    /* 70% width container */
-    .wrap {
-      width: 70%;
-      max-width: 1000px;
-      min-width: 320px;
-      margin: 24px auto;
-      padding: 0 16px;
+    .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
+    .hero { background:var(--card-bg); border-radius:16px; padding:24px;
+      box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:16px;
     }
-    .hero {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 14px rgba(15,23,42,0.08);
-      margin-bottom: 16px;
-    }
-    .hero h1 {
-      margin: 0 0 8px 0;
-      font-size: 28px;
-      line-height: 1.2;
-    }
-    .hero p {
-      margin: 6px 0 0 0;
-      color: var(--muted);
-    }
-    /* Starter prompts stacked */
-    .starters {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin: 12px 0 16px 0;
-    }
-    .starter-btn {
-      display: block;
-      text-align: left;
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px 12px;
-      cursor: pointer;
-      font-size: 15px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-    .starter-btn:hover { background: #f9fafb; }
-    /* Chat area */
-    .chat {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 4px 14px rgba(15,23,42,0.08);
-      min-height: 280px;
-    /* Starters look the same */
-    .starters { display:flex; flex-direction:column; gap:10px; margin:12px 0 16px 0; }
-    /* Bigger multiline composer */
-    .inputRow { display:flex; gap:10px; align-items:stretch; margin-top:12px; }
-    textarea#msg {
-      flex: 1;
-      padding: 14px 16px;
-      font-size: 16px;
-      line-height: 1.35;
-      border-radius: 12px;
-      border: 1px solid #e5e7eb;
-      resize: vertical;          /* allow user to drag taller */
-      min-height: 72px;          /* ~3 lines */
-      max-height: 300px;
-    }
-    button.send {
-      padding: 14px 18px;
-      border-radius: 12px;
-      border: 0;
-      background: var(--brand);
-      color: #fff;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 600;
-    
-    }
-    .msg { white-space: pre-wrap; margin: 0 0 14px 0; }
-    .msg.user { background:#eff6ff; padding:10px 12px; border-radius:10px; }
-    .msg.assistant { background:#f8fafc; padding:10px 12px; border-radius:10px; }
-    /* Clear headings inside answers */
-    .msg.assistant h2, .msg.assistant h3 {
-      margin: 10px 0 6px;
-      padding: 0;
-      font-size: 18px;
-      line-height: 1.25;
-      border-left: 4px solid var(--brand);
-      padding-left: 8px;
-    }
-    .sources {
-      margin-top: 16px;
-      padding: 12px;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      background: #f9fafb;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    .sources strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 15px;
-      color: var(--text);
-    }
-    .sources ul {
-      margin: 0;
-      padding-left: 18px;
-    }
-    .sources li {
-      margin-bottom: 4px;
-    }
-    .sources a {
-      color: var(--brand);
-      font-weight: 500;
-      text-decoration: underline;
-    }
-    .sources a:hover {
-      text-decoration: none;
+    .hero h1{ margin:0 0 8px; font-size:28px; line-height:1.2;}
+    .hero p{ margin:6px 0 0; color:var(--muted);}
 
-    .src-quote {
-      margin-top: 4px;
-      padding-left: 10px;
-      border-left: 3px solid #e5e7eb;
-      color: #475569;        /* slate-600 */
-      font-size: 13px;
-      font-style: italic;
-      line-height: 1.5;
-      white-space: pre-wrap; /* preserve line breaks */
+    .starters{ display:flex; flex-direction:column; gap:10px; margin:12px 0 16px;}
+    .starter-btn{ display:block; text-align:left; border:1px solid #e5e7eb; background:#fff;
+      border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.05);
     }
-    input[type="text"] {
-      flex:1; padding:12px; border-radius:10px; border:1px solid #e5e7eb;
+    .starter-btn:hover{ background:#f9fafb;}
+
+    .chat{ background:var(--card-bg); border-radius:16px; padding:16px;
+      box-shadow:0 4px 14px rgba(15,23,42,0.08); min-height:280px;
     }
-    button.send {
-      padding:12px 16px;
-      border-radius:10px;
-      border:0;
-      background: var(--brand);
-      color:#fff;
-      cursor:pointer;
+    .msg{ white-space:pre-wrap; margin:0 0 14px;}
+    .msg.user{ background:#eff6ff; padding:10px 12px; border-radius:10px;}
+    .msg.assistant{ background:#f8fafc; padding:10px 12px; border-radius:10px;}
+    .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25;
+      border-left:4px solid var(--brand); padding-left:8px;
     }
-    button.send[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+    .sources{
+      margin-top:16px; padding:12px; border:1px solid #e5e7eb; border-radius:10px;
+      background:#f9fafb; font-size:14px; line-height:1.5;
+    }
+    .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
+    .sources ul{ margin:0; padding-left:18px;}
+    .sources li{ margin-bottom:4px;}
+    .sources a{ color:var(--brand); font-weight:500; text-decoration:underline;}
+    .sources a:hover{ text-decoration:none;}
+    .src-quote{
+      margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb;
+      color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap;
+    }
+
+    .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:12px;}
+    textarea#msg{
+      flex:1; padding:14px 16px; font-size:16px; line-height:1.35;
+      border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px;
+    }
+    button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand);
+      color:#fff; cursor:pointer; font-size:16px; font-weight:600;}
+    button.send[disabled]{ opacity:.6; cursor:not-allowed;}
   </style>
 </head>
 <body>
@@ -167,8 +70,8 @@
       <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
     </div>
 
-    <!-- Replace your current starters buttons with just this container -->
-      <div class="starters" id="starters"></div>
+    <!-- Prompts (auto-rendered by JS) -->
+    <div class="starters" id="starters"></div>
 
     <div class="chat" id="chat"></div>
 
@@ -176,9 +79,46 @@
       <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
       <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
     </div>
-    
+  </div>
+
   <script>
-    // Markdown helper
+    // ---------- Prompts ----------
+    const STARTER_PROMPTS = [
+      {
+        label: "My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?",
+        msg:   "My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?"
+      },
+      {
+        label: "I’m a retired player with mood swings and poor sleep — where can I find support?",
+        msg:   "I’m a retired player with mood swings and poor sleep — where can I find support in Australia?"
+      },
+      {
+        label: "I left football 10+ years ago — are there Australian clinics that check memory and thinking?",
+        msg:   "I left football 10+ years ago — are there Australian clinics that check memory and thinking?"
+      },
+      {
+        label: "I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?",
+        msg:   "I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?"
+      },
+      {
+        label: "What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?",
+        msg:   "What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?"
+      }
+    ];
+
+    function renderStarters() {
+      const box = document.getElementById('starters');
+      box.innerHTML = '';
+      STARTER_PROMPTS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'starter-btn';
+        btn.textContent = p.label;
+        btn.addEventListener('click', () => sendMsg(p.msg));
+        box.appendChild(btn);
+      });
+    }
+
+    // ---------- Rendering helpers ----------
     function mdToHtml(md) {
       if (!md) return '';
       let s = md;
@@ -189,6 +129,13 @@
       s = s.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br/>');
       return '<p>'+s+'</p>';
     }
+
+    function trimQuote(q, max = 280) {
+      if (!q) return '';
+      const t = q.trim();
+      return t.length > max ? t.slice(0, max) + '…' : t;
+    }
+
     function addMsg(role, text, sources) {
       const chat = document.getElementById('chat');
       const div = document.createElement('div');
@@ -201,7 +148,10 @@
           let html = '<strong>Sources</strong><ul>';
           for (const s of sources) {
             const href = `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
-            html += `<li><a href="${href}" target="_blank" rel="noopener">${s.filename || s.file_id}</a></li>`;
+            html += `<li>
+              <a href="${href}" target="_blank" rel="noopener">${s.filename || s.file_id}</a>
+              ${s.quote && s.quote.trim() ? `<div class="src-quote">“${trimQuote(s.quote)}”</div>` : ``}
+            </li>`;
           }
           html += '</ul>';
           src.innerHTML = html;
@@ -213,47 +163,8 @@
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
-    <script>
-  // 1) Your exact prompt texts (edit here anytime)
-  const STARTER_PROMPTS = [
-    {
-      label: "My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?",
-      msg:   "My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?"
-    },
-    {
-      label: "I’m a retired player with mood swings and poor sleep — where can I find support?",
-      msg:   "I’m a retired player with mood swings and poor sleep — where can I find support in Australia?"
-    },
-    {
-      label: "I left football 10+ years ago — are there Australian clinics that check memory and thinking?",
-      msg:   "I left football 10+ years ago — are there Australian clinics that check memory and thinking?"
-    },
-    {
-      label: "I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?",
-      msg:   "I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?"
-    },
-    {
-      label: "What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?",
-      msg:   "What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?"
-    }
-  ];
 
-  // 2) Render starter buttons from the array
-  function renderStarters() {
-    const box = document.getElementById('starters');
-    box.innerHTML = '';
-    STARTER_PROMPTS.forEach(p => {
-      const btn = document.createElement('button');
-      btn.className = 'starter-btn';
-      btn.textContent = p.label;
-      btn.addEventListener('click', () => sendMsg(p.msg));
-      box.appendChild(btn);
-    });
-  }
-  document.addEventListener('DOMContentLoaded', renderStarters);
-
-  // (keep your mdToHtml, addMsg, and sendMsg functions)
-</script>    
+    // ---------- Send message ----------
     async function sendMsg(txt) {
       const inp = document.getElementById('msg');
       const content = (txt || inp.value || '').trim();
@@ -263,11 +174,11 @@
       document.getElementById('sendBtn').disabled = true;
       try {
         const r = await fetch('/api/mascot', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: content })
         });
-        const data = await r.json().catch(()=>({}));
+        const data = await r.json().catch(() => ({}));
         if (!r.ok) {
           const detail = typeof data?.detail === 'string' ? ` (${data.detail})` : '';
           addMsg('assistant', 'Sorry — server error' + detail);
@@ -280,6 +191,9 @@
         document.getElementById('sendBtn').disabled = false;
       }
     }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', renderStarters);
   </script>
 </body>
 </html>
