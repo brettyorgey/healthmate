@@ -41,12 +41,13 @@
       padding:10px 12px; border-radius:12px 12px 12px 0;
     }
 
-    /* Clear section headings inside answers */
+    /* Section headings inside answers */
     .msg.assistant h2,.msg.assistant h3{
       margin:10px 0 6px; font-size:18px; line-height:1.25;
       border-left:4px solid var(--brand); padding-left:8px;
     }
 
+    /* Sources card */
     .sources{
       margin-top:16px; padding:12px; border:1px solid #e5e7eb; border-radius:10px;
       background:#f9fafb; font-size:14px; line-height:1.5;
@@ -61,16 +62,31 @@
       color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap;
     }
 
+    /* Input row with mic */
     .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:12px;}
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
-    button.send[disabled]{ opacity:.6; cursor:not-allowed; }
+    button.send[disabled]{ opacity:.6; cursor:not-allowed;}
+
+    .btn-icon{
+      padding:0 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:18px;
+      display:flex; align-items:center; justify-content:center; min-width:56px;
+    }
+    .btn-icon:hover{ background:#f9fafb; }
+    .mic-recording{ color:#dc2626; border-color:#fecaca; background:#fff5f5; }
+    .mic-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-left:6px; animation:pulse 1s infinite; }
+    @keyframes pulse{ 0%{ transform:scale(.85); opacity:.7;} 50%{ transform:scale(1); opacity:1;} 100%{ transform:scale(.85); opacity:.7;} }
 
     /* Loading “Thinking…” bubble */
     .thinking{ display:inline-flex; gap:6px; align-items:center; color:#475569; }
     .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; opacity:.6; animation:b 1.3s infinite ease-in-out; }
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
+
+    /* Small button under assistant message (Listen) */
+    .inline-controls{ margin-top:8px; display:flex; gap:8px; }
+    .mini-btn{ padding:6px 8px; font-size:12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer; }
+    .mini-btn:hover{ background:#f3f4f6; }
   </style>
 </head>
 <body>
@@ -87,9 +103,10 @@
 
     <div class="starters" id="starters"></div>
 
-    <div class="chat" id="chat"></div>
+    <div class="chat" id="chat" aria-live="polite"></div>
 
     <div class="inputRow">
+      <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
       <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
       <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
     </div>
@@ -118,7 +135,6 @@
     }
 
     // ---------- Markdown + rendering helpers ----------
-    // Ensure the Assistant is instructed (in its dashboard Instructions) to reply in Markdown with clear section headers (## ...).
     function mdToHtml(md){
       if(!md) return '';
       let s=md;
@@ -134,12 +150,33 @@
     // Keep a transcript for "Copy conversation"
     const TRANSCRIPT = []; // {role, text}
 
+    // ---------- TTS (Listen) ----------
+    function speakText(text){
+      if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
+      try{
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-AU';  // Aussie English if available
+        u.rate = 1.0;      // 0.8 slower, 1.2 faster
+        u.pitch = 1.0;
+        window.speechSynthesis.speak(u);
+      }catch(e){ console.warn('TTS error:', e); }
+    }
+
+    // ---------- Rendering ----------
     function addMsg(role,text,sources){
       TRANSCRIPT.push({role, text: text || ''});
       const chat=document.getElementById('chat');
       const div=document.createElement('div'); div.className='msg '+role;
       if(role==='assistant'){
         div.innerHTML=mdToHtml(text||'');
+        // small inline controls (Listen)
+        const controls=document.createElement('div'); controls.className='inline-controls';
+        const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
+        listenBtn.addEventListener('click',()=>speakText(text||''));
+        controls.appendChild(listenBtn);
+        div.appendChild(controls);
+
         if(Array.isArray(sources)&&sources.length){
           const src=document.createElement('div'); src.className='sources';
           let html='<strong>Sources</strong><ul>';
@@ -162,7 +199,7 @@
 
     // ---------- Loading indicator ----------
     function showThinking(){
-      const div=addMsg('assistant',''); // placeholder
+      const div=addMsg('assistant',''); // placeholder bubble
       div.innerHTML = '<span class="thinking" aria-live="polite" aria-label="Assistant is thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Thinking…</span>';
       return div;
     }
@@ -204,9 +241,64 @@
       }
     }
 
+    // ---------- Speech-to-Text (mic) ----------
+    let recognition = null;
+    let listening = false;
+
+    function getRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR) return null;
+      const r = new SR();
+      r.lang = 'en-AU';
+      r.interimResults = false;
+      r.maxAlternatives = 1;
+      return r;
+    }
+
+    function updateMicUI(active){
+      const btn = document.getElementById('micBtn');
+      if(active){
+        btn.classList.add('mic-recording');
+        btn.innerHTML = '⏺️<span class="mic-dot" aria-hidden="true"></span>';
+        btn.title = 'Stop recording';
+      } else {
+        btn.classList.remove('mic-recording');
+        btn.textContent = '🎤';
+        btn.title = 'Speak your question';
+      }
+    }
+
+    function startListening(){
+      if(listening) return;
+      recognition = getRecognition();
+      if(!recognition){ alert('Speech recognition not supported in this browser. Try Chrome or Edge.'); return; }
+      listening = true; updateMicUI(true);
+      recognition.onresult = (event)=>{
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('msg').value = transcript;
+        // auto-send for smoother UX
+        sendMsg(transcript);
+      };
+      recognition.onerror = (e)=>{
+        console.warn('STT error', e);
+        updateMicUI(false); listening=false;
+      };
+      recognition.onend = ()=>{
+        updateMicUI(false); listening=false;
+      };
+      try { recognition.start(); } catch(e){ console.warn('start() failed', e); updateMicUI(false); listening=false; }
+    }
+
+    function stopListening(){
+      if(recognition && listening){
+        try { recognition.stop(); } catch(e){ /* ignore */ }
+      }
+    }
+
     // Init
     document.getElementById('copyBtn').addEventListener('click', copyConversation);
     document.getElementById('resetBtn').addEventListener('click', resetChat);
+    document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
     document.addEventListener('DOMContentLoaded', renderStarters);
   </script>
 </body>
