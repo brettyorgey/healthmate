@@ -1,10 +1,29 @@
 // api/mascot.js — Assistants API v2 + File Search (with citations)
 
 const RED_FLAGS = [
-  /loss of consciousness|passed out/i, /seizure|convulsion/i,
-  /repeated vomiting/i, /worsening headache/i, /slurred speech/i,
-  /weakness|numbness/i, /increasing confusion|very hard to wake/i,
-  /fluid from (ear|nose)|bleeding from (ear|nose)/i, /severe (neck|back) pain/i,
+  // consciousness / seizure
+  /loss of consciousness|passed\s?out|fainted/i,
+  /seizure|convulsion/i,
+
+  // persistent or repeated vomiting, any phrasing
+  /\bpersist(ent|ing)\s+vomit/i,
+  /\brepeated\s+vomit/i,
+  /\bvomit(ing)?\s+(again|all day|for the last|for (a|the)? few|for several|for \d+ (hours|days))/i,
+
+  // severe/worsening headache, slurred speech, weakness/numbness
+  /\bworsen(ing)?\s+headache/i,
+  /\bsevere\s+headache/i,
+  /\bslurred\s+speech/i,
+  /\b(weakness|numbness|tingling)\b/i,
+
+  // confusion, very drowsy/hard to wake
+  /\b(increasing\s+)?confusion\b/i,
+  /\b(very\s+)?drowsy\b/i,
+  /\bhard\s+to\s+wake\b/i,
+
+  // neck/back severe pain, fluid/blood from ear/nose
+  /\bsevere\s+(neck|back)\s+pain\b/i,
+  /\b(fluid|blood)\s+from\s+(the\s+)?(ear|nose)\b/i
 ];
 
 const ESCALATION = `**Seek urgent medical care now**
@@ -18,7 +37,7 @@ While waiting:
 *Information only — not a medical diagnosis. In an emergency call 000.*`;
 
 const POLL_INTERVAL_MS = Number(process.env.ASSISTANT_POLL_INTERVAL_MS || 900);
-const MAX_POLL_MS      = Number(process.env.ASSISTANT_MAX_POLL_MS || 45000);
+const MAX_POLL_MS      = Number(process.env.ASSISTANT_MAX_POLL_MS || 45000); // you can raise to 60000
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
