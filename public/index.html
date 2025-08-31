@@ -82,14 +82,34 @@
       padding-left: 8px;
     }
     .sources {
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid #e5e7eb;
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #f9fafb;
       font-size: 14px;
+      line-height: 1.5;
     }
-    .sources a { color: var(--brand); text-decoration: underline; }
-    .inputRow {
-      display:flex; gap:8px; align-items:stretch; margin-top:12px;
+    .sources strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .sources ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .sources li {
+      margin-bottom: 4px;
+    }
+    .sources a {
+      color: var(--brand);
+      font-weight: 500;
+      text-decoration: underline;
+    }
+    .sources a:hover {
+      text-decoration: none;
     }
     input[type="text"] {
       flex:1; padding:12px; border-radius:10px; border:1px solid #e5e7eb;
