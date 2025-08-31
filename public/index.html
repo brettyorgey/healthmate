@@ -168,9 +168,14 @@
         const r=await fetch('/api/mascot',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:content}) });
         const data=await r.json().catch(()=>({}));
         thinkingEl.remove();
-        if(!r.ok){
-          const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail);
-        }else{
+        if (!r.ok) {
+        if (r.status === 504) {
+          addMsg('assistant', 'Sorry — the assistant is taking longer than usual. Please try again, or rephrase your question more specifically.');
+        } else {
+        const detail = typeof data?.detail === 'string' ? ` (${data.detail})` : '';
+        addMsg('assistant', 'Sorry — server error' + detail);
+        }
+        } else {
           addMsg('assistant', data.output || 'No response', data.sources);
         }
       }catch(e){
