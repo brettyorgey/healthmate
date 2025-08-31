@@ -1,5 +1,5 @@
 // api/mascot.js — Assistants API v2 + File Search (with citations)
-
+export const config = { runtime: "nodejs" };
 const RED_FLAGS = [
   // consciousness / seizure
   /loss of consciousness|passed\s?out|fainted/i,
