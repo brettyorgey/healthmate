@@ -68,6 +68,31 @@
       padding: 16px;
       box-shadow: 0 4px 14px rgba(15,23,42,0.08);
       min-height: 280px;
+    /* Starters look the same */
+    .starters { display:flex; flex-direction:column; gap:10px; margin:12px 0 16px 0; }
+    /* Bigger multiline composer */
+    .inputRow { display:flex; gap:10px; align-items:stretch; margin-top:12px; }
+    textarea#msg {
+      flex: 1;
+      padding: 14px 16px;
+      font-size: 16px;
+      line-height: 1.35;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      resize: vertical;          /* allow user to drag taller */
+      min-height: 72px;          /* ~3 lines */
+      max-height: 300px;
+    }
+    button.send {
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 0;
+      background: var(--brand);
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    
     }
     .msg { white-space: pre-wrap; margin: 0 0 14px 0; }
     .msg.user { background:#eff6ff; padding:10px 12px; border-radius:10px; }
@@ -142,23 +167,16 @@
       <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
     </div>
 
-    <!-- Starter prompts stacked -->
-    <div class="starters">
-      <button class="starter-btn" onclick="sendMsg('My partner has been out of football for 15 years and is forgetting tasks. What should we do and who can help in Australia?')">Memory & thinking changes after years out of footy</button>
-      <button class="starter-btn" onclick="sendMsg('I’m a past player and feel low most days. What’s a sensible first step and where can I talk to someone privately?')">Feeling low / first steps & helplines</button>
-      <button class="starter-btn" onclick="sendMsg('I get headaches and light sensitivity after old knocks. What should I do now and how do I track symptoms?')">Headaches & light sensitivity</button>
-      <button class="starter-btn" onclick="sendMsg('As a family member, how can I support a past player who is getting forgetful without causing conflict?')">Family support without conflict</button>
-      <button class="starter-btn" onclick="sendMsg('When should a past player see a GP vs. a specialist for cognitive concerns, and how to prepare for the appointment?')">GP vs specialist & appointment prep</button>
-    </div>
+    <!-- Replace your current starters buttons with just this container -->
+      <div class="starters" id="starters"></div>
 
     <div class="chat" id="chat"></div>
 
     <div class="inputRow">
-      <input id="msg" type="text" placeholder="Type your question…" />
+      <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
       <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
     </div>
-  </div>
-
+    
   <script>
     // Markdown helper
     function mdToHtml(md) {
@@ -171,7 +189,6 @@
       s = s.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br/>');
       return '<p>'+s+'</p>';
     }
-
     function addMsg(role, text, sources) {
       const chat = document.getElementById('chat');
       const div = document.createElement('div');
@@ -196,7 +213,47 @@
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
+    <script>
+  // 1) Your exact prompt texts (edit here anytime)
+  const STARTER_PROMPTS = [
+    {
+      label: "My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?",
+      msg:   "My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?"
+    },
+    {
+      label: "I’m a retired player with mood swings and poor sleep — where can I find support?",
+      msg:   "I’m a retired player with mood swings and poor sleep — where can I find support in Australia?"
+    },
+    {
+      label: "I left football 10+ years ago — are there Australian clinics that check memory and thinking?",
+      msg:   "I left football 10+ years ago — are there Australian clinics that check memory and thinking?"
+    },
+    {
+      label: "I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?",
+      msg:   "I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?"
+    },
+    {
+      label: "What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?",
+      msg:   "What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?"
+    }
+  ];
 
+  // 2) Render starter buttons from the array
+  function renderStarters() {
+    const box = document.getElementById('starters');
+    box.innerHTML = '';
+    STARTER_PROMPTS.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'starter-btn';
+      btn.textContent = p.label;
+      btn.addEventListener('click', () => sendMsg(p.msg));
+      box.appendChild(btn);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', renderStarters);
+
+  // (keep your mdToHtml, addMsg, and sendMsg functions)
+</script>    
     async function sendMsg(txt) {
       const inp = document.getElementById('msg');
       const content = (txt || inp.value || '').trim();
