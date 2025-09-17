@@ -5,7 +5,7 @@
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Optional: Cloudflare Turnstile if you enabled captcha in the API -->
+  <!-- Optional: Cloudflare Turnstile (captcha) if enabled in API -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
@@ -40,6 +40,17 @@
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
+    /* NEW: Category badge */
+    .cat-tag{
+      display:inline-flex; align-items:center; gap:8px;
+      margin-top:6px; margin-bottom:6px;
+      background:#e0f2fe; color:#075985; border:1px solid #bae6fd;
+      padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600;
+    }
+    .cat-tag .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:#0ea5e9; }
+    .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
+    .cat-tag a:hover{ text-decoration:none; }
+
     /* Chat area embedded under prompts */
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; margin-top:14px; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
@@ -73,10 +84,6 @@
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
 
-    .inline-controls{ margin-top:8px; display:flex; gap:8px; }
-    .mini-btn{ padding:6px 8px; font-size:12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer; }
-    .mini-btn:hover{ background:#f3f4f6; }
-
     /* Visibility */
     #categoryView, #promptView { display:none; }
     #categoryView.active, #promptView.active { display:block; }
@@ -103,10 +110,18 @@
         <div id="promptTitle" class="category-title"></div>
         <div class="back-link" onclick="showCategories()">← Back to Categories</div>
       </div>
+
+      <!-- NEW: category badge -->
+      <div id="activeCategory" class="cat-tag" style="display:none;">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="activeCategoryText">You’re asking about: …</span>
+        <a href="javascript:void(0)" onclick="showCategories()" aria-label="Change category">Change category</a>
+      </div>
+
       <div id="promptList" class="prompts"></div>
 
-      <!-- Chat lives here (under the 5 prompts) -->
-      <div class="chat" id="chat"></div>
+      <!-- Chat lives here (under the prompts) -->
+      <div class="chat" id="chat" aria-live="polite"></div>
       <div class="inputRow">
         <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
         <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
@@ -129,6 +144,10 @@
     const promptView   = document.getElementById('promptView');
     const promptTitle  = document.getElementById('promptTitle');
     const promptList   = document.getElementById('promptList');
+
+    // NEW: badge elements
+    const activeCategoryEl = document.getElementById('activeCategory');
+    const activeCategoryTextEl = document.getElementById('activeCategoryText');
 
     const EMOJI = {
       "Psychological": "🧠", "Physical": "🏋️", "Career": "💼", "Family": "👨‍👩‍👧‍👦",
@@ -229,7 +248,7 @@
 
     // ----- Send message (stays on prompt view) -----
     async function sendMsg(txt){
-      // Ensure we are on the prompt view (chat lives here)
+      // Ensure we are on the prompt view (chat area is here)
       categoryView.classList.remove('active');
       promptView.classList.add('active');
 
@@ -259,6 +278,17 @@
       }finally{
         document.getElementById('sendBtn').disabled=false;
       }
+    }
+
+    // ----- Category badge helpers -----
+    function setActiveCategory(label){
+      const shortLabel = (label || '').split(' – ')[0] || label || 'General';
+      activeCategoryTextEl.textContent = `You’re asking about: ${shortLabel}`;
+      activeCategoryEl.style.display = 'inline-flex';
+    }
+    function clearActiveCategory(){
+      activeCategoryEl.style.display = 'none';
+      activeCategoryTextEl.textContent = 'You’re asking about: …';
     }
 
     // ----- Categories & prompts -----
@@ -297,13 +327,15 @@
       });
       categoryView.classList.add('active');
       promptView.classList.remove('active');
-      // clear chat when returning home
+      // clear state
       resetChat();
       document.getElementById('msg').value='';
+      clearActiveCategory();
     }
 
     function showPrompts(label){
       promptTitle.textContent = label;
+      setActiveCategory(label);
       promptList.innerHTML = '';
       (PROMPTS[label]||[]).forEach(p=>{
         const btn = document.createElement('button');
