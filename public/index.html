@@ -5,13 +5,14 @@
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Turnstile (optional; keeps your human check if you added it) -->
+  <!-- Optional: Cloudflare Turnstile if you enabled captcha in the API -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
     :root { --card-bg:#ffffff; --page-bg:#f7f9fc; --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; }
     body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
+
     .hero { background:var(--card-bg); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; }
     .hero h1{ margin:0 0 8px; font-size:28px; line-height:1.2;}
     .hero p{ margin:6px 0 0; color:var(--muted);}
@@ -20,7 +21,7 @@
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
     .btn-sm:hover{ background:#f9fafb; }
 
-    /* Category grid and cards */
+    /* Category list */
     .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
     .category-card{
       display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer;
@@ -31,7 +32,7 @@
     .category-title{ font-weight:700; }
     .category-sub{ color:#64748b; font-size:14px; }
 
-    /* Prompt list */
+    /* Prompt + chat panel */
     .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
     .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
@@ -39,15 +40,15 @@
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
-    /* Chat */
-    .chat{ background:#fff; border-radius:16px; padding:16px; box-shadow:0 4px 14px rgba(15,23,42,0.08); min-height:280px; display:flex; flex-direction:column; gap:10px; }
+    /* Chat area embedded under prompts */
+    .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; margin-top:14px; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
     /* Sources */
-    .sources{ margin-top:16px; padding:12px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
+    .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
     .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
     .sources ul{ margin:0; padding-left:18px; }
     .sources li{ margin-bottom:4px; }
@@ -56,7 +57,7 @@
     .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
 
     /* Input row with mic */
-    .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:12px;}
+    .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:6px;}
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
     button.send[disabled]{ opacity:.6; cursor:not-allowed; }
@@ -76,9 +77,9 @@
     .mini-btn{ padding:6px 8px; font-size:12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer; }
     .mini-btn:hover{ background:#f3f4f6; }
 
-    /* Sections visibility */
-    #categoryView, #promptView, #chatView { display:none; }
-    #categoryView.active, #promptView.active, #chatView.active { display:block; }
+    /* Visibility */
+    #categoryView, #promptView { display:none; }
+    #categoryView.active, #promptView.active { display:block; }
   </style>
 </head>
 <body>
@@ -96,58 +97,47 @@
     <!-- Step 1: Categories -->
     <div id="categoryView" class="categories active" aria-live="polite"></div>
 
-    <!-- Step 2: Prompts for a category -->
+    <!-- Step 2: Sub-prompts + embedded chat -->
     <div id="promptView" class="prompt-panel" aria-live="polite">
       <div class="prompt-header">
         <div id="promptTitle" class="category-title"></div>
         <div class="back-link" onclick="showCategories()">← Back to Categories</div>
       </div>
       <div id="promptList" class="prompts"></div>
-    </div>
 
-    <!-- Step 3: Chat -->
-    <div id="chatView">
+      <!-- Chat lives here (under the 5 prompts) -->
       <div class="chat" id="chat"></div>
       <div class="inputRow">
         <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
         <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
         <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
       </div>
-      <!-- Turnstile widget (optional; keep if you’re using captcha) -->
+
+      <!-- Optional Turnstile captcha (remove if not used) -->
       <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-callback="onCaptcha"></div>
     </div>
   </div>
 
   <script>
-    // Captcha token (if using Turnstile)
+    // ----- Optional captcha token -----
     let captchaToken = '';
     function onCaptcha(token){ captchaToken = token; }
 
-    // Data
+    // ----- Data & views -----
     let PROMPTS = {};
+    const categoryView = document.getElementById('categoryView');
+    const promptView   = document.getElementById('promptView');
+    const promptTitle  = document.getElementById('promptTitle');
+    const promptList   = document.getElementById('promptList');
+
     const EMOJI = {
-      "Psychological": "🧠",
-      "Physical": "🏋️",
-      "Career": "💼",
-      "Family": "👨‍👩‍👧‍👦",
-      "Cultural": "🌏",
-      "Identity": "🎭",
-      "Financial": "💰",
-      "Environmental": "⚠️",
-      "Female": "♀️"
+      "Psychological": "🧠", "Physical": "🏋️", "Career": "💼", "Family": "👨‍👩‍👧‍👦",
+      "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
     };
 
-    // Views
-    const categoryView = document.getElementById('categoryView');
-    const promptView = document.getElementById('promptView');
-    const chatView = document.getElementById('chatView');
-    const promptTitle = document.getElementById('promptTitle');
-    const promptList  = document.getElementById('promptList');
+    // ----- Transcript & rendering -----
+    const TRANSCRIPT = []; // {role,text}
 
-    // Transcript
-    const TRANSCRIPT = [];
-
-    // Markdown
     function mdToHtml(md){
       if(!md) return '';
       let s=md;
@@ -160,19 +150,16 @@
     }
     function trimQuote(q,max=280){ if(!q) return ''; const t=q.trim(); return t.length>max?t.slice(0,max)+'…':t; }
 
-    // TTS
     function speakText(text){
       if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
       try{
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-AU';
-        u.rate = 1.0; u.pitch = 1.0;
+        u.lang = 'en-AU'; u.rate = 1.0; u.pitch = 1.0;
         window.speechSynthesis.speak(u);
       }catch(e){ console.warn('TTS error:', e); }
     }
 
-    // Rendering
     function addMsg(role,text,sources){
       TRANSCRIPT.push({role, text: text || ''});
       const chat=document.getElementById('chat');
@@ -207,7 +194,6 @@
       return div;
     }
 
-    // Copy / Reset
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
@@ -215,12 +201,9 @@
       const btn=document.getElementById('copyBtn'); const old=btn.textContent;
       btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
     }
-    function resetChat(){
-      TRANSCRIPT.splice(0,TRANSCRIPT.length);
-      document.getElementById('chat').innerHTML='';
-    }
+    function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); document.getElementById('chat').innerHTML=''; }
 
-    // STT (mic)
+    // ----- Speech-to-Text (mic) -----
     let recognition = null; let listening = false;
     function getRecognition(){
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -244,12 +227,11 @@
     }
     function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(e){} } }
 
-    // Send
+    // ----- Send message (stays on prompt view) -----
     async function sendMsg(txt){
-      // ensure chat view visible
+      // Ensure we are on the prompt view (chat lives here)
       categoryView.classList.remove('active');
-      promptView.classList.remove('active');
-      chatView.classList.add('active');
+      promptView.classList.add('active');
 
       const inp=document.getElementById('msg');
       const content=(txt || inp.value || '').trim(); if(!content) return;
@@ -279,7 +261,7 @@
       }
     }
 
-    // Categories + prompts UI
+    // ----- Categories & prompts -----
     async function loadPrompts(){
       const res = await fetch('/prompts.json');
       PROMPTS = await res.json();
@@ -315,7 +297,9 @@
       });
       categoryView.classList.add('active');
       promptView.classList.remove('active');
-      chatView.classList.remove('active');
+      // clear chat when returning home
+      resetChat();
+      document.getElementById('msg').value='';
     }
 
     function showPrompts(label){
@@ -330,7 +314,6 @@
       });
       categoryView.classList.remove('active');
       promptView.classList.add('active');
-      chatView.classList.remove('active');
     }
 
     function showCategories(){ renderCategories(); }
