@@ -4,14 +4,15 @@
   <meta charset="UTF-8" />
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Turnstile (optional; keeps your human check if you added it) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
   <style>
     :root { --card-bg:#ffffff; --page-bg:#f7f9fc; --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; }
-    body { margin:0; background:var(--page-bg); color:var(--text);
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
-
-    .hero { background:var(--card-bg); border-radius:16px; padding:24px;
-      box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; }
+    .hero { background:var(--card-bg); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; }
     .hero h1{ margin:0 0 8px; font-size:28px; line-height:1.2;}
     .hero p{ margin:6px 0 0; color:var(--muted);}
 
@@ -19,82 +20,72 @@
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
     .btn-sm:hover{ background:#f9fafb; }
 
-    .starters{ display:flex; flex-direction:column; gap:10px; margin:12px 0 16px; }
-    .starter-btn{ display:block; text-align:left; border:1px solid #e5e7eb; background:#fff;
-      border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
-    .starter-btn:hover{ background:#f9fafb; }
-
-    .chat{
-      background:var(--card-bg); border-radius:16px; padding:16px;
-      box-shadow:0 4px 14px rgba(15,23,42,0.08); min-height:280px;
-      display:flex; flex-direction:column; gap:10px;
+    /* Category grid and cards */
+    .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
+    .category-card{
+      display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,.05);
     }
+    .category-card:hover{ background:#f9fafb; }
+    .category-emoji{ font-size:22px; }
+    .category-title{ font-weight:700; }
+    .category-sub{ color:#64748b; font-size:14px; }
 
-    /* Bubble layout: user right (blue), assistant left (grey) */
+    /* Prompt list */
+    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
+    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+    .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
+    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+    .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
+    .prompt-btn:hover{ background:#f9fafb; }
+
+    /* Chat */
+    .chat{ background:#fff; border-radius:16px; padding:16px; box-shadow:0 4px 14px rgba(15,23,42,0.08); min-height:280px; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
-    .msg.user{
-      align-self:flex-end; background:#dbeafe; color:#0f172a;
-      padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right;
-    }
-    .msg.assistant{
-      align-self:flex-start; background:#f8fafc; color:#0f172a;
-      padding:10px 12px; border-radius:12px 12px 12px 0;
-    }
+    .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
+    .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
+    .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
-    /* Section headings inside answers */
-    .msg.assistant h2,.msg.assistant h3{
-      margin:10px 0 6px; font-size:18px; line-height:1.25;
-      border-left:4px solid var(--brand); padding-left:8px;
-    }
-
-    /* Sources card */
-    .sources{
-      margin-top:16px; padding:12px; border:1px solid #e5e7eb; border-radius:10px;
-      background:#f9fafb; font-size:14px; line-height:1.5;
-    }
+    /* Sources */
+    .sources{ margin-top:16px; padding:12px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
     .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
     .sources ul{ margin:0; padding-left:18px; }
     .sources li{ margin-bottom:4px; }
     .sources a{ color:var(--brand); font-weight:500; text-decoration:underline; }
     .sources a:hover{ text-decoration:none; }
-    .src-quote{
-      margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb;
-      color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap;
-    }
+    .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
 
     /* Input row with mic */
     .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:12px;}
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
-    button.send[disabled]{ opacity:.6; cursor:not-allowed;}
-
-    .btn-icon{
-      padding:0 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:18px;
-      display:flex; align-items:center; justify-content:center; min-width:56px;
-    }
+    button.send[disabled]{ opacity:.6; cursor:not-allowed; }
+    .btn-icon{ padding:0 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; min-width:56px; }
     .btn-icon:hover{ background:#f9fafb; }
     .mic-recording{ color:#dc2626; border-color:#fecaca; background:#fff5f5; }
     .mic-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-left:6px; animation:pulse 1s infinite; }
     @keyframes pulse{ 0%{ transform:scale(.85); opacity:.7;} 50%{ transform:scale(1); opacity:1;} 100%{ transform:scale(.85); opacity:.7;} }
 
-    /* Loading “Thinking…” bubble */
+    /* Thinking… */
     .thinking{ display:inline-flex; gap:6px; align-items:center; color:#475569; }
     .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; opacity:.6; animation:b 1.3s infinite ease-in-out; }
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
 
-    /* Small button under assistant message (Listen) */
     .inline-controls{ margin-top:8px; display:flex; gap:8px; }
     .mini-btn{ padding:6px 8px; font-size:12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer; }
     .mini-btn:hover{ background:#f3f4f6; }
+
+    /* Sections visibility */
+    #categoryView, #promptView, #chatView { display:none; }
+    #categoryView.active, #promptView.active, #chatView.active { display:block; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="hero">
-      <h1>Welcome — we’re here to support past players along with their families and friends.</h1>
+      <h1>Welcome — we’re here to support past players & families.</h1>
       <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
-      <p>Select a prompt below or type in your question, use the "Copy conversation" option to share with your GP.</p>
     </div>
 
     <div class="toolbar">
@@ -102,40 +93,61 @@
       <button class="btn-sm" id="resetBtn" title="Clear chat">Reset chat</button>
     </div>
 
-    <div class="starters" id="starters"></div>
+    <!-- Step 1: Categories -->
+    <div id="categoryView" class="categories active" aria-live="polite"></div>
 
-    <div class="chat" id="chat" aria-live="polite"></div>
+    <!-- Step 2: Prompts for a category -->
+    <div id="promptView" class="prompt-panel" aria-live="polite">
+      <div class="prompt-header">
+        <div id="promptTitle" class="category-title"></div>
+        <div class="back-link" onclick="showCategories()">← Back to Categories</div>
+      </div>
+      <div id="promptList" class="prompts"></div>
+    </div>
 
-    <div class="inputRow">
-      <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
-      <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
-      <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
+    <!-- Step 3: Chat -->
+    <div id="chatView">
+      <div class="chat" id="chat"></div>
+      <div class="inputRow">
+        <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
+        <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
+        <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
+      </div>
+      <!-- Turnstile widget (optional; keep if you’re using captcha) -->
+      <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-callback="onCaptcha"></div>
     </div>
   </div>
 
   <script>
-    // ---------- Starter prompts ----------
-    const STARTER_PROMPTS = [
-      { label:"My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?",
-        msg:"My partner retired from footy 15 years ago and now gets headaches and forgets tasks — what should we do?" },
-      { label:"I’m a retired player with mood swings and poor sleep — where can I find support?",
-        msg:"I’m a retired player with mood swings and poor sleep — where can I find support in Australia?" },
-      { label:"I left football 10+ years ago — are there Australian clinics that check memory and thinking?",
-        msg:"I left football 10+ years ago — are there Australian clinics that check memory and thinking?" },
-      { label:"I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?",
-        msg:"I’m caring for a former teammate with worsening headaches and anxiety — what help is available for partners/carers?" },
-      { label:"What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?",
-        msg:"What’s the difference between post-concussion symptoms and CTE, and where can I read reliable info?" }
-    ];
-    function renderStarters(){
-      const box=document.getElementById('starters'); box.innerHTML='';
-      STARTER_PROMPTS.forEach(p=>{
-        const b=document.createElement('button'); b.className='starter-btn'; b.textContent=p.label;
-        b.addEventListener('click',()=>sendMsg(p.msg)); box.appendChild(b);
-      });
-    }
+    // Captcha token (if using Turnstile)
+    let captchaToken = '';
+    function onCaptcha(token){ captchaToken = token; }
 
-    // ---------- Markdown + rendering helpers ----------
+    // Data
+    let PROMPTS = {};
+    const EMOJI = {
+      "Psychological": "🧠",
+      "Physical": "🏋️",
+      "Career": "💼",
+      "Family": "👨‍👩‍👧‍👦",
+      "Cultural": "🌏",
+      "Identity": "🎭",
+      "Financial": "💰",
+      "Environmental": "⚠️",
+      "Female": "♀️"
+    };
+
+    // Views
+    const categoryView = document.getElementById('categoryView');
+    const promptView = document.getElementById('promptView');
+    const chatView = document.getElementById('chatView');
+    const promptTitle = document.getElementById('promptTitle');
+    const promptList  = document.getElementById('promptList');
+
+    // Transcript
+    const TRANSCRIPT = [];
+
+    // Markdown
     function mdToHtml(md){
       if(!md) return '';
       let s=md;
@@ -148,36 +160,29 @@
     }
     function trimQuote(q,max=280){ if(!q) return ''; const t=q.trim(); return t.length>max?t.slice(0,max)+'…':t; }
 
-    // Keep a transcript for "Copy conversation"
-    const TRANSCRIPT = []; // {role, text}
-
-    // ---------- TTS (Listen) ----------
+    // TTS
     function speakText(text){
       if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
       try{
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-AU';  // Aussie English if available
-        u.rate = 1.0;      // 0.8 slower, 1.2 faster
-        u.pitch = 1.0;
+        u.lang = 'en-AU';
+        u.rate = 1.0; u.pitch = 1.0;
         window.speechSynthesis.speak(u);
       }catch(e){ console.warn('TTS error:', e); }
     }
 
-    // ---------- Rendering ----------
+    // Rendering
     function addMsg(role,text,sources){
       TRANSCRIPT.push({role, text: text || ''});
       const chat=document.getElementById('chat');
       const div=document.createElement('div'); div.className='msg '+role;
       if(role==='assistant'){
         div.innerHTML=mdToHtml(text||'');
-        // small inline controls (Listen)
         const controls=document.createElement('div'); controls.className='inline-controls';
         const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
-        listenBtn.addEventListener('click',()=>speakText(text||''));
-        controls.appendChild(listenBtn);
+        listenBtn.addEventListener('click',()=>speakText(text||'')); controls.appendChild(listenBtn);
         div.appendChild(controls);
-
         if(Array.isArray(sources)&&sources.length){
           const src=document.createElement('div'); src.className='sources';
           let html='<strong>Sources</strong><ul>';
@@ -190,22 +195,19 @@
           }
           html+='</ul>'; src.innerHTML=html; div.appendChild(src);
         }
-      } else {
-        div.textContent=text;
-      }
+      } else { div.textContent=text; }
       chat.appendChild(div);
       chat.scrollTop=chat.scrollHeight;
       return div;
     }
 
-    // ---------- Loading indicator ----------
     function showThinking(){
-      const div=addMsg('assistant',''); // placeholder bubble
-      div.innerHTML = '<span class="thinking" aria-live="polite" aria-label="Assistant is thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Thinking…</span>';
+      const div=addMsg('assistant','');
+      div.innerHTML = '<span class="thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Thinking…</span>';
       return div;
     }
 
-    // ---------- Copy / Reset ----------
+    // Copy / Reset
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
@@ -218,20 +220,55 @@
       document.getElementById('chat').innerHTML='';
     }
 
-    // ---------- Send message ----------
+    // STT (mic)
+    let recognition = null; let listening = false;
+    function getRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR) return null;
+      const r = new SR(); r.lang='en-AU'; r.interimResults=false; r.maxAlternatives=1; return r;
+    }
+    function updateMicUI(active){
+      const btn = document.getElementById('micBtn');
+      if(active){ btn.classList.add('mic-recording'); btn.innerHTML='⏺️<span class="mic-dot"></span>'; btn.title='Stop recording'; }
+      else { btn.classList.remove('mic-recording'); btn.textContent='🎤'; btn.title='Speak your question'; }
+    }
+    function startListening(){
+      if(listening) return;
+      recognition = getRecognition();
+      if(!recognition){ alert('Speech recognition not supported in this browser. Try Chrome or Edge.'); return; }
+      listening = true; updateMicUI(true);
+      recognition.onresult = (e)=>{ const transcript=e.results[0][0].transcript; document.getElementById('msg').value=transcript; sendMsg(transcript); };
+      recognition.onerror = ()=>{ updateMicUI(false); listening=false; };
+      recognition.onend = ()=>{ updateMicUI(false); listening=false; };
+      try{ recognition.start(); }catch(e){ updateMicUI(false); listening=false; }
+    }
+    function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(e){} } }
+
+    // Send
     async function sendMsg(txt){
+      // ensure chat view visible
+      categoryView.classList.remove('active');
+      promptView.classList.remove('active');
+      chatView.classList.add('active');
+
       const inp=document.getElementById('msg');
       const content=(txt || inp.value || '').trim(); if(!content) return;
       addMsg('user',content);
       inp.value=''; document.getElementById('sendBtn').disabled=true;
       const thinkingEl = showThinking();
       try{
-        const r=await fetch('/api/mascot',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:content}) });
+        const r=await fetch('/api/mascot',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({message:content, cf_token: captchaToken})
+        });
         const data=await r.json().catch(()=>({}));
         thinkingEl.remove();
         if(!r.ok){
-          const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail);
-        }else{
+          if(r.status===429){ addMsg('assistant','You’ve reached today’s limit for this demo. Please try again tomorrow.'); }
+          else if(r.status===504){ addMsg('assistant','Sorry — the assistant is taking longer than usual. Please try again.'); }
+          else { const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail); }
+        } else {
           addMsg('assistant', data.output || 'No response', data.sources);
         }
       }catch(e){
@@ -242,65 +279,67 @@
       }
     }
 
-    // ---------- Speech-to-Text (mic) ----------
-    let recognition = null;
-    let listening = false;
-
-    function getRecognition(){
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if(!SR) return null;
-      const r = new SR();
-      r.lang = 'en-AU';
-      r.interimResults = false;
-      r.maxAlternatives = 1;
-      return r;
+    // Categories + prompts UI
+    async function loadPrompts(){
+      const res = await fetch('/prompts.json');
+      PROMPTS = await res.json();
+      renderCategories();
     }
 
-    function updateMicUI(active){
-      const btn = document.getElementById('micBtn');
-      if(active){
-        btn.classList.add('mic-recording');
-        btn.innerHTML = '⏺️<span class="mic-dot" aria-hidden="true"></span>';
-        btn.title = 'Stop recording';
-      } else {
-        btn.classList.remove('mic-recording');
-        btn.textContent = '🎤';
-        btn.title = 'Speak your question';
-      }
+    function categoryEmoji(label){
+      if(label.startsWith('Psychological')) return EMOJI.Psychological;
+      if(label.startsWith('Physical')) return EMOJI.Physical;
+      if(label.startsWith('Career')) return EMOJI.Career;
+      if(label.startsWith('Family')) return EMOJI.Family;
+      if(label.startsWith('Cultural')) return EMOJI.Cultural;
+      if(label.startsWith('Identity')) return EMOJI.Identity;
+      if(label.startsWith('Financial')) return EMOJI.Financial;
+      if(label.startsWith('Environmental')) return EMOJI.Environmental;
+      if(label.startsWith('Female')) return EMOJI.Female;
+      return '❖';
     }
 
-    function startListening(){
-      if(listening) return;
-      recognition = getRecognition();
-      if(!recognition){ alert('Speech recognition not supported in this browser. Try Chrome or Edge.'); return; }
-      listening = true; updateMicUI(true);
-      recognition.onresult = (event)=>{
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('msg').value = transcript;
-        // auto-send for smoother UX
-        sendMsg(transcript);
-      };
-      recognition.onerror = (e)=>{
-        console.warn('STT error', e);
-        updateMicUI(false); listening=false;
-      };
-      recognition.onend = ()=>{
-        updateMicUI(false); listening=false;
-      };
-      try { recognition.start(); } catch(e){ console.warn('start() failed', e); updateMicUI(false); listening=false; }
+    function renderCategories(){
+      categoryView.innerHTML = '';
+      Object.keys(PROMPTS).forEach(label=>{
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        const em = document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(label);
+        const textWrap = document.createElement('div');
+        const title = document.createElement('div'); title.className='category-title'; title.textContent = label.split(' – ')[0];
+        const sub = document.createElement('div'); sub.className='category-sub'; sub.textContent = label.split(' – ')[1] || '';
+        textWrap.appendChild(title); textWrap.appendChild(sub);
+        card.appendChild(em); card.appendChild(textWrap);
+        card.addEventListener('click',()=>showPrompts(label));
+        categoryView.appendChild(card);
+      });
+      categoryView.classList.add('active');
+      promptView.classList.remove('active');
+      chatView.classList.remove('active');
     }
 
-    function stopListening(){
-      if(recognition && listening){
-        try { recognition.stop(); } catch(e){ /* ignore */ }
-      }
+    function showPrompts(label){
+      promptTitle.textContent = label;
+      promptList.innerHTML = '';
+      (PROMPTS[label]||[]).forEach(p=>{
+        const btn = document.createElement('button');
+        btn.className = 'prompt-btn';
+        btn.textContent = p;
+        btn.addEventListener('click',()=>sendMsg(p));
+        promptList.appendChild(btn);
+      });
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
+      chatView.classList.remove('active');
     }
+
+    function showCategories(){ renderCategories(); }
 
     // Init
     document.getElementById('copyBtn').addEventListener('click', copyConversation);
     document.getElementById('resetBtn').addEventListener('click', resetChat);
     document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
-    document.addEventListener('DOMContentLoaded', renderStarters);
+    document.addEventListener('DOMContentLoaded', loadPrompts);
   </script>
 </body>
 </html>
