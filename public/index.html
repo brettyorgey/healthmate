@@ -5,7 +5,7 @@
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Optional: Cloudflare Turnstile (captcha) if enabled in API -->
+  <!-- Optional: Cloudflare Turnstile (captcha) if enabled in your API) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
@@ -40,7 +40,7 @@
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
-    /* NEW: Category badge */
+    /* Category badge */
     .cat-tag{
       display:inline-flex; align-items:center; gap:8px;
       margin-top:6px; margin-bottom:6px;
@@ -58,12 +58,12 @@
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
-    /* Sources */
+    /* Sources (legacy) */
     .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
     .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
     .sources ul{ margin:0; padding-left:18px; }
     .sources li{ margin-bottom:4px; }
-    .sources a{ color:var(--brand); font-weight:500; text-decoration:underline; }
+    .sources a{ color:#0ea5e9; font-weight:500; text-decoration:underline; }
     .sources a:hover{ text-decoration:none; }
     .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
 
@@ -83,6 +83,32 @@
     .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; opacity:.6; animation:b 1.3s infinite ease-in-out; }
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
+
+    /* QUICK → EXPAND card styles */
+    .fq-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 2px 8px rgba(15,23,42,.06);padding:16px;margin:12px 0;color:#0f172a}
+    .fq-topline{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .fq-topline .pill{background:#e0f2fe;color:#075985;border:1px solid #bae6fd;font-weight:700;border-radius:999px;font-size:12px;padding:4px 10px}
+    .fq-h2{margin:4px 0 10px;font-size:18px;line-height:1.25;border-left:4px solid #0ea5e9;padding-left:8px;font-weight:800}
+    .fq-quick{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin:8px 0}
+    .fq-quick ul{margin:6px 0 0 18px}
+    .fq-quick li{margin:6px 0}
+    .fq-disclaimer{color:#475569;font-size:13px;margin-top:6px}
+    .fq-cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .fq-btn{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:14px}
+    .fq-btn:hover{background:#f3f4f6}
+    details.fq-exp{border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin-top:10px}
+    details.fq-exp>summary{list-style:none;cursor:pointer;padding:10px 12px;font-weight:700}
+    details.fq-exp>summary::-webkit-details-marker{display:none}
+    details.fq-exp[open]{box-shadow:0 1px 6px rgba(0,0,0,.04)}
+    .fq-exp-body{padding:0 12px 12px}
+    .fq-exp-body ul{margin:6px 0 0 18px}
+    .fq-kv{display:grid;grid-template-columns:1fr;gap:8px}
+    .fq-red{background:#fff5f5;border-left:4px solid #ef4444;padding:10px;border-radius:8px;margin-top:10px}
+    .fq-red strong{color:#b91c1c}
+    .fq-sources{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:10px;font-size:14px}
+    .fq-sources ul{margin:6px 0 0 18px}
+    .fq-sources a{color:#0ea5e9;text-decoration:underline}
+    @media (min-width: 720px){ .fq-kv{grid-template-columns:1fr 1fr} }
 
     /* Visibility */
     #categoryView, #promptView { display:none; }
@@ -111,7 +137,7 @@
         <div class="back-link" onclick="showCategories()">← Back to Categories</div>
       </div>
 
-      <!-- NEW: category badge -->
+      <!-- Category badge -->
       <div id="activeCategory" class="cat-tag" style="display:none;">
         <span class="dot" aria-hidden="true"></span>
         <span id="activeCategoryText">You’re asking about: …</span>
@@ -145,7 +171,7 @@
     const promptTitle  = document.getElementById('promptTitle');
     const promptList   = document.getElementById('promptList');
 
-    // NEW: badge elements
+    // Badge elements
     const activeCategoryEl = document.getElementById('activeCategory');
     const activeCategoryTextEl = document.getElementById('activeCategoryText');
 
@@ -154,7 +180,7 @@
       "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
     };
 
-    // ----- Transcript & rendering -----
+    // ----- Transcript & helpers -----
     const TRANSCRIPT = []; // {role,text}
 
     function mdToHtml(md){
@@ -179,29 +205,226 @@
       }catch(e){ console.warn('TTS error:', e); }
     }
 
+    // ----- QUICK → EXPAND extraction & rendering -----
+    function extractStructuredAnswer(outputText, fallbackSourcesArray) {
+      if (!outputText || typeof outputText !== 'string') return null;
+
+      const raw = outputText.trim();
+
+      // A) Pure JSON
+      if (raw.startsWith('{')) {
+        try {
+          const obj = JSON.parse(raw);
+          if (obj.quick || obj.headline) return normalize(obj, fallbackSourcesArray);
+        } catch (e) {}
+      }
+
+      // B) ```json … ```
+      const fenceMatch = outputText.match(/```json\s*([\s\S]*?)\s*```/i);
+      if (fenceMatch) {
+        try {
+          const obj = JSON.parse(fenceMatch[1]);
+          if (obj.quick || obj.headline) return normalize(obj, fallbackSourcesArray);
+        } catch (e) {}
+      }
+
+      // C) Parse markdown sections by headings
+      return parseMarkdownAnswer(outputText, fallbackSourcesArray);
+
+      function normalize(obj, srcs) {
+        return {
+          headline: obj.headline || '',
+          quick: Array.isArray(obj.quick) ? obj.quick : [],
+          why: obj.why || '',
+          who: Array.isArray(obj.who) ? obj.who : [],
+          bring: Array.isArray(obj.bring) ? obj.bring : [],
+          redflags: obj.redflags || '',
+          sources: Array.isArray(obj.sources) ? obj.sources : (srcs || [])
+        };
+      }
+    }
+
+    function parseMarkdownAnswer(md, fallbackSourcesArray) {
+      const sections = {
+        headline: '', quick: [], why: '', who: [], bring: [], redflags: '', sources: fallbackSourcesArray || []
+      };
+
+      const firstLine = md.split('\n').find(l => l.trim());
+      sections.headline = (firstLine || '').replace(/^#+\s*/,'').slice(0, 120);
+
+      sections.quick = extractBullets(md, /(##|###)\s*What to do now/i);
+      sections.why = extractParagraph(md, /(##|###)\s*Why this matters/i);
+      sections.who = extractBullets(md, /(##|###)\s*Who to contact/i);
+      sections.bring = extractBullets(md, /(##|###)\s*What to bring/i);
+      sections.redflags = extractParagraph(md, /(##|###)\s*(Watch for.*|Red-?flags?|Urgent)/i) || '';
+
+      if (!sections.sources || !Array.isArray(sections.sources) || sections.sources.length === 0) {
+        sections.sources = extractLinks(md).map(href => ({ filename: href, file_id: href, quote: '' }));
+      }
+      return sections;
+
+      function between(md, startRe, nextRe) {
+        const start = md.search(startRe);
+        if (start === -1) return '';
+        const rest = md.slice(start);
+        const nextIdx = rest.search(nextRe);
+        return nextIdx === -1 ? rest : rest.slice(0, nextIdx);
+      }
+      function extractBullets(md, headingRe) {
+        const block = between(md, headingRe, /(##|###)\s+/i);
+        return (block.match(/^\s*[-*•]\s+.+$/gm) || []).map(s => s.replace(/^\s*[-*•]\s+/, '').trim());
+      }
+      function extractParagraph(md, headingRe) {
+        const block = between(md, headingRe, /(##|###)\s+/i).replace(headingRe,'');
+        const para = block.split('\n').map(l=>l.trim()).filter(Boolean).join(' ');
+        return para.slice(0, 1000);
+      }
+      function extractLinks(md) {
+        const links = [];
+        const re = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+        let m; while ((m = re.exec(md)) !== null) { links.push(m[2]); }
+        return links;
+      }
+    }
+
+    function renderExpandableAnswer(containerEl, data) {
+      if (!containerEl || !data) return;
+
+      const {
+        headline = '',
+        quick = [],
+        why = '',
+        who = [],
+        bring = [],
+        redflags = '',
+        sources = []
+      } = data;
+
+      const el = document.createElement('div');
+      el.className = 'fq-card';
+      el.innerHTML = `
+        <div class="fq-topline">
+          <span class="pill">Quick answer</span>
+          <span aria-hidden="true">•</span>
+          <span class="pill" style="background:#dcfce7;border-color:#bbf7d0;color:#14532d">Information only</span>
+        </div>
+
+        <div class="fq-h2">${escapeHtml(headline || 'What to do now')}</div>
+
+        <div class="fq-quick">
+          ${quick.length ? `<ul>${quick.map(li => `<li>${escapeHtml(li)}</li>`).join('')}</ul>` : `<p>No immediate steps provided.</p>`}
+          <div class="fq-disclaimer">This is general information — not a medical diagnosis. In an emergency call 000.</div>
+        </div>
+
+        <div class="fq-cta" aria-label="Helpful quick actions">
+          <button class="fq-btn" data-target="exp-why">Why this matters</button>
+          <button class="fq-btn" data-target="exp-who">Who to contact</button>
+          <button class="fq-btn" data-target="exp-bring">What to bring</button>
+          <button class="fq-btn" data-target="exp-red">Red-flags</button>
+          <button class="fq-btn" data-target="exp-src">Sources</button>
+        </div>
+
+        <details id="exp-why" class="fq-exp">
+          <summary>Why this matters</summary>
+          <div class="fq-exp-body">${why ? escapeHtml(why) : '—'}</div>
+        </details>
+
+        <details id="exp-who" class="fq-exp">
+          <summary>Who to contact</summary>
+          <div class="fq-exp-body">
+            ${who.length ? `<ul>${who.map(li => `<li>${escapeHtml(li)}</li>`).join('')}</ul>` : '—'}
+          </div>
+        </details>
+
+        <details id="exp-bring" class="fq-exp">
+          <summary>What to bring to your appointment</summary>
+          <div class="fq-exp-body">
+            ${bring.length ? `<ul>${bring.map(li => `<li>${escapeHtml(li)}</li>`).join('')}</ul>` : '—'}
+          </div>
+        </details>
+
+        <details id="exp-red" class="fq-exp" ${redflags ? 'open' : ''}>
+          <summary>Watch for & act on — urgent red-flags</summary>
+          <div class="fq-exp-body">
+            ${redflags ? `<div class="fq-red" role="alert"><strong>Call 000 now</strong> — ${escapeHtml(redflags)}</div>` : '—'}
+          </div>
+        </details>
+
+        <details id="exp-src" class="fq-exp">
+          <summary>Sources (Australia)</summary>
+          <div class="fq-exp-body fq-sources">
+            ${
+              Array.isArray(sources) && sources.length
+              ? `<ul>${sources.map(s => {
+                  const href = s.url || (s.file_id && String(s.file_id).startsWith('http') ? s.file_id : null);
+                  const label = s.title || s.filename || s.url || s.file_id || 'Source';
+                  const link = href ? `<a href="${escapeAttr(href)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>` : escapeHtml(label);
+                  const quote = s.quote ? `<div class="fq-disclaimer" style="margin-top:4px">“${escapeHtml(s.quote)}”</div>` : '';
+                  return `<li>${link}${quote}</li>`;
+                }).join('')}</ul>`
+              : '<div>No sources provided.</div>'
+            }
+          </div>
+        </details>
+
+        <div class="fq-disclaimer" style="margin-top:10px">
+          Information only — not a medical diagnosis. In an emergency call 000.
+        </div>
+      `;
+
+      el.querySelectorAll('.fq-btn[data-target]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-target');
+          const d = el.querySelector(`#${id}`);
+          if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        });
+      });
+
+      containerEl.appendChild(el);
+
+      function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+      function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+    }
+
+    // ----- Add messages (now uses Quick → Expand when possible) -----
     function addMsg(role,text,sources){
       TRANSCRIPT.push({role, text: text || ''});
       const chat=document.getElementById('chat');
       const div=document.createElement('div'); div.className='msg '+role;
+
       if(role==='assistant'){
-        div.innerHTML=mdToHtml(text||'');
+        // Try structured + renderer first
+        const structured = extractStructuredAnswer(text || '', sources);
+        if (structured && (structured.quick.length || structured.why || structured.redflags || (structured.sources && structured.sources.length))) {
+          renderExpandableAnswer(div, structured);
+        } else {
+          // Fallback to markdown
+          div.innerHTML=mdToHtml(text||'');
+          // Legacy sources block (optional)
+          if(Array.isArray(sources)&&sources.length){
+            const src=document.createElement('div'); src.className='sources';
+            let html='<strong>Sources</strong><ul>';
+            for(const s of sources){
+              const href = s.url || `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
+              html+=`<li>
+                <a href="${href}" target="_blank" rel="noopener">${s.filename || s.title || s.file_id || s.url || 'Source'}</a>
+                ${s.quote && s.quote.trim()?`<div class="src-quote">“${trimQuote(s.quote)}”</div>`:''}
+              </li>`;
+            }
+            html+='</ul>'; src.innerHTML=html; div.appendChild(src);
+          }
+        }
+
+        // Listen button (works for both render paths)
         const controls=document.createElement('div'); controls.className='inline-controls';
         const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
         listenBtn.addEventListener('click',()=>speakText(text||'')); controls.appendChild(listenBtn);
         div.appendChild(controls);
-        if(Array.isArray(sources)&&sources.length){
-          const src=document.createElement('div'); src.className='sources';
-          let html='<strong>Sources</strong><ul>';
-          for(const s of sources){
-            const href=`/api/file?file_id=${encodeURIComponent(s.file_id)}`;
-            html+=`<li>
-              <a href="${href}" target="_blank" rel="noopener">${s.filename || s.file_id}</a>
-              ${s.quote && s.quote.trim()?`<div class="src-quote">“${trimQuote(s.quote)}”</div>`:''}
-            </li>`;
-          }
-          html+='</ul>'; src.innerHTML=html; div.appendChild(src);
-        }
-      } else { div.textContent=text; }
+
+      } else {
+        div.textContent=text;
+      }
+
       chat.appendChild(div);
       chat.scrollTop=chat.scrollHeight;
       return div;
@@ -213,6 +436,7 @@
       return div;
     }
 
+    // ----- Copy / Reset -----
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
