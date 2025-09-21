@@ -5,7 +5,7 @@
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Optional: Cloudflare Turnstile (captcha) if enabled in your API) -->
+  <!-- Optional Turnstile (remove if unused) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
   <style>
@@ -17,7 +17,8 @@
     .hero h1{ margin:0 0 8px; font-size:28px; line-height:1.2;}
     .hero p{ margin:6px 0 0; color:var(--muted);}
 
-    .toolbar{ display:flex; gap:8px; justify-content:flex-end; margin-bottom:10px; }
+    .toolbar{ display:flex; gap:8px; justify-content:flex-end; align-items:center; margin:12px 0 10px; }
+    .toolbar .spacer{ flex:1; }
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
     .btn-sm:hover{ background:#f9fafb; }
 
@@ -32,7 +33,7 @@
     .category-title{ font-weight:700; }
     .category-sub{ color:#64748b; font-size:14px; }
 
-    /* Prompt + chat panel */
+    /* Prompt + chat */
     .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
     .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
@@ -51,14 +52,14 @@
     .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
     .cat-tag a:hover{ text-decoration:none; }
 
-    /* Chat area embedded under prompts */
+    /* Chat area */
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; margin-top:14px; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
-    /* Sources (legacy) */
+    /* Legacy sources */
     .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
     .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
     .sources ul{ margin:0; padding-left:18px; }
@@ -84,7 +85,7 @@
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
 
-    /* QUICK → EXPAND card styles */
+    /* QUICK → EXPAND card */
     .fq-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 2px 8px rgba(15,23,42,.06);padding:16px;margin:12px 0;color:#0f172a}
     .fq-topline{display:flex;align-items:center;gap:10px;margin-bottom:8px}
     .fq-topline .pill{background:#e0f2fe;color:#075985;border:1px solid #bae6fd;font-weight:700;border-radius:999px;font-size:12px;padding:4px 10px}
@@ -123,6 +124,11 @@
     </div>
 
     <div class="toolbar">
+      <div class="spacer"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+        <input type="checkbox" id="classicToggle"/>
+        Use classic view
+      </label>
       <button class="btn-sm" id="copyBtn" title="Copy conversation to clipboard">Copy conversation</button>
       <button class="btn-sm" id="resetBtn" title="Clear chat">Reset chat</button>
     </div>
@@ -154,33 +160,39 @@
         <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
       </div>
 
-      <!-- Optional Turnstile captcha (remove if not used) -->
+      <!-- Optional Turnstile -->
       <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-callback="onCaptcha"></div>
     </div>
   </div>
 
   <script>
-    // ----- Optional captcha token -----
+    // -------- Optional captcha token --------
     let captchaToken = '';
     function onCaptcha(token){ captchaToken = token; }
 
-    // ----- Data & views -----
+    // -------- Data & views --------
     let PROMPTS = {};
     const categoryView = document.getElementById('categoryView');
     const promptView   = document.getElementById('promptView');
     const promptTitle  = document.getElementById('promptTitle');
     const promptList   = document.getElementById('promptList');
 
-    // Badge elements
     const activeCategoryEl = document.getElementById('activeCategory');
     const activeCategoryTextEl = document.getElementById('activeCategoryText');
+
+    // A/B toggle
+    window.FQ_CLASSIC_VIEW = false;
+    document.getElementById('classicToggle').addEventListener('change', (e)=>{
+      window.FQ_CLASSIC_VIEW = !!e.target.checked;
+      // (We apply to future messages; simpler for the demo.)
+    });
 
     const EMOJI = {
       "Psychological": "🧠", "Physical": "🏋️", "Career": "💼", "Family": "👨‍👩‍👧‍👦",
       "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
     };
 
-    // ----- Transcript & helpers -----
+    // -------- Transcript & helpers --------
     const TRANSCRIPT = []; // {role,text}
 
     function mdToHtml(md){
@@ -205,7 +217,7 @@
       }catch(e){ console.warn('TTS error:', e); }
     }
 
-    // ----- QUICK → EXPAND extraction & rendering -----
+    // -------- QUICK → EXPAND extraction & rendering --------
     function extractStructuredAnswer(outputText, fallbackSourcesArray) {
       if (!outputText || typeof outputText !== 'string') return null;
 
@@ -252,11 +264,12 @@
       const firstLine = md.split('\n').find(l => l.trim());
       sections.headline = (firstLine || '').replace(/^#+\s*/,'').slice(0, 120);
 
-      sections.quick = extractBullets(md, /(##|###)\s*What to do now/i);
-      sections.why = extractParagraph(md, /(##|###)\s*Why this matters/i);
-      sections.who = extractBullets(md, /(##|###)\s*Who to contact/i);
-      sections.bring = extractBullets(md, /(##|###)\s*What to bring/i);
-      sections.redflags = extractParagraph(md, /(##|###)\s*(Watch for.*|Red-?flags?|Urgent)/i) || '';
+      // tolerant heading patterns
+      sections.quick    = extractBullets(md, /(##|###)\s*What\s*to\s*do\s*now\b[\s:—–-]?/i);
+      sections.why      = extractParagraph(md, /(##|###)\s*Why\s*this\s*matters\b[\s:—–-]?/i);
+      sections.who      = extractBullets(md, /(##|###)\s*Who\s*to\s*contact(?:\s*\(.*?\))?\b[\s:—–-]?/i);
+      sections.bring    = extractBullets(md, /(##|###)\s*What\s*to\s*bring(?:\s*to\s*your\s*appointment)?\b[\s:—–-]?/i);
+      sections.redflags = extractParagraph(md, /(##|###)\s*(Watch\s*for.*|Red-?\s*flags?|Urgent)\b[\s:—–-]?/i) || '';
 
       if (!sections.sources || !Array.isArray(sections.sources) || sections.sources.length === 0) {
         sections.sources = extractLinks(md).map(href => ({ filename: href, file_id: href, quote: '' }));
@@ -272,7 +285,8 @@
       }
       function extractBullets(md, headingRe) {
         const block = between(md, headingRe, /(##|###)\s+/i);
-        return (block.match(/^\s*[-*•]\s+.+$/gm) || []).map(s => s.replace(/^\s*[-*•]\s+/, '').trim());
+        const bullets = block.match(/^\s*(?:[-*•]\s+|\d+[.)]\s+).+$/gm) || [];
+        return bullets.map(s => s.replace(/^\s*(?:[-*•]\s+|\d+[.)]\s+)/, '').trim());
       }
       function extractParagraph(md, headingRe) {
         const block = between(md, headingRe, /(##|###)\s+/i).replace(headingRe,'');
@@ -372,11 +386,14 @@
         </div>
       `;
 
+      // Toggle open/close on quick buttons
       el.querySelectorAll('.fq-btn[data-target]').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-target');
           const d = el.querySelector(`#${id}`);
-          if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+          if (!d) return;
+          d.open = !d.open;
+          if (d.open) d.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       });
 
@@ -386,21 +403,16 @@
       function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
     }
 
-    // ----- Add messages (now uses Quick → Expand when possible) -----
+    // -------- Add message (uses toggle + safe fallback) --------
     function addMsg(role,text,sources){
       TRANSCRIPT.push({role, text: text || ''});
       const chat=document.getElementById('chat');
       const div=document.createElement('div'); div.className='msg '+role;
 
       if(role==='assistant'){
-        // Try structured + renderer first
-        const structured = extractStructuredAnswer(text || '', sources);
-        if (structured && (structured.quick.length || structured.why || structured.redflags || (structured.sources && structured.sources.length))) {
-          renderExpandableAnswer(div, structured);
-        } else {
-          // Fallback to markdown
-          div.innerHTML=mdToHtml(text||'');
-          // Legacy sources block (optional)
+        if (window.FQ_CLASSIC_VIEW) {
+          // Classic view forced
+          div.innerHTML = mdToHtml(text || '');
           if(Array.isArray(sources)&&sources.length){
             const src=document.createElement('div'); src.className='sources';
             let html='<strong>Sources</strong><ul>';
@@ -413,11 +425,42 @@
             }
             html+='</ul>'; src.innerHTML=html; div.appendChild(src);
           }
+        } else {
+          // Try structured + renderer first
+          const structured = extractStructuredAnswer(text || '', sources);
+
+          const hasUsableContent =
+            structured && (
+              (structured.quick && structured.quick.length) ||
+              (structured.why && structured.why.trim()) ||
+              (structured.who && structured.who.length) ||
+              (structured.bring && structured.bring.length) ||
+              (structured.redflags && structured.redflags.trim())
+            );
+
+          if (hasUsableContent) {
+            renderExpandableAnswer(div, structured);
+          } else {
+            // Fallback to markdown
+            div.innerHTML=mdToHtml(text||'');
+            if(Array.isArray(sources)&&sources.length){
+              const src=document.createElement('div'); src.className='sources';
+              let html='<strong>Sources</strong><ul>';
+              for(const s of sources){
+                const href = s.url || `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
+                html+=`<li>
+                  <a href="${href}" target="_blank" rel="noopener">${s.filename || s.title || s.file_id || s.url || 'Source'}</a>
+                  ${s.quote && s.quote.trim()?`<div class="src-quote">“${trimQuote(s.quote)}”</div>`:''}
+                </li>`;
+              }
+              html+='</ul>'; src.innerHTML=html; div.appendChild(src);
+            }
+          }
         }
 
-        // Listen button (works for both render paths)
+        // Listen button
         const controls=document.createElement('div'); controls.className='inline-controls';
-        const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
+        const listenBtn=document.createElement('button'); listenBtn.className='btn-sm'; listenBtn.textContent='🔊 Listen';
         listenBtn.addEventListener('click',()=>speakText(text||'')); controls.appendChild(listenBtn);
         div.appendChild(controls);
 
@@ -436,7 +479,7 @@
       return div;
     }
 
-    // ----- Copy / Reset -----
+    // -------- Copy / Reset --------
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
@@ -446,7 +489,7 @@
     }
     function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); document.getElementById('chat').innerHTML=''; }
 
-    // ----- Speech-to-Text (mic) -----
+    // -------- Speech-to-Text (mic) --------
     let recognition = null; let listening = false;
     function getRecognition(){
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -470,9 +513,9 @@
     }
     function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(e){} } }
 
-    // ----- Send message (stays on prompt view) -----
+    // -------- Send message --------
     async function sendMsg(txt){
-      // Ensure we are on the prompt view (chat area is here)
+      // Ensure prompt view visible
       categoryView.classList.remove('active');
       promptView.classList.add('active');
 
@@ -504,7 +547,7 @@
       }
     }
 
-    // ----- Category badge helpers -----
+    // -------- Category badge helpers --------
     function setActiveCategory(label){
       const shortLabel = (label || '').split(' – ')[0] || label || 'General';
       activeCategoryTextEl.textContent = `You’re asking about: ${shortLabel}`;
@@ -515,7 +558,7 @@
       activeCategoryTextEl.textContent = 'You’re asking about: …';
     }
 
-    // ----- Categories & prompts -----
+    // -------- Categories & prompts --------
     async function loadPrompts(){
       const res = await fetch('/prompts.json');
       PROMPTS = await res.json();
@@ -574,7 +617,7 @@
 
     function showCategories(){ renderCategories(); }
 
-    // Init
+    // -------- Init --------
     document.getElementById('copyBtn').addEventListener('click', copyConversation);
     document.getElementById('resetBtn').addEventListener('click', resetChat);
     document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
