@@ -1,9 +1,26 @@
 // /api/mascot.js
 export const config = { runtime: 'edge' };
 
+const FULL_INSTRUCTIONS = `
+INITIAL MODE (FIRST TURN):
+Follow your base safety instructions, and produce a FULL structured response with these sections:
+
+1) Headline — ≤12 words summarising the action.
+2) What to do now — 3–6 short, clear steps.
+3) Why this matters — 1–2 plain-English sentences.
+4) Who to contact — GP + specific AU supports (with phone numbers where relevant).
+5) What to bring to your appointment — short checklist.
+6) Watch for and act on — urgent red-flags list.
+7) Sources — bullet list of the exact AU pages used (markdown links).
+8) Footer — “Information only — not a medical diagnosis. In an emergency call 000.”
+
+Do not diagnose. Use Australian resources only. Keep tone calm, supportive, stigma-free.
+`;
+
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
 Return ONLY these two sections using markdown headings:
+
 ## Why this matters
 <≤120 words in plain English>
 
@@ -16,17 +33,17 @@ End with: "Information only — not a medical diagnosis. In an emergency call 00
 `;
 
 export default async function handler(req) {
-  if (req.method !== 'POST') {
-    return json({ error: 'Use POST' }, 405);
-  }
+  if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
 
   try {
     const body = await req.json();
-    const { message, cf_token, followup, thread_id: clientThreadId } = body || {};
+    const { message, followup, thread_id: clientThreadId } = body || {};
     if (!message) return json({ error: 'Missing message' }, 400);
 
     // 1) Reuse or create thread
-    let thread_id = clientThreadId;
+    // SAFETY: for a non-follow-up turn, always start a fresh thread
+    let thread_id = (followup === true) ? clientThreadId : undefined;
+
     if (!thread_id) {
       const threadResp = await fetch('https://api.openai.com/v1/threads', {
         method: 'POST',
@@ -36,20 +53,19 @@ export default async function handler(req) {
       thread_id = thread.id;
     }
 
-    // 2) Add user message to the SAME thread
+    // 2) Add user message
     await fetch(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // 3) Create run (override instructions ONLY for later turns)
-    const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
-
-    // Only apply simplified instructions if explicitly flagged AND not the very first turn
-    if (followup === true) {
-    runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
-    }
+    // 3) Create run with explicit per-turn instructions
+    const isFollowUpTurn = followup === true;
+    const runCreateBody = {
+      assistant_id: process.env.OPENAI_ASSISTANT_ID,
+      instructions: isFollowUpTurn ? FOLLOWUP_INSTRUCTIONS : FULL_INSTRUCTIONS,
+    };
 
     const runResp = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
       method: 'POST',
@@ -58,12 +74,12 @@ export default async function handler(req) {
     });
     const run = await runResp.json();
 
-    // 4) Poll for completion
+    // 4) Poll
     let status = run.status;
     const run_id = run.id;
     const started = Date.now();
     while (status === 'in_progress' || status === 'queued') {
-      if (Date.now() - started > 60000) break; // 60s guard
+      if (Date.now() - started > 60000) break;
       await sleep(800);
       const r2 = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`, {
         headers: headers(),
@@ -72,7 +88,7 @@ export default async function handler(req) {
       status = run2.status;
     }
 
-    // 5) Get the latest assistant message
+    // 5) Fetch last assistant message
     const msgsResp = await fetch(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
       { headers: headers() }
@@ -83,8 +99,7 @@ export default async function handler(req) {
     const output = msg?.content?.[0]?.text?.value || 'No response';
     const sources = extractSourcesFromMessage(msg);
 
-    // Return the thread_id so the browser can reuse it for follow-ups
-    return json({ output, sources, thread_id }, 200);
+    return json({ output, sources, thread_id, mode: isFollowUpTurn ? 'followup' : 'full' }, 200);
   } catch (e) {
     console.error(e);
     return json({ error: e?.message || 'Server error' }, 500);
