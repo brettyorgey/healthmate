@@ -58,15 +58,6 @@
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
-    /* Sources (file citations) */
-    .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
-    .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
-    .sources ul{ margin:0; padding-left:18px; }
-    .sources li{ margin-bottom:4px; }
-    .sources a{ color:var(--brand); font-weight:500; text-decoration:underline; }
-    .sources a:hover{ text-decoration:none; }
-    .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
-
     /* Input row with mic */
     .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:6px;}
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
@@ -203,21 +194,6 @@
         const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
         listenBtn.addEventListener('click',()=>speakText(text||'')); controls.appendChild(listenBtn);
         div.appendChild(controls);
-
-        // File-citation sources (vector store)
-        if(Array.isArray(sources)&&sources.length){
-          const src=document.createElement('div'); src.className='sources';
-          let html='<strong>Sources</strong><ul>';
-          for(const s of sources){
-            const href = s.url ? s.url : `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
-            const label = s.title || s.filename || s.file_id || 'Source';
-            html+=`<li>
-              <a href="${href}" target="_blank" rel="noopener">${label}</a>
-              ${s.quote && s.quote.trim()?`<div class="src-quote">“${trimQuote(s.quote)}”</div>`:''}
-            </li>`;
-          }
-          html+='</ul>'; src.innerHTML=html; div.appendChild(src);
-        }
 
         // Mark the FIRST assistant answer has been shown (enables follow-up mode)
         if (!sessionStorage.getItem('fq_has_initial_answer')) {
