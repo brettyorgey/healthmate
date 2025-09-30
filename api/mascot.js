@@ -1,5 +1,5 @@
 // /api/mascot.js
-export const config = { runtime: 'edge' }; // if you're using Edge; remove if Node runtime
+export const config = { runtime: 'edge' };
 
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
@@ -17,23 +17,26 @@ End with: "Information only — not a medical diagnosis. In an emergency call 00
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Use POST' }), { status: 405 });
+    return json({ error: 'Use POST' }, 405);
   }
 
   try {
     const body = await req.json();
-    const { message, cf_token, followup } = body || {};
+    const { message, cf_token, followup, thread_id: clientThreadId } = body || {};
     if (!message) return json({ error: 'Missing message' }, 400);
 
-    // 1) Create thread
-    const threadResp = await fetch('https://api.openai.com/v1/threads', {
-      method: 'POST',
-      headers: headers(),
-    });
-    const thread = await threadResp.json();
-    const thread_id = thread.id;
+    // 1) Reuse or create thread
+    let thread_id = clientThreadId;
+    if (!thread_id) {
+      const threadResp = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: headers(),
+      });
+      const thread = await threadResp.json();
+      thread_id = thread.id;
+    }
 
-    // 2) Post user message
+    // 2) Add user message to the SAME thread
     await fetch(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
       method: 'POST',
       headers: headers(),
@@ -51,12 +54,12 @@ export default async function handler(req) {
     });
     const run = await runResp.json();
 
-    // 4) Poll
+    // 4) Poll for completion
     let status = run.status;
     const run_id = run.id;
     const started = Date.now();
     while (status === 'in_progress' || status === 'queued') {
-      if (Date.now() - started > 45000) break;
+      if (Date.now() - started > 60000) break; // 60s guard
       await sleep(800);
       const r2 = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`, {
         headers: headers(),
@@ -65,16 +68,19 @@ export default async function handler(req) {
       status = run2.status;
     }
 
-    // 5) Fetch last assistant message
-    const msgsResp = await fetch(`https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`, {
-      headers: headers(),
-    });
+    // 5) Get the latest assistant message
+    const msgsResp = await fetch(
+      `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
+      { headers: headers() }
+    );
     const msgs = await msgsResp.json();
     const msg = msgs.data?.[0];
+
     const output = msg?.content?.[0]?.text?.value || 'No response';
     const sources = extractSourcesFromMessage(msg);
 
-    return json({ output, sources }, 200);
+    // Return the thread_id so the browser can reuse it for follow-ups
+    return json({ output, sources, thread_id }, 200);
   } catch (e) {
     console.error(e);
     return json({ error: e?.message || 'Server error' }, 500);
