@@ -1,78 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>FifthQtr Healthmate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Optional: Cloudflare Turnstile (captcha) if enabled in API -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
   <style>
-    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
-    #header { background: #003366; color: white; padding: 1rem; text-align: center; }
-    #chat { max-width: 800px; margin: 1rem auto; padding: 1rem; background: white; border-radius: 8px; }
-    .user { text-align: right; color: #003366; margin: 0.5rem 0; }
-    .assistant { text-align: left; color: #333; margin: 0.5rem 0; }
-    #input-area { display: flex; max-width: 800px; margin: 1rem auto; }
-    #msg { flex: 1; padding: 0.5rem; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; background: #003366; color: white; border: none; cursor: pointer; }
+    :root { --card-bg:#ffffff; --page-bg:#f7f9fc; --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; }
+    body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
+
+    .hero { background:var(--card-bg); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; }
+    .hero h1{ margin:0 0 8px; font-size:28px; line-height:1.2;}
+    .hero p{ margin:6px 0 0; color:var(--muted);}
+
+    .toolbar{ display:flex; gap:8px; justify-content:flex-end; margin-bottom:10px; }
+    .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
+    .btn-sm:hover{ background:#f9fafb; }
+
+    /* Category list */
+    .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
+    .category-card{
+      display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,.05);
+    }
+    .category-card:hover{ background:#f9fafb; }
+    .category-emoji{ font-size:22px; }
+    .category-title{ font-weight:700; }
+    .category-sub{ color:#64748b; font-size:14px; }
+
+    /* Prompt + chat panel */
+    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
+    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+    .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
+    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+    .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
+    .prompt-btn:hover{ background:#f9fafb; }
+
+    /* NEW: Category badge */
+    .cat-tag{
+      display:inline-flex; align-items:center; gap:8px;
+      margin-top:6px; margin-bottom:6px;
+      background:#e0f2fe; color:#075985; border:1px solid #bae6fd;
+      padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600;
+    }
+    .cat-tag .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:#0ea5e9; }
+    .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
+    .cat-tag a:hover{ text-decoration:none; }
+
+    /* Chat area embedded under prompts */
+    .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+    .msg{ max-width:80%; white-space:pre-wrap; }
+    .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
+    .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
+    .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
+
+    /* Sources */
+    .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
+    .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
+    .sources ul{ margin:0; padding-left:18px; }
+    .sources li{ margin-bottom:4px; }
+    .sources a{ color:var(--brand); font-weight:500; text-decoration:underline; }
+    .sources a:hover{ text-decoration:none; }
+    .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
+
+    /* Input row with mic */
+    .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:6px;}
+    textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
+    button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
+    button.send[disabled]{ opacity:.6; cursor:not-allowed; }
+    .btn-icon{ padding:0 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; min-width:56px; }
+    .btn-icon:hover{ background:#f9fafb; }
+    .mic-recording{ color:#dc2626; border-color:#fecaca; background:#fff5f5; }
+    .mic-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-left:6px; animation:pulse 1s infinite; }
+    @keyframes pulse{ 0%{ transform:scale(.85); opacity:.7;} 50%{ transform:scale(1); opacity:1;} 100%{ transform:scale(.85); opacity:.7;} }
+
+    /* Thinking… */
+    .thinking{ display:inline-flex; gap:6px; align-items:center; color:#475569; }
+    .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; opacity:.6; animation:b 1.3s infinite ease-in-out; }
+    .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
+    @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
+
+    /* Visibility */
+    #categoryView, #promptView { display:none; }
+    #categoryView.active, #promptView.active { display:block; }
   </style>
 </head>
 <body>
-  <div id="header">
-    <h1>FifthQtr Healthmate</h1>
-    <p>Supporting past players & families. Information only — not a medical diagnosis. In an emergency call 000.</p>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Welcome — we’re here to support past players & families.</h1>
+      <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
+      <br>
+      <p>Please select a category from the options below, you'll then be provided prompt options or you can type your question into the chat.</p>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-sm" id="copyBtn" title="Copy conversation to clipboard">Copy conversation</button>
+      <button class="btn-sm" id="resetBtn" title="Clear chat">Reset chat</button>
+    </div>
+
+    <!-- Step 1: Categories -->
+    <div id="categoryView" class="categories active" aria-live="polite"></div>
+
+    <!-- Step 2: Sub-prompts + embedded chat -->
+    <div id="promptView" class="prompt-panel" aria-live="polite">
+      <div class="prompt-header">
+        <div id="promptTitle" class="category-title"></div>
+        <div class="back-link" onclick="showCategories()">← Back to Categories</div>
+      </div>
+
+      <!-- NEW: category badge -->
+      <div id="activeCategory" class="cat-tag" style="display:none;">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="activeCategoryText">You’re asking about: …</span>
+        <a href="javascript:void(0)" onclick="showCategories()" aria-label="Change category">Change category</a>
+      </div>
+
+      <div id="promptList" class="prompts"></div>
+
+      <!-- Chat lives here (under the prompts) -->
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="inputRow">
+        <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
+        <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
+        <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
+      </div>
+
+      <!-- Optional Turnstile captcha (remove if not used) -->
+      <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-callback="onCaptcha"></div>
+    </div>
   </div>
 
-  <div id="chat"></div>
-
-  <div id="input-area">
-    <input id="msg" type="text" placeholder="Type your message…" />
-    <button onclick="sendMsg()">Send</button>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    function mdToHtml(md) {
-      return marked.parse(md || "");
+    // ----- Optional captcha token -----
+    let captchaToken = '';
+    function onCaptcha(token){ captchaToken = token; }
+
+    // ----- Data & views -----
+    let PROMPTS = {};
+    const categoryView = document.getElementById('categoryView');
+    const promptView   = document.getElementById('promptView');
+    const promptTitle  = document.getElementById('promptTitle');
+    const promptList   = document.getElementById('promptList');
+
+    // NEW: badge elements
+    const activeCategoryEl = document.getElementById('activeCategory');
+    const activeCategoryTextEl = document.getElementById('activeCategoryText');
+
+    const EMOJI = {
+      "Psychological": "🧠", "Physical": "🏋️", "Career": "💼", "Family": "👨‍👩‍👧‍👦",
+      "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
+    };
+
+    // ----- Transcript & rendering -----
+    const TRANSCRIPT = []; // {role,text}
+
+    function mdToHtml(md){
+      if(!md) return '';
+      let s=md;
+      s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
+      s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
+      s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+      s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
+      return '<p>'+s+'</p>';
+    }
+    function trimQuote(q,max=280){ if(!q) return ''; const t=q.trim(); return t.length>max?t.slice(0,max)+'…':t; }
+
+    function speakText(text){
+      if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
+      try{
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-AU'; u.rate = 1.0; u.pitch = 1.0;
+        window.speechSynthesis.speak(u);
+      }catch(e){ console.warn('TTS error:', e); }
     }
 
-    function addMsg(role, content) {
-      const div = document.createElement("div");
-      div.className = role;
-      div.innerHTML = mdToHtml(content);
-      document.querySelector("#chat").appendChild(div);
-
-      // 👇 NEW: mark that we have an initial assistant answer
-      if (role === "assistant" && !sessionStorage.getItem("fq_has_initial_answer")) {
-        sessionStorage.setItem("fq_has_initial_answer", "1");
-      }
+    function addMsg(role,text,sources){
+      TRANSCRIPT.push({role, text: text || ''});
+      const chat=document.getElementById('chat');
+      const div=document.createElement('div'); div.className='msg '+role;
+      if(role==='assistant'){
+        div.innerHTML=mdToHtml(text||'');
+        const controls=document.createElement('div'); controls.className='inline-controls';
+        const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
+        listenBtn.addEventListener('click',()=>speakText(text||'')); controls.appendChild(listenBtn);
+        div.appendChild(controls);
+        if(Array.isArray(sources)&&sources.length){
+          const src=document.createElement('div'); src.className='sources';
+          let html='<strong>Sources</strong><ul>';
+          for(const s of sources){
+            const href=`/api/file?file_id=${encodeURIComponent(s.file_id)}`;
+            html+=`<li>
+              <a href="${href}" target="_blank" rel="noopener">${s.filename || s.file_id}</a>
+              ${s.quote && s.quote.trim()?`<div class="src-quote">“${trimQuote(s.quote)}”</div>`:''}
+            </li>`;
+          }
+          html+='</ul>'; src.innerHTML=html; div.appendChild(src);
+        }
+      } else { div.textContent=text; }
+      chat.appendChild(div);
+      chat.scrollTop=chat.scrollHeight;
+      return div;
     }
 
-    async function sendMsg() {
-      const input = document.getElementById("msg");
-      const content = input.value.trim();
-      if (!content) return;
+    function showThinking(){
+      const div=addMsg('assistant','');
+      div.innerHTML = '<span class="thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Thinking…</span>';
+      return div;
+    }
 
-      addMsg("user", content);
-      input.value = "";
+    async function copyConversation(){
+      if(!navigator.clipboard){ alert('Clipboard not available'); return; }
+      const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
+      await navigator.clipboard.writeText(text || '(empty)');
+      const btn=document.getElementById('copyBtn'); const old=btn.textContent;
+      btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
+    }
+    function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); document.getElementById('chat').innerHTML=''; }
 
-      // 👇 NEW: check if this is a follow-up
-      const isFollowUp = sessionStorage.getItem("fq_has_initial_answer") === "1";
+    // ----- Speech-to-Text (mic) -----
+    let recognition = null; let listening = false;
+    function getRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR) return null;
+      const r = new SR(); r.lang='en-AU'; r.interimResults=false; r.maxAlternatives=1; return r;
+    }
+    function updateMicUI(active){
+      const btn = document.getElementById('micBtn');
+      if(active){ btn.classList.add('mic-recording'); btn.innerHTML='⏺️<span class="mic-dot"></span>'; btn.title='Stop recording'; }
+      else { btn.classList.remove('mic-recording'); btn.textContent='🎤'; btn.title='Speak your question'; }
+    }
+    function startListening(){
+      if(listening) return;
+      recognition = getRecognition();
+      if(!recognition){ alert('Speech recognition not supported in this browser. Try Chrome or Edge.'); return; }
+      listening = true; updateMicUI(true);
+      recognition.onresult = (e)=>{ const transcript=e.results[0][0].transcript; document.getElementById('msg').value=transcript; sendMsg(transcript); };
+      recognition.onerror = ()=>{ updateMicUI(false); listening=false; };
+      recognition.onend = ()=>{ updateMicUI(false); listening=false; };
+      try{ recognition.start(); }catch(e){ updateMicUI(false); listening=false; }
+    }
+    function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(e){} } }
 
-      addMsg("assistant", "Thinking…");
+    // ----- Send message (stays on prompt view) -----
+    async function sendMsg(txt){
+      // Ensure we are on the prompt view (chat area is here)
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
 
-      try {
-        const r = await fetch("/api/mascot", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: content,
-            followup: isFollowUp
-          })
+      const inp=document.getElementById('msg');
+      const content=(txt || inp.value || '').trim(); if(!content) return;
+      addMsg('user',content);
+      inp.value=''; document.getElementById('sendBtn').disabled=true;
+      const thinkingEl = showThinking();
+      try{
+        const r=await fetch('/api/mascot',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({message:content, cf_token: captchaToken})
         });
-        const data = await r.json();
-        document.querySelector("#chat .assistant:last-child").innerHTML = mdToHtml(data.output || "No response");
-      } catch (e) {
-        document.querySelector("#chat .assistant:last-child").innerText = "Sorry — network error.";
+        const data=await r.json().catch(()=>({}));
+        thinkingEl.remove();
+        if(!r.ok){
+          if(r.status===429){ addMsg('assistant','You’ve reached today’s limit for this demo. Please try again tomorrow.'); }
+          else if(r.status===504){ addMsg('assistant','Sorry — the assistant is taking longer than usual. Please try again.'); }
+          else { const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail); }
+        } else {
+          addMsg('assistant', data.output || 'No response', data.sources);
+        }
+      }catch(e){
+        thinkingEl.remove();
+        addMsg('assistant','Sorry — network error.');
+      }finally{
+        document.getElementById('sendBtn').disabled=false;
       }
     }
+
+    // ----- Category badge helpers -----
+    function setActiveCategory(label){
+      const shortLabel = (label || '').split(' – ')[0] || label || 'General';
+      activeCategoryTextEl.textContent = `You’re asking about: ${shortLabel}`;
+      activeCategoryEl.style.display = 'inline-flex';
+    }
+    function clearActiveCategory(){
+      activeCategoryEl.style.display = 'none';
+      activeCategoryTextEl.textContent = 'You’re asking about: …';
+    }
+
+    // ----- Categories & prompts -----
+    async function loadPrompts(){
+      const res = await fetch('/prompts.json');
+      PROMPTS = await res.json();
+      renderCategories();
+    }
+
+    function categoryEmoji(label){
+      if(label.startsWith('Psychological')) return EMOJI.Psychological;
+      if(label.startsWith('Physical')) return EMOJI.Physical;
+      if(label.startsWith('Career')) return EMOJI.Career;
+      if(label.startsWith('Family')) return EMOJI.Family;
+      if(label.startsWith('Cultural')) return EMOJI.Cultural;
+      if(label.startsWith('Identity')) return EMOJI.Identity;
+      if(label.startsWith('Financial')) return EMOJI.Financial;
+      if(label.startsWith('Environmental')) return EMOJI.Environmental;
+      if(label.startsWith('Female')) return EMOJI.Female;
+      return '❖';
+    }
+
+    function renderCategories(){
+      categoryView.innerHTML = '';
+      Object.keys(PROMPTS).forEach(label=>{
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        const em = document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(label);
+        const textWrap = document.createElement('div');
+        const title = document.createElement('div'); title.className='category-title'; title.textContent = label.split(' – ')[0];
+        const sub = document.createElement('div'); sub.className='category-sub'; sub.textContent = label.split(' – ')[1] || '';
+        textWrap.appendChild(title); textWrap.appendChild(sub);
+        card.appendChild(em); card.appendChild(textWrap);
+        card.addEventListener('click',()=>showPrompts(label));
+        categoryView.appendChild(card);
+      });
+      categoryView.classList.add('active');
+      promptView.classList.remove('active');
+      // clear state
+      resetChat();
+      document.getElementById('msg').value='';
+      clearActiveCategory();
+    }
+
+    function showPrompts(label){
+      promptTitle.textContent = label;
+      setActiveCategory(label);
+      promptList.innerHTML = '';
+      (PROMPTS[label]||[]).forEach(p=>{
+        const btn = document.createElement('button');
+        btn.className = 'prompt-btn';
+        btn.textContent = p;
+        btn.addEventListener('click',()=>sendMsg(p));
+        promptList.appendChild(btn);
+      });
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
+    }
+
+    function showCategories(){ renderCategories(); }
+
+    // Init
+    document.getElementById('copyBtn').addEventListener('click', copyConversation);
+    document.getElementById('resetBtn').addEventListener('click', resetChat);
+    document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
+    document.addEventListener('DOMContentLoaded', loadPrompts);
   </script>
 </body>
 </html>
