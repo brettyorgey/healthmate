@@ -41,9 +41,8 @@ export default async function handler(req) {
     if (!message) return json({ error: 'Missing message' }, 400);
 
     // 1) Reuse or create thread
-    // SAFETY: for a non-follow-up turn, always start a fresh thread
+    // If the browser claims "followup", reuse; otherwise start fresh.
     let thread_id = (followup === true) ? clientThreadId : undefined;
-
     if (!thread_id) {
       const threadResp = await fetch('https://api.openai.com/v1/threads', {
         method: 'POST',
@@ -60,11 +59,21 @@ export default async function handler(req) {
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
+    // 2b) Determine turn number by counting messages in the thread now
+    // If there's only 1 message total (the one we just posted), this is the FIRST TURN.
+    const countResp = await fetch(
+      `https://api.openai.com/v1/threads/${thread_id}/messages?order=asc&limit=2`,
+      { headers: headers() }
+    );
+    const countData = await countResp.json();
+    const messageCount = Array.isArray(countData?.data) ? countData.data.length : 0;
+    const isFirstTurn = messageCount <= 1;
+
     // 3) Create run with explicit per-turn instructions
-    const isFollowUpTurn = followup === true;
+    const mode = isFirstTurn ? 'full' : (followup === true ? 'followup' : 'full');
     const runCreateBody = {
       assistant_id: process.env.OPENAI_ASSISTANT_ID,
-      instructions: isFollowUpTurn ? FOLLOWUP_INSTRUCTIONS : FULL_INSTRUCTIONS,
+      instructions: mode === 'followup' ? FOLLOWUP_INSTRUCTIONS : FULL_INSTRUCTIONS,
     };
 
     const runResp = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
@@ -99,7 +108,18 @@ export default async function handler(req) {
     const output = msg?.content?.[0]?.text?.value || 'No response';
     const sources = extractSourcesFromMessage(msg);
 
-    return json({ output, sources, thread_id, mode: isFollowUpTurn ? 'followup' : 'full' }, 200);
+    // Return debug fields so you can verify behaviour
+    return json({
+      output,
+      sources,
+      thread_id,
+      mode,                 // "full" or "followup"
+      debug: {
+        followupReceived: followup === true,
+        messageCount,
+        isFirstTurn
+      }
+    }, 200);
   } catch (e) {
     console.error(e);
     return json({ error: e?.message || 'Server error' }, 500);
