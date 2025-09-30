@@ -7,12 +7,13 @@
 
   <style>
     :root { --card-bg:#ffffff; --page-bg:#f7f9fc; --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; }
+
     body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
 
     /* Header with blue background */
     .hero {
-      background: rgb(0,22,189);
+      background: rgb(0,13,122);
       border-radius:16px;
       padding:24px;
       box-shadow:0 4px 14px rgba(15,23,42,0.08);
@@ -34,17 +35,20 @@
     .category-sub{ color:#64748b; font-size:14px; }
 
     /* Prompt + chat panel */
-    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:14px; }
+    .prompt-panel{
+      background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05);
+      display:flex; flex-direction:column; gap:12px; min-height:70vh; position:relative;
+    }
     .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
-    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+
+    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
     /* Category badge */
     .cat-tag{
       display:inline-flex; align-items:center; gap:8px;
-      margin-top:6px;
       background:#e0f2fe; color:#075985; border:1px solid #bae6fd;
       padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600;
     }
@@ -52,50 +56,41 @@
     .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
     .cat-tag a:hover{ text-decoration:none; }
 
-    /* Chat area */
+    /* Scroll area for chat & prompts */
+    .scroll-area{
+      display:flex; flex-direction:column; gap:12px;
+      overflow:auto; /* makes footer sticky within panel */
+      max-height: calc(70vh - 150px); /* leave room for input + footer */
+      padding-right: 4px;
+    }
+
+    /* Chat messages */
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
-    /* Sources */
-    .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
-    .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
-    .sources ul{ margin:0; padding-left:18px; }
-    .sources li{ margin-bottom:4px; }
-    .sources a{ color:var(--brand); font-weight:500; text-decoration:underline; }
-    .sources a:hover{ text-decoration:none; }
-    .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
-
     /* Input row */
-    .inputRow{ display:flex; gap:10px; align-items:stretch;}
+    .inputRow{ display:flex; gap:10px; align-items:stretch; }
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
     button.send[disabled]{ opacity:.6; cursor:not-allowed; }
 
-    /* Footer disclaimer + buttons */
+    /* Sticky footer (disclaimer + buttons) */
     .chat-footer {
-      margin-top: 14px;
+      position: sticky; bottom: 0;
+      background: #fff;
       border-top: 1px solid #e5e7eb;
       padding-top: 10px;
+      padding-bottom: 6px;
       font-size: 13px;
       color: #475569;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
+      display:flex; flex-direction:column; gap:8px;
     }
-    .chat-controls {
-      display: flex;
-      gap: 10px;
-    }
+    .chat-controls { display: flex; gap: 10px; }
     .btn-sm {
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      cursor: pointer;
-      font-size: 13px;
+      padding: 8px 10px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; font-size: 13px;
     }
     .btn-sm:hover { background:#f9fafb; }
 
@@ -109,7 +104,6 @@
     <div class="hero">
       <h1>Welcome — we’re here to support past players & families.</h1>
       <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
-      <br>
       <p>Please select a category from the options below, you'll then be provided prompt options or you can type your question into the chat.</p>
     </div>
 
@@ -129,15 +123,17 @@
         <a href="javascript:void(0)" onclick="showCategories()">Change category</a>
       </div>
 
-      <div id="promptList" class="prompts"></div>
+      <div class="scroll-area" id="scrollArea">
+        <div id="promptList" class="prompts"></div>
 
-      <div class="chat" id="chat" aria-live="polite"></div>
+        <div class="chat" id="chat" aria-live="polite"></div>
+      </div>
+
       <div class="inputRow">
         <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
         <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
       </div>
 
-      <!-- New Footer -->
       <div class="chat-footer">
         <div>Information only — not a medical diagnosis. In an emergency call 000.</div>
         <div class="chat-controls">
@@ -149,10 +145,77 @@
   </div>
 
   <script>
-    // Transcript storage
-    const TRANSCRIPT = [];
+    // ---------- Clean state on load ----------
+    sessionStorage.removeItem('fq_thread_id');
+    sessionStorage.removeItem('fq_has_initial_answer');
 
-    // Copy + reset
+    // ---------- Optional captcha token (leave empty if unused) ----------
+    let captchaToken = '';
+
+    // ---------- Data & views ----------
+    let PROMPTS = {};
+    const categoryView = document.getElementById('categoryView');
+    const promptView   = document.getElementById('promptView');
+    const promptTitle  = document.getElementById('promptTitle');
+    const promptList   = document.getElementById('promptList');
+    const chatEl       = document.getElementById('chat');
+
+    const activeCategoryEl = document.getElementById('activeCategory');
+    const activeCategoryTextEl = document.getElementById('activeCategoryText');
+
+    const EMOJI = {
+      "Psychological": "🧠", "Physical": "🏋️", "Career": "💼", "Family": "👨‍👩‍👧‍👦",
+      "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
+    };
+
+    // ---------- Transcript & rendering ----------
+    const TRANSCRIPT = []; // {role,text}
+
+    function mdToHtml(md){
+      if(!md) return '';
+      let s=md;
+      s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
+      s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
+      s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+      s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
+      return '<p>'+s+'</p>';
+    }
+
+    function normalizeFollowupHeadings(text){
+      if (!text) return '';
+      return text
+        .replace(/^\s*Why this matters\s*:?\s*$/gmi, '## Why this matters')
+        .replace(/^\s*Sources\s*:?\s*$/gmi, '## Sources');
+    }
+
+    function addMsg(role,text){
+      TRANSCRIPT.push({role, text: text || ''});
+      const div=document.createElement('div'); div.className='msg '+role;
+
+      if(role==='assistant'){
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        const toRender = isFollowUp ? normalizeFollowupHeadings(text||'') : (text||'');
+        div.innerHTML=mdToHtml(toRender);
+
+        if (!sessionStorage.getItem('fq_has_initial_answer')) {
+          sessionStorage.setItem('fq_has_initial_answer','1');
+        }
+      } else {
+        div.textContent=text;
+      }
+
+      chatEl.appendChild(div);
+      chatEl.scrollTop=chatEl.scrollHeight;
+      return div;
+    }
+
+    function showThinking(){
+      const div=addMsg('assistant','');
+      div.innerHTML = '<span style="color:#475569;">Thinking…</span>';
+      return div;
+    }
+
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
@@ -160,11 +223,138 @@
       const btn=document.getElementById('copyBtn'); const old=btn.textContent;
       btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
     }
-    function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); document.getElementById('chat').innerHTML=''; }
+    function resetChat(){
+      TRANSCRIPT.splice(0,TRANSCRIPT.length);
+      chatEl.innerHTML='';
+      sessionStorage.removeItem('fq_thread_id');
+      sessionStorage.removeItem('fq_has_initial_answer');
+    }
 
+    // ---------- Send message ----------
+    async function sendMsg(txt){
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
+
+      const inp=document.getElementById('msg');
+      const content=(txt || inp.value || '').trim(); if(!content) return;
+
+      addMsg('user',content);
+      inp.value=''; document.getElementById('sendBtn').disabled=true;
+      const thinkingEl = showThinking();
+
+      try{
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        const threadId   = sessionStorage.getItem('fq_thread_id') || null;
+
+        const r=await fetch('/api/mascot',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            message:content,
+            cf_token: captchaToken,
+            followup: isFollowUp,
+            thread_id: threadId
+          })
+        });
+
+        const data=await r.json().catch(()=>({}));
+        thinkingEl.remove();
+
+        if(!r.ok){
+          if(r.status===429){ addMsg('assistant','You’ve reached today’s limit for this demo. Please try again tomorrow.'); }
+          else if(r.status===504){ addMsg('assistant','Sorry — the assistant is taking longer than usual. Please try again.'); }
+          else { const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail); }
+        } else {
+          addMsg('assistant', data.output || 'No response');
+          if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
+        }
+      }catch(e){
+        thinkingEl.remove();
+        addMsg('assistant','Sorry — network error.');
+      }finally{
+        document.getElementById('sendBtn').disabled=false;
+      }
+    }
+
+    // ---------- Categories & prompts ----------
+    function setActiveCategory(label){
+      const shortLabel = (label || '').split(' – ')[0] || label || 'General';
+      activeCategoryTextEl.textContent = `You’re asking about: ${shortLabel}`;
+      activeCategoryEl.style.display = 'inline-flex';
+    }
+    function clearActiveCategory(){
+      activeCategoryEl.style.display = 'none';
+      activeCategoryTextEl.textContent = 'You’re asking about: …';
+    }
+
+    function categoryEmoji(label){
+      if(label.startsWith('Psychological')) return EMOJI.Psychological;
+      if(label.startsWith('Physical')) return EMOJI.Physical;
+      if(label.startsWith('Career')) return EMOJI.Career;
+      if(label.startsWith('Family')) return EMOJI.Family;
+      if(label.startsWith('Cultural')) return EMOJI.Cultural;
+      if(label.startsWith('Identity')) return EMOJI.Identity;
+      if(label.startsWith('Financial')) return EMOJI.Financial;
+      if(label.startsWith('Environmental')) return EMOJI.Environmental;
+      if(label.startsWith('Female')) return EMOJI.Female;
+      return '❖';
+    }
+
+    async function loadPrompts(){
+      // expects /prompts.json in /public with your 9 categories
+      const res = await fetch('/prompts.json');
+      PROMPTS = await res.json();
+      renderCategories();
+    }
+
+    function renderCategories(){
+      categoryView.innerHTML = '';
+      Object.keys(PROMPTS).forEach(label=>{
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        const em = document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(label);
+        const textWrap = document.createElement('div');
+        const title = document.createElement('div'); title.className='category-title'; title.textContent = label.split(' – ')[0];
+        const sub = document.createElement('div'); sub.className='category-sub'; sub.textContent = label.split(' – ')[1] || '';
+        textWrap.appendChild(title); textWrap.appendChild(sub);
+        card.appendChild(em); card.appendChild(textWrap);
+        card.addEventListener('click',()=>showPrompts(label));
+        categoryView.appendChild(card);
+      });
+      categoryView.classList.add('active');
+      promptView.classList.remove('active');
+      resetChat();
+      document.getElementById('msg').value='';
+      clearActiveCategory();
+    }
+
+    function showPrompts(label){
+      // New category = new conversation
+      sessionStorage.removeItem('fq_thread_id');
+      sessionStorage.removeItem('fq_has_initial_answer');
+
+      promptTitle.textContent = label;
+      setActiveCategory(label);
+      promptList.innerHTML = '';
+      (PROMPTS[label]||[]).forEach(p=>{
+        const btn = document.createElement('button');
+        btn.className = 'prompt-btn';
+        btn.textContent = p;
+        btn.addEventListener('click',()=>sendMsg(p));
+        promptList.appendChild(btn);
+      });
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
+
+      // Scroll to chat after selecting prompts (nice UX)
+      document.getElementById('scrollArea').scrollTop = 0;
+    }
+
+    function showCategories(){ renderCategories(); }
+
+    // ---------- Init ----------
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('copyBtn').addEventListener('click', copyConversation);
-      document.getElementById('resetBtn').addEventListener('click', resetChat);
+      loadPrompts();
 
       // Enter-to-send
       const textarea = document.getElementById('msg');
@@ -174,6 +364,10 @@
           document.getElementById('sendBtn').click();
         }
       });
+
+      // Copy / Reset handlers
+      document.getElementById('copyBtn').addEventListener('click', copyConversation);
+      document.getElementById('resetBtn').addEventListener('click', resetChat);
     });
   </script>
 </body>
