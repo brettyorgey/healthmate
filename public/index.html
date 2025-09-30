@@ -34,8 +34,8 @@
     .category-sub{ color:#64748b; font-size:14px; }
 
     /* Prompt + chat panel */
-    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
-    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:14px; }
+    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
     .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
@@ -44,7 +44,7 @@
     /* Category badge */
     .cat-tag{
       display:inline-flex; align-items:center; gap:8px;
-      margin-top:6px; margin-bottom:6px;
+      margin-top:6px;
       background:#e0f2fe; color:#075985; border:1px solid #bae6fd;
       padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600;
     }
@@ -53,7 +53,7 @@
     .cat-tag a:hover{ text-decoration:none; }
 
     /* Chat area */
-    .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+    .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
@@ -69,16 +69,25 @@
     .src-quote{ margin-top:4px; padding-left:10px; border-left:3px solid #e5e7eb; color:#475569; font-size:13px; font-style:italic; line-height:1.5; white-space:pre-wrap; }
 
     /* Input row */
-    .inputRow{ display:flex; gap:10px; align-items:stretch; margin-top:6px;}
+    .inputRow{ display:flex; gap:10px; align-items:stretch;}
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
     button.send[disabled]{ opacity:.6; cursor:not-allowed; }
 
-    /* Chat control buttons at bottom */
+    /* Footer disclaimer + buttons */
+    .chat-footer {
+      margin-top: 14px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 10px;
+      font-size: 13px;
+      color: #475569;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
     .chat-controls {
       display: flex;
       gap: 10px;
-      margin-top: 12px;
     }
     .btn-sm {
       padding: 8px 10px;
@@ -128,16 +137,22 @@
         <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
       </div>
 
-      <!-- Moved controls to bottom -->
-      <div class="chat-controls">
-        <button class="btn-sm" id="copyBtn">Copy conversation</button>
-        <button class="btn-sm" id="resetBtn">Reset chat</button>
+      <!-- New Footer -->
+      <div class="chat-footer">
+        <div>Information only — not a medical diagnosis. In an emergency call 000.</div>
+        <div class="chat-controls">
+          <button class="btn-sm" id="copyBtn">Copy conversation</button>
+          <button class="btn-sm" id="resetBtn">Reset chat</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Clipboard + Reset logic (unchanged)
+    // Transcript storage
+    const TRANSCRIPT = [];
+
+    // Copy + reset
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
@@ -151,7 +166,7 @@
       document.getElementById('copyBtn').addEventListener('click', copyConversation);
       document.getElementById('resetBtn').addEventListener('click', resetChat);
 
-      // Enable Enter to send (Shift+Enter = newline)
+      // Enter-to-send
       const textarea = document.getElementById('msg');
       textarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
