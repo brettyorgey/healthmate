@@ -40,7 +40,7 @@
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
-    /* NEW: Category badge */
+    /* Category badge */
     .cat-tag{
       display:inline-flex; align-items:center; gap:8px;
       margin-top:6px; margin-bottom:6px;
@@ -58,7 +58,7 @@
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
 
-    /* Sources */
+    /* Sources (file citations) */
     .sources{ margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; font-size:14px; line-height:1.5; }
     .sources strong{ display:block; margin-bottom:6px; font-size:15px; color:var(--text); }
     .sources ul{ margin:0; padding-left:18px; }
@@ -113,7 +113,7 @@
         <div class="back-link" onclick="showCategories()">← Back to Categories</div>
       </div>
 
-      <!-- NEW: category badge -->
+      <!-- Category badge -->
       <div id="activeCategory" class="cat-tag" style="display:none;">
         <span class="dot" aria-hidden="true"></span>
         <span id="activeCategoryText">You’re asking about: …</span>
@@ -147,7 +147,7 @@
     const promptTitle  = document.getElementById('promptTitle');
     const promptList   = document.getElementById('promptList');
 
-    // NEW: badge elements
+    // Category badge elements
     const activeCategoryEl = document.getElementById('activeCategory');
     const activeCategoryTextEl = document.getElementById('activeCategoryText');
 
@@ -171,6 +171,14 @@
     }
     function trimQuote(q,max=280){ if(!q) return ''; const t=q.trim(); return t.length>max?t.slice(0,max)+'…':t; }
 
+    // Normalize bare headings for follow-ups (ensures bold h2 styling)
+    function normalizeFollowupHeadings(text){
+      if (!text) return '';
+      return text
+        .replace(/^\s*Why this matters\s*:?\s*$/gmi, '## Why this matters')
+        .replace(/^\s*Sources\s*:?\s*$/gmi, '## Sources');
+    }
+
     function speakText(text){
       if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
       try{
@@ -185,25 +193,40 @@
       TRANSCRIPT.push({role, text: text || ''});
       const chat=document.getElementById('chat');
       const div=document.createElement('div'); div.className='msg '+role;
+
       if(role==='assistant'){
-        div.innerHTML=mdToHtml(text||'');
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        const toRender = isFollowUp ? normalizeFollowupHeadings(text||'') : (text||'');
+        div.innerHTML=mdToHtml(toRender);
+
         const controls=document.createElement('div'); controls.className='inline-controls';
         const listenBtn=document.createElement('button'); listenBtn.className='mini-btn'; listenBtn.textContent='🔊 Listen';
         listenBtn.addEventListener('click',()=>speakText(text||'')); controls.appendChild(listenBtn);
         div.appendChild(controls);
+
+        // File-citation sources (vector store)
         if(Array.isArray(sources)&&sources.length){
           const src=document.createElement('div'); src.className='sources';
           let html='<strong>Sources</strong><ul>';
           for(const s of sources){
-            const href=`/api/file?file_id=${encodeURIComponent(s.file_id)}`;
+            const href = s.url ? s.url : `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
+            const label = s.title || s.filename || s.file_id || 'Source';
             html+=`<li>
-              <a href="${href}" target="_blank" rel="noopener">${s.filename || s.file_id}</a>
+              <a href="${href}" target="_blank" rel="noopener">${label}</a>
               ${s.quote && s.quote.trim()?`<div class="src-quote">“${trimQuote(s.quote)}”</div>`:''}
             </li>`;
           }
           html+='</ul>'; src.innerHTML=html; div.appendChild(src);
         }
-      } else { div.textContent=text; }
+
+        // Mark the FIRST assistant answer has been shown (enables follow-up mode)
+        if (!sessionStorage.getItem('fq_has_initial_answer')) {
+          sessionStorage.setItem('fq_has_initial_answer','1');
+        }
+      } else {
+        div.textContent=text;
+      }
+
       chat.appendChild(div);
       chat.scrollTop=chat.scrollHeight;
       return div;
@@ -222,7 +245,14 @@
       const btn=document.getElementById('copyBtn'); const old=btn.textContent;
       btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
     }
-    function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); document.getElementById('chat').innerHTML=''; }
+
+    function resetChat(){
+      TRANSCRIPT.splice(0,TRANSCRIPT.length);
+      document.getElementById('chat').innerHTML='';
+      // Clear conversation state (thread + follow-up flag)
+      sessionStorage.removeItem('fq_thread_id');
+      sessionStorage.removeItem('fq_has_initial_answer');
+    }
 
     // ----- Speech-to-Text (mic) -----
     let recognition = null; let listening = false;
@@ -248,7 +278,7 @@
     }
     function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(e){} } }
 
-    // ----- Send message (stays on prompt view) -----
+    // ----- Send message (embedded chat) -----
     async function sendMsg(txt){
       // Ensure we are on the prompt view (chat area is here)
       categoryView.classList.remove('active');
@@ -258,21 +288,36 @@
       const content=(txt || inp.value || '').trim(); if(!content) return;
       addMsg('user',content);
       inp.value=''; document.getElementById('sendBtn').disabled=true;
+
       const thinkingEl = showThinking();
       try{
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        const threadId   = sessionStorage.getItem('fq_thread_id') || null;
+
         const r=await fetch('/api/mascot',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({message:content, cf_token: captchaToken})
+          body:JSON.stringify({
+            message:content,
+            cf_token: captchaToken,
+            followup: isFollowUp,
+            thread_id: threadId
+          })
         });
+
         const data=await r.json().catch(()=>({}));
         thinkingEl.remove();
+
         if(!r.ok){
           if(r.status===429){ addMsg('assistant','You’ve reached today’s limit for this demo. Please try again tomorrow.'); }
           else if(r.status===504){ addMsg('assistant','Sorry — the assistant is taking longer than usual. Please try again.'); }
           else { const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail); }
         } else {
           addMsg('assistant', data.output || 'No response', data.sources);
+          // Save thread id for later turns (so follow-ups stay in the same conversation)
+          if (data.thread_id) {
+            sessionStorage.setItem('fq_thread_id', data.thread_id);
+          }
         }
       }catch(e){
         thinkingEl.remove();
