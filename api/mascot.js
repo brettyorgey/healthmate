@@ -43,9 +43,13 @@ export default async function handler(req) {
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // 3) Create run (override instructions for follow-ups)
+    // 3) Create run (override instructions ONLY for later turns)
     const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
-    if (followup) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+
+    // Only apply simplified instructions if explicitly flagged AND not the very first turn
+    if (followup === true) {
+    runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+    }
 
     const runResp = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
       method: 'POST',
