@@ -4,67 +4,41 @@
   <meta charset="UTF-8" />
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <style>
     :root { --card-bg:#ffffff; --page-bg:#f7f9fc; --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; }
-
     body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
 
-    /* Header with blue background */
-    .hero {
-      background: rgb(0,13,122);
-      border-radius:16px;
-      padding:24px;
-      box-shadow:0 4px 14px rgba(15,23,42,0.08);
-      margin-bottom:12px;
-      color:#fff;
-    }
+    /* Header */
+    .hero { background: rgb(0,22,189); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; color:#fff; }
     .hero h1 { margin:0 0 8px; font-size:28px; line-height:1.2; color:#fff; }
     .hero p { margin:6px 0 0; color:#e0e7ff; }
 
-    /* Category list */
+    /* Categories */
     .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
-    .category-card{
-      display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer;
-      box-shadow:0 2px 6px rgba(0,0,0,.05);
-    }
+    .category-card{ display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.05); }
     .category-card:hover{ background:#f9fafb; }
     .category-emoji{ font-size:22px; }
     .category-title{ font-weight:700; }
     .category-sub{ color:#64748b; font-size:14px; }
 
-    /* Prompt + chat panel */
-    .prompt-panel{
-      background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05);
-      display:flex; flex-direction:column; gap:12px; min-height:70vh; position:relative;
-    }
+    /* Panel */
+    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:12px; min-height:70vh; }
     .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
 
-    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+    .prompts{ display:flex; flex-direction:column; gap:10px; }
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
-    /* Category badge */
-    .cat-tag{
-      display:inline-flex; align-items:center; gap:8px;
-      background:#e0f2fe; color:#075985; border:1px solid #bae6fd;
-      padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600;
-    }
-    .cat-tag .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:#0ea5e9; }
+    .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; }
+    .cat-tag .dot{ width:6px; height:6px; border-radius:50%; background:#0ea5e9; display:inline-block; }
     .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
-    .cat-tag a:hover{ text-decoration:none; }
 
-    /* Scroll area for chat & prompts */
-    .scroll-area{
-      display:flex; flex-direction:column; gap:12px;
-      overflow:auto; /* makes footer sticky within panel */
-      max-height: calc(70vh - 150px); /* leave room for input + footer */
-      padding-right: 4px;
-    }
+    /* Scroll area so footer can stick */
+    .scroll-area{ display:flex; flex-direction:column; gap:12px; overflow:auto; max-height: calc(70vh - 150px); padding-right:4px; }
 
-    /* Chat messages */
+    /* Chat */
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
@@ -73,29 +47,17 @@
     .msg.assistant p { margin: 8px 0 12px; }
     .msg.assistant ul, .msg.assistant ol { margin: 6px 0 12px 20px; }
 
-
-    /* Input row */
+    /* Input */
     .inputRow{ display:flex; gap:10px; align-items:stretch; }
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
     button.send[disabled]{ opacity:.6; cursor:not-allowed; }
 
-    /* Sticky footer (disclaimer + buttons) */
-    .chat-footer {
-      position: sticky; bottom: 0;
-      background: #fff;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 10px;
-      padding-bottom: 6px;
-      font-size: 13px;
-      color: #475569;
-      display:flex; flex-direction:column; gap:8px;
-    }
-    .chat-controls { display: flex; gap: 10px; }
-    .btn-sm {
-      padding: 8px 10px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; font-size: 13px;
-    }
-    .btn-sm:hover { background:#f9fafb; }
+    /* Sticky footer */
+    .chat-footer{ position:sticky; bottom:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px 0 6px; font-size:13px; color:#475569; display:flex; flex-direction:column; gap:8px; }
+    .chat-controls{ display:flex; gap:10px; }
+    .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
+    .btn-sm:hover{ background:#f9fafb; }
 
     /* Visibility */
     #categoryView, #promptView { display:none; }
@@ -107,13 +69,12 @@
     <div class="hero">
       <h1>Welcome — we’re here to support past players & families.</h1>
       <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
+      <br/>
       <p>Please select a category from the options below, you'll then be provided prompt options or you can type your question into the chat.</p>
     </div>
 
-    <!-- Step 1: Categories -->
     <div id="categoryView" class="categories active" aria-live="polite"></div>
 
-    <!-- Step 2: Prompts + Chat -->
     <div id="promptView" class="prompt-panel" aria-live="polite">
       <div class="prompt-header">
         <div id="promptTitle" class="category-title"></div>
@@ -121,14 +82,13 @@
       </div>
 
       <div id="activeCategory" class="cat-tag" style="display:none;">
-        <span class="dot" aria-hidden="true"></span>
+        <span class="dot"></span>
         <span id="activeCategoryText">You’re asking about: …</span>
         <a href="javascript:void(0)" onclick="showCategories()">Change category</a>
       </div>
 
       <div class="scroll-area" id="scrollArea">
         <div id="promptList" class="prompts"></div>
-
         <div class="chat" id="chat" aria-live="polite"></div>
       </div>
 
@@ -152,17 +112,15 @@
     sessionStorage.removeItem('fq_thread_id');
     sessionStorage.removeItem('fq_has_initial_answer');
 
-    // ---------- Optional captcha token (leave empty if unused) ----------
-    let captchaToken = '';
-
-    // ---------- Data & views ----------
+    // ---------- Data ----------
+    const TRANSCRIPT = [];
     let PROMPTS = {};
+
     const categoryView = document.getElementById('categoryView');
     const promptView   = document.getElementById('promptView');
     const promptTitle  = document.getElementById('promptTitle');
     const promptList   = document.getElementById('promptList');
     const chatEl       = document.getElementById('chat');
-
     const activeCategoryEl = document.getElementById('activeCategory');
     const activeCategoryTextEl = document.getElementById('activeCategoryText');
 
@@ -171,9 +129,7 @@
       "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
     };
 
-    // ---------- Transcript & rendering ----------
-    const TRANSCRIPT = []; // {role,text}
-
+    // ---------- Helpers ----------
     function mdToHtml(md){
       if(!md) return '';
       let s=md;
@@ -184,130 +140,76 @@
       s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
       return '<p>'+s+'</p>';
     }
-
     function normalizeFollowupHeadings(text){
       if (!text) return '';
       return text
         .replace(/^\s*Why this matters\s*:?\s*$/gmi, '## Why this matters')
         .replace(/^\s*Sources\s*:?\s*$/gmi, '## Sources');
     }
+    function normalizeSectionHeadings(text){
+      if (!text) return text;
+      const list = ['What to do now','Why this matters','Who to contact','What to bring to your appointment','What to bring','Watch for and act on','Red-flags','Sources'];
+      let out=text;
+      for(const h of list){
+        const re=new RegExp(`^\\s*\\**\\s*${h}\\s*:?\\s*\\**\\s*$`,'gmi');
+        out=out.replace(re,`## ${h}`);
+      }
+      return out;
+    }
+    function stripInlineDisclaimer(text){
+      if(!text) return text;
+      const re=/^\s*\*?\s*Information only\s*—\s*not a medical diagnosis\.\s*In an emergency call 000\.\s*\*?\s*$/gmi;
+      return text.replace(re,'').trim();
+    }
 
     function addMsg(role,text){
       TRANSCRIPT.push({role, text: text || ''});
       const div=document.createElement('div'); div.className='msg '+role;
 
-      if (role === 'assistant') {
-      const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
-
-     // 1) Normalize headings (both full + follow-up)
-      let cleaned = normalizeSectionHeadings(text || '');
-
-    // 2) Follow-up specific normalization (ensures "## Why this matters" / "## Sources")
-      if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
-
-    // 3) Strip inline disclaimer so we only show the sticky footer
-      cleaned = stripInlineDisclaimer(cleaned);
-
-    // 4) Render
-      div.innerHTML = mdToHtml(cleaned);
-
-    // Mark that we've shown first answer
-      if (!sessionStorage.getItem('fq_has_initial_answer')) {
-      sessionStorage.setItem('fq_has_initial_answer', '1');
-    }
-    } else {
-    div.textContent = text;
-    }
-
-        if (!sessionStorage.getItem('fq_has_initial_answer')) {
-          sessionStorage.setItem('fq_has_initial_answer','1');
-        }
-      } else {
+      if(role==='assistant'){
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        let cleaned = normalizeSectionHeadings(text || '');
+        if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
+        cleaned = stripInlineDisclaimer(cleaned);
+        div.innerHTML = mdToHtml(cleaned);
+        if (!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
+      }else{
         div.textContent=text;
       }
-
       chatEl.appendChild(div);
       chatEl.scrollTop=chatEl.scrollHeight;
       return div;
     }
-
-    function showThinking(){
-      const div=addMsg('assistant','');
-      div.innerHTML = '<span style="color:#475569;">Thinking…</span>';
-      return div;
-    }
+    function showThinking(){ const d=addMsg('assistant',''); d.innerHTML='<span style="color:#475569;">Thinking…</span>'; return d; }
 
     async function copyConversation(){
       if(!navigator.clipboard){ alert('Clipboard not available'); return; }
       const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
       await navigator.clipboard.writeText(text || '(empty)');
-      const btn=document.getElementById('copyBtn'); const old=btn.textContent;
-      btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
+      const btn=document.getElementById('copyBtn'); const old=btn.textContent; btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
     }
-    function resetChat(){
-      TRANSCRIPT.splice(0,TRANSCRIPT.length);
-      chatEl.innerHTML='';
-      sessionStorage.removeItem('fq_thread_id');
-      sessionStorage.removeItem('fq_has_initial_answer');
-    }
+    function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); chatEl.innerHTML=''; sessionStorage.removeItem('fq_thread_id'); sessionStorage.removeItem('fq_has_initial_answer'); }
 
-    // ---------- Send message ----------
+    // ---------- Send ----------
     async function sendMsg(txt){
-      categoryView.classList.remove('active');
-      promptView.classList.add('active');
-
-      const inp=document.getElementById('msg');
-      const content=(txt || inp.value || '').trim(); if(!content) return;
-
-      addMsg('user',content);
-      inp.value=''; document.getElementById('sendBtn').disabled=true;
-      const thinkingEl = showThinking();
-
+      categoryView.classList.remove('active'); promptView.classList.add('active');
+      const inp=document.getElementById('msg'); const content=(txt||inp.value||'').trim(); if(!content) return;
+      addMsg('user',content); inp.value=''; document.getElementById('sendBtn').disabled=true; const thinkingEl=showThinking();
       try{
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
-
-        const r=await fetch('/api/mascot',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            message:content,
-            cf_token: captchaToken,
-            followup: isFollowUp,
-            thread_id: threadId
-          })
-        });
-
-        const data=await r.json().catch(()=>({}));
-        thinkingEl.remove();
-
-        if(!r.ok){
-          if(r.status===429){ addMsg('assistant','You’ve reached today’s limit for this demo. Please try again tomorrow.'); }
-          else if(r.status===504){ addMsg('assistant','Sorry — the assistant is taking longer than usual. Please try again.'); }
-          else { const detail=typeof data?.detail==='string'?` (${data.detail})`:''; addMsg('assistant','Sorry — server error'+detail); }
-        } else {
-          addMsg('assistant', data.output || 'No response');
-          if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
-        }
-      }catch(e){
-        thinkingEl.remove();
-        addMsg('assistant','Sorry — network error.');
-      }finally{
-        document.getElementById('sendBtn').disabled=false;
-      }
+        const r=await fetch('/api/mascot',{ method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ message:content, followup:isFollowUp, thread_id:threadId }) });
+        const data=await r.json().catch(()=>({})); thinkingEl.remove();
+        if(!r.ok){ addMsg('assistant','Sorry — server error.'); }
+        else{ addMsg('assistant', data.output || 'No response'); if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id); }
+      }catch(e){ thinkingEl.remove(); addMsg('assistant','Sorry — network error.'); }
+      finally{ document.getElementById('sendBtn').disabled=false; }
     }
 
-    // ---------- Categories & prompts ----------
-    function setActiveCategory(label){
-      const shortLabel = (label || '').split(' – ')[0] || label || 'General';
-      activeCategoryTextEl.textContent = `You’re asking about: ${shortLabel}`;
-      activeCategoryEl.style.display = 'inline-flex';
-    }
-    function clearActiveCategory(){
-      activeCategoryEl.style.display = 'none';
-      activeCategoryTextEl.textContent = 'You’re asking about: …';
-    }
-
+    // ---------- Categories ----------
+    function setActiveCategory(label){ const short=(label||'').split(' – ')[0]||label||'General'; activeCategoryTextEl.textContent=`You’re asking about: ${short}`; activeCategoryEl.style.display='inline-flex'; }
+    function clearActiveCategory(){ activeCategoryEl.style.display='none'; activeCategoryTextEl.textContent='You’re asking about: …'; }
     function categoryEmoji(label){
       if(label.startsWith('Psychological')) return EMOJI.Psychological;
       if(label.startsWith('Physical')) return EMOJI.Physical;
@@ -322,73 +224,38 @@
     }
 
     async function loadPrompts(){
-      // expects /prompts.json in /public with your 9 categories
       const res = await fetch('/prompts.json');
+      if (!res.ok) { console.error('Failed to load /prompts.json'); return; }
       PROMPTS = await res.json();
       renderCategories();
     }
-
     function renderCategories(){
-      categoryView.innerHTML = '';
-      Object.keys(PROMPTS).forEach(label=>{
-        const card = document.createElement('div');
-        card.className = 'category-card';
-        const em = document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(label);
-        const textWrap = document.createElement('div');
-        const title = document.createElement('div'); title.className='category-title'; title.textContent = label.split(' – ')[0];
-        const sub = document.createElement('div'); sub.className='category-sub'; sub.textContent = label.split(' – ')[1] || '';
-        textWrap.appendChild(title); textWrap.appendChild(sub);
-        card.appendChild(em); card.appendChild(textWrap);
-        card.addEventListener('click',()=>showPrompts(label));
-        categoryView.appendChild(card);
+      categoryView.innerHTML=''; Object.keys(PROMPTS).forEach(label=>{
+        const card=document.createElement('div'); card.className='category-card';
+        const em=document.createElement('div'); em.className='category-emoji'; em.textContent=categoryEmoji(label);
+        const wrap=document.createElement('div');
+        const title=document.createElement('div'); title.className='category-title'; title.textContent=label.split(' – ')[0];
+        const sub=document.createElement('div'); sub.className='category-sub'; sub.textContent=label.split(' – ')[1]||'';
+        wrap.appendChild(title); wrap.appendChild(sub); card.appendChild(em); card.appendChild(wrap);
+        card.addEventListener('click',()=>showPrompts(label)); categoryView.appendChild(card);
       });
-      categoryView.classList.add('active');
-      promptView.classList.remove('active');
-      resetChat();
-      document.getElementById('msg').value='';
-      clearActiveCategory();
+      categoryView.classList.add('active'); promptView.classList.remove('active'); resetChat(); document.getElementById('msg').value=''; clearActiveCategory();
     }
-
     function showPrompts(label){
-      // New category = new conversation
-      sessionStorage.removeItem('fq_thread_id');
-      sessionStorage.removeItem('fq_has_initial_answer');
-
-      promptTitle.textContent = label;
-      setActiveCategory(label);
-      promptList.innerHTML = '';
-      (PROMPTS[label]||[]).forEach(p=>{
-        const btn = document.createElement('button');
-        btn.className = 'prompt-btn';
-        btn.textContent = p;
-        btn.addEventListener('click',()=>sendMsg(p));
-        promptList.appendChild(btn);
-      });
-      categoryView.classList.remove('active');
-      promptView.classList.add('active');
-
-      // Scroll to chat after selecting prompts (nice UX)
-      document.getElementById('scrollArea').scrollTop = 0;
+      sessionStorage.removeItem('fq_thread_id'); sessionStorage.removeItem('fq_has_initial_answer');
+      promptTitle.textContent=label; setActiveCategory(label); promptList.innerHTML='';
+      (PROMPTS[label]||[]).forEach(p=>{ const b=document.createElement('button'); b.className='prompt-btn'; b.textContent=p; b.addEventListener('click',()=>sendMsg(p)); promptList.appendChild(b); });
+      categoryView.classList.remove('active'); promptView.classList.add('active'); document.getElementById('scrollArea').scrollTop=0;
     }
-
     function showCategories(){ renderCategories(); }
 
     // ---------- Init ----------
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', ()=>{
       loadPrompts();
-
-      // Enter-to-send
-      const textarea = document.getElementById('msg');
-      textarea.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          document.getElementById('sendBtn').click();
-        }
-      });
-
-      // Copy / Reset handlers
       document.getElementById('copyBtn').addEventListener('click', copyConversation);
       document.getElementById('resetBtn').addEventListener('click', resetChat);
+      const textarea=document.getElementById('msg');
+      textarea.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); document.getElementById('sendBtn').click(); } });
     });
   </script>
 </body>
