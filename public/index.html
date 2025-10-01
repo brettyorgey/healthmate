@@ -9,12 +9,10 @@
     body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
 
-    /* Header */
     .hero { background: rgb(0,91,181); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; color:#fff; }
     .hero h1 { margin:0 0 8px; font-size:28px; line-height:1.2; color:#fff; }
     .hero p { margin:6px 0 0; color:#e0e7ff; }
 
-    /* Categories */
     .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
     .category-card{ display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.05); }
     .category-card:hover{ background:#f9fafb; }
@@ -22,53 +20,52 @@
     .category-title{ font-weight:700; }
     .category-sub{ color:#64748b; font-size:14px; }
 
-    /* Panel */
     .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:12px; min-height:70vh; }
-    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; } /* spacing tweak */
+    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
 
-    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:12px; } /* spacing tweak */
+    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
-    .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; margin:8px 0 16px; } /* spacing tweak */
+    .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; margin:8px 0 16px; }
     .cat-tag .dot{ width:6px; height:6px; border-radius:50%; background:#0ea5e9; display:inline-block; }
-    .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
 
-    /* Scroll area so footer can stick */
     .scroll-area{ display:flex; flex-direction:column; gap:12px; overflow:auto; max-height: calc(70vh - 150px); padding-right:4px; }
 
-    /* Chat */
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
 
-    /* Instruction headings look consistent (blue bar + spacing) */
+    /* Instruction headings spacing */
     .msg.assistant h2, .msg.assistant h3{
-      margin-top: 20px;
-      margin-bottom: 10px;
+      margin-top: 24px;   /* ensure space BEFORE heading */
+      margin-bottom: 12px;
       font-size:18px; line-height:1.3;
       border-left:4px solid var(--brand);
       padding-left:8px;
     }
-    .msg.assistant h2:first-of-type, .msg.assistant h3:first-of-type { margin-top: 10px; }
-    .msg.assistant p { margin: 8px 0 12px; }
-    .msg.assistant ul, .msg.assistant ol { margin: 6px 0 12px 20px; }
+    .msg.assistant h2:first-of-type,
+    .msg.assistant h3:first-of-type { margin-top: 12px; }
 
-    /* Input */
+    .msg.assistant p { margin: 8px 0 12px; }
+
+    /* Thinking animation */
+    .thinking{ display:inline-flex; gap:6px; align-items:center; color:#475569; }
+    .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; opacity:.6; animation:b 1.3s infinite ease-in-out; }
+    .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
+    @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
+
     .inputRow{ display:flex; gap:10px; align-items:stretch; }
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
-    button.send[disabled]{ opacity:.6; cursor:not-allowed; }
 
-    /* Sticky footer */
     .chat-footer{ position:sticky; bottom:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px 0 6px; font-size:13px; color:#475569; display:flex; flex-direction:column; gap:8px; }
     .chat-controls{ display:flex; gap:10px; }
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
     .btn-sm:hover{ background:#f9fafb; }
 
-    /* Visibility */
     #categoryView, #promptView { display:none; }
     #categoryView.active, #promptView.active { display:block; }
   </style>
@@ -116,161 +113,54 @@
   </div>
 
   <script>
-    // ---------- Clean state on load ----------
     sessionStorage.removeItem('fq_thread_id');
     sessionStorage.removeItem('fq_has_initial_answer');
 
-    // ---------- Data ----------
-    const TRANSCRIPT = [];
-    let PROMPTS = {};
+    const TRANSCRIPT=[]; let PROMPTS={};
 
-    const categoryView = document.getElementById('categoryView');
-    const promptView   = document.getElementById('promptView');
-    const promptTitle  = document.getElementById('promptTitle');
-    const promptList   = document.getElementById('promptList');
-    const chatEl       = document.getElementById('chat');
-    const activeCategoryEl = document.getElementById('activeCategory');
-    const activeCategoryTextEl = document.getElementById('activeCategoryText');
+    const categoryView=document.getElementById('categoryView');
+    const promptView=document.getElementById('promptView');
+    const promptTitle=document.getElementById('promptTitle');
+    const promptList=document.getElementById('promptList');
+    const chatEl=document.getElementById('chat');
+    const activeCategoryEl=document.getElementById('activeCategory');
+    const activeCategoryTextEl=document.getElementById('activeCategoryText');
 
-    const EMOJI = {
-      "Psychological": "🧠", "Physical": "🏋️", "Career": "💼", "Family": "👨‍👩‍👧‍👦",
-      "Cultural": "🌏", "Identity": "🎭", "Financial": "💰", "Environmental": "⚠️", "Female": "♀️"
-    };
-
-    // ---------- Helpers ----------
-    function mdToHtml(md){
-      if(!md) return '';
-      let s=md;
+    function mdToHtml(md){ if(!md) return ''; let s=md;
       s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
       s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
       s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
       s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
-      return '<p>'+s+'</p>';
-    }
-    function normalizeFollowupHeadings(text){
-      if (!text) return '';
-      return text
-        .replace(/^\s*Why this matters\s*:?\s*$/gmi, '## Why this matters')
-        .replace(/^\s*Sources\s*:?\s*$/gmi, '## Sources');
-    }
-    function normalizeSectionHeadings(text){
-      if (!text) return text;
-      const list = ['What to do now','Why this matters','Who to contact','What to bring to your appointment','What to bring','Watch for and act on','Red-flags','Sources'];
-      let out=text;
-      for(const h of list){
-        const re=new RegExp(`^\\s*\\**\\s*${h}\\s*:?\\s*\\**\\s*$`,'gmi');
-        out=out.replace(re,`## ${h}`);
-      }
-      return out;
-    }
-    function stripInlineDisclaimer(text){
-      if(!text) return text;
-      const re=/^\s*\*?\s*Information only\s*—\s*not a medical diagnosis\.\s*In an emergency call 000\.\s*\*?\s*$/gmi;
-      return text.replace(re,'').trim();
-    }
-    function cleanFooterHeading(text){
-      if(!text) return text;
-      // remove "Footer:", "## Footer", etc
-      return text.replace(/^\s*#{1,3}\s*Footer:?[\s\n]*$/gmi,'').trim();
+      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>'); return '<p>'+s+'</p>'; }
+
+    function normalizeFollowupHeadings(text){ if(!text) return ''; return text.replace(/^\s*Why this matters.*$/gmi,'## Why this matters').replace(/^\s*Sources.*$/gmi,'## Sources'); }
+    function normalizeSectionHeadings(text){ if(!text) return text; const list=['What to do now','Why this matters','Who to contact','What to bring','Watch for and act on','Red-flags','Sources']; let out=text; for(const h of list){ const re=new RegExp(`^\\s*\\**\\s*${h}\\s*:?\\s*\\**\\s*$`,'gmi'); out=out.replace(re,`## ${h}`);} return out; }
+    function stripInlineDisclaimer(text){ return text.replace(/Information only\s*—\s*not a medical diagnosis.*000\.*\s*/gmi,'').trim(); }
+    function cleanFooterHeading(text){ return text.replace(/^\s*(\*{0,2}|#{1,3})\s*Footer:?[\s\n]*$/gmi,'').trim(); }
+
+    function addMsg(role,text){ TRANSCRIPT.push({role,text:text||''}); const div=document.createElement('div'); div.className='msg '+role;
+      if(role==='assistant'){ const isFollowUp=sessionStorage.getItem('fq_has_initial_answer')==='1'; let cleaned=normalizeSectionHeadings(text||''); if(isFollowUp) cleaned=normalizeFollowupHeadings(cleaned); cleaned=stripInlineDisclaimer(cleaned); cleaned=cleanFooterHeading(cleaned); div.innerHTML=mdToHtml(cleaned); if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1'); } else { div.textContent=text; }
+      chatEl.appendChild(div); chatEl.scrollTop=chatEl.scrollHeight; return div; }
+
+    function showThinking(){ const d=addMsg('assistant',''); d.innerHTML='<span class="thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>'; return d; }
+
+    async function sendMsg(txt){ categoryView.classList.remove('active'); promptView.classList.add('active'); const inp=document.getElementById('msg'); const content=(txt||inp.value||'').trim(); if(!content) return; addMsg('user',content); inp.value=''; document.getElementById('sendBtn').disabled=true; const thinkingEl=showThinking();
+      try{ const isFollowUp=sessionStorage.getItem('fq_has_initial_answer')==='1'; const threadId=sessionStorage.getItem('fq_thread_id')||null;
+        const r=await fetch('/api/mascot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:content,followup:isFollowUp,thread_id:threadId})}); const data=await r.json().catch(()=>({})); thinkingEl.remove();
+        if(!r.ok){ addMsg('assistant','Sorry — server error.'); } else { addMsg('assistant',data.output||'No response'); if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id); }
+      }catch(e){ thinkingEl.remove(); addMsg('assistant','Sorry — network error.'); } finally{ document.getElementById('sendBtn').disabled=false; }
     }
 
-    function addMsg(role,text){
-      TRANSCRIPT.push({role, text: text || ''});
-      const div=document.createElement('div'); div.className='msg '+role;
+    function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); }
+    function setActiveCategory(l){activeCategoryTextEl.textContent=`You’re asking about: ${(l||'').split(' – ')[0]||l}`;activeCategoryEl.style.display='inline-flex';}
+    function clearActiveCategory(){activeCategoryEl.style.display='none';activeCategoryTextEl.textContent='You’re asking about: …';}
 
-      if(role==='assistant'){
-        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
-        let cleaned = normalizeSectionHeadings(text || '');
-        if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
-        cleaned = stripInlineDisclaimer(cleaned);
-        cleaned = cleanFooterHeading(cleaned);
-        div.innerHTML = mdToHtml(cleaned);
-        if (!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
-      }else{
-        div.textContent=text;
-      }
-      chatEl.appendChild(div);
-      chatEl.scrollTop=chatEl.scrollHeight;
-      return div;
-    }
-    function showThinking(){ const d=addMsg('assistant',''); d.innerHTML='<span style="color:#475569;">Thinking…</span>'; return d; }
-
-    async function copyConversation(){
-      if(!navigator.clipboard){ alert('Clipboard not available'); return; }
-      const text = TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
-      await navigator.clipboard.writeText(text || '(empty)');
-      const btn=document.getElementById('copyBtn'); const old=btn.textContent; btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=old,1200);
-    }
-    function resetChat(){ TRANSCRIPT.splice(0,TRANSCRIPT.length); chatEl.innerHTML=''; sessionStorage.removeItem('fq_thread_id'); sessionStorage.removeItem('fq_has_initial_answer'); }
-
-    // ---------- Send ----------
-    async function sendMsg(txt){
-      categoryView.classList.remove('active'); promptView.classList.add('active');
-      const inp=document.getElementById('msg'); const content=(txt||inp.value||'').trim(); if(!content) return;
-      addMsg('user',content); inp.value=''; document.getElementById('sendBtn').disabled=true; const thinkingEl=showThinking();
-      try{
-        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
-        const threadId   = sessionStorage.getItem('fq_thread_id') || null;
-        const r=await fetch('/api/mascot',{ method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ message:content, followup:isFollowUp, thread_id:threadId }) });
-        const data=await r.json().catch(()=>({})); thinkingEl.remove();
-        if(!r.ok){ addMsg('assistant','Sorry — server error.'); }
-        else{ addMsg('assistant', data.output || 'No response'); if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id); }
-      }catch(e){ thinkingEl.remove(); addMsg('assistant','Sorry — network error.'); }
-      finally{ document.getElementById('sendBtn').disabled=false; }
-    }
-
-    // ---------- Categories ----------
-    function setActiveCategory(label){ const short=(label||'').split(' – ')[0]||label||'General'; activeCategoryTextEl.textContent=`You’re asking about: ${short}`; activeCategoryEl.style.display='inline-flex'; }
-    function clearActiveCategory(){ activeCategoryEl.style.display='none'; activeCategoryTextEl.textContent='You’re asking about: …'; }
-    function categoryEmoji(label){
-      if(label.startsWith('Psychological')) return EMOJI.Psychological;
-      if(label.startsWith('Physical')) return EMOJI.Physical;
-      if(label.startsWith('Career')) return EMOJI.Career;
-      if(label.startsWith('Family')) return EMOJI.Family;
-      if(label.startsWith('Cultural')) return EMOJI.Cultural;
-      if(label.startsWith('Identity')) return EMOJI.Identity;
-      if(label.startsWith('Financial')) return EMOJI.Financial;
-      if(label.startsWith('Environmental')) return EMOJI.Environmental;
-      if(label.startsWith('Female')) return EMOJI.Female;
-      return '❖';
-    }
-
-    async function loadPrompts(){
-      const res = await fetch('/prompts.json');
-      if (!res.ok) { console.error('Failed to load /prompts.json'); return; }
-      PROMPTS = await res.json();
-      renderCategories();
-    }
-    function renderCategories(){
-      categoryView.innerHTML=''; Object.keys(PROMPTS).forEach(label=>{
-        const card=document.createElement('div'); card.className='category-card';
-        const em=document.createElement('div'); em.className='category-emoji'; em.textContent=categoryEmoji(label);
-        const wrap=document.createElement('div');
-        const title=document.createElement('div'); title.className='category-title'; title.textContent=label.split(' – ')[0];
-        const sub=document.createElement('div'); sub.className='category-sub'; sub.textContent=label.split(' – ')[1]||'';
-        wrap.appendChild(title); wrap.appendChild(sub); card.appendChild(em); card.appendChild(wrap);
-        card.addEventListener('click',()=>showPrompts(label)); categoryView.appendChild(card);
-      });
-      categoryView.classList.add('active'); promptView.classList.remove('active'); resetChat(); document.getElementById('msg').value=''; clearActiveCategory();
-    }
-    function showPrompts(label){
-      sessionStorage.removeItem('fq_thread_id'); sessionStorage.removeItem('fq_has_initial_answer');
-      promptTitle.textContent=label; setActiveCategory(label); promptList.innerHTML='';
-      (PROMPTS[label]||[]).forEach(p=>{ const b=document.createElement('button'); b.className='prompt-btn'; b.textContent=p; b.addEventListener('click',()=>sendMsg(p)); promptList.appendChild(b); });
-      categoryView.classList.remove('active'); promptView.classList.add('active'); document.getElementById('scrollArea').scrollTop=0;
-    }
+    async function loadPrompts(){ const res=await fetch('/prompts.json'); if(res.ok){PROMPTS=await res.json(); renderCategories();}}
+    function renderCategories(){ categoryView.innerHTML=''; Object.keys(PROMPTS).forEach(l=>{ const c=document.createElement('div'); c.className='category-card'; const e=document.createElement('div'); e.className='category-emoji'; e.textContent='❖'; const t=document.createElement('div'); const ti=document.createElement('div'); ti.className='category-title'; ti.textContent=l.split(' – ')[0]; const s=document.createElement('div'); s.className='category-sub'; s.textContent=l.split(' – ')[1]||''; t.appendChild(ti);t.appendChild(s); c.appendChild(e);c.appendChild(t); c.onclick=()=>showPrompts(l); categoryView.appendChild(c); }); categoryView.classList.add('active'); promptView.classList.remove('active'); resetChat(); document.getElementById('msg').value=''; clearActiveCategory();}
+    function showPrompts(l){ sessionStorage.clear(); promptTitle.textContent=l; setActiveCategory(l); promptList.innerHTML=''; (PROMPTS[l]||[]).forEach(p=>{ const b=document.createElement('button'); b.className='prompt-btn'; b.textContent=p; b.onclick=()=>sendMsg(p); promptList.appendChild(b); }); categoryView.classList.remove('active'); promptView.classList.add('active'); document.getElementById('scrollArea').scrollTop=0; }
     function showCategories(){ renderCategories(); }
 
-    // ---------- Init ----------
-    document.addEventListener('DOMContentLoaded', ()=>{
-      loadPrompts();
-      document.getElementById('copyBtn').addEventListener('click', copyConversation);
-      document.getElementById('resetBtn').addEventListener('click', resetChat);
-      const textarea=document.getElementById('msg');
-      textarea.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); document.getElementById('sendBtn').click(); } });
-    });
+    document.addEventListener('DOMContentLoaded',()=>{ loadPrompts(); document.getElementById('copyBtn').onclick=()=>navigator.clipboard.writeText(TRANSCRIPT.map(m=>`${m.role}: ${m.text}`).join('\n')); document.getElementById('resetBtn').onclick=resetChat; document.getElementById('msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});});
   </script>
 </body>
 </html>
