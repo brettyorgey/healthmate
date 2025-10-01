@@ -70,6 +70,9 @@
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
+    .msg.assistant p { margin: 8px 0 12px; }
+    .msg.assistant ul, .msg.assistant ol { margin: 6px 0 12px 20px; }
+
 
     /* Input row */
     .inputRow{ display:flex; gap:10px; align-items:stretch; }
@@ -193,10 +196,28 @@
       TRANSCRIPT.push({role, text: text || ''});
       const div=document.createElement('div'); div.className='msg '+role;
 
-      if(role==='assistant'){
-        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
-        const toRender = isFollowUp ? normalizeFollowupHeadings(text||'') : (text||'');
-        div.innerHTML=mdToHtml(toRender);
+      if (role === 'assistant') {
+      const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+
+     // 1) Normalize headings (both full + follow-up)
+      let cleaned = normalizeSectionHeadings(text || '');
+
+    // 2) Follow-up specific normalization (ensures "## Why this matters" / "## Sources")
+      if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
+
+    // 3) Strip inline disclaimer so we only show the sticky footer
+      cleaned = stripInlineDisclaimer(cleaned);
+
+    // 4) Render
+      div.innerHTML = mdToHtml(cleaned);
+
+    // Mark that we've shown first answer
+      if (!sessionStorage.getItem('fq_has_initial_answer')) {
+      sessionStorage.setItem('fq_has_initial_answer', '1');
+    }
+    } else {
+    div.textContent = text;
+    }
 
         if (!sessionStorage.getItem('fq_has_initial_answer')) {
           sessionStorage.setItem('fq_has_initial_answer','1');
