@@ -24,14 +24,14 @@
 
     /* Panel */
     .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:12px; min-height:70vh; }
-    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; } /* spacing tweak */
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
 
-    .prompts{ display:flex; flex-direction:column; gap:10px; }
+    .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:12px; } /* spacing tweak */
     .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
     .prompt-btn:hover{ background:#f9fafb; }
 
-    .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; }
+    .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; margin:8px 0 16px; } /* spacing tweak */
     .cat-tag .dot{ width:6px; height:6px; border-radius:50%; background:#0ea5e9; display:inline-block; }
     .cat-tag a{ color:#0369a1; text-decoration:underline; font-weight:600; margin-left:6px; }
 
@@ -43,7 +43,16 @@
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
-    .msg.assistant h2,.msg.assistant h3{ margin:10px 0 6px; font-size:18px; line-height:1.25; border-left:4px solid var(--brand); padding-left:8px; }
+
+    /* Instruction headings look consistent (blue bar + spacing) */
+    .msg.assistant h2, .msg.assistant h3{
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size:18px; line-height:1.3;
+      border-left:4px solid var(--brand);
+      padding-left:8px;
+    }
+    .msg.assistant h2:first-of-type, .msg.assistant h3:first-of-type { margin-top: 10px; }
     .msg.assistant p { margin: 8px 0 12px; }
     .msg.assistant ul, .msg.assistant ol { margin: 6px 0 12px 20px; }
 
@@ -161,6 +170,11 @@
       const re=/^\s*\*?\s*Information only\s*—\s*not a medical diagnosis\.\s*In an emergency call 000\.\s*\*?\s*$/gmi;
       return text.replace(re,'').trim();
     }
+    function cleanFooterHeading(text){
+      if(!text) return text;
+      // remove "Footer:", "## Footer", etc
+      return text.replace(/^\s*#{1,3}\s*Footer:?[\s\n]*$/gmi,'').trim();
+    }
 
     function addMsg(role,text){
       TRANSCRIPT.push({role, text: text || ''});
@@ -171,6 +185,7 @@
         let cleaned = normalizeSectionHeadings(text || '');
         if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
         cleaned = stripInlineDisclaimer(cleaned);
+        cleaned = cleanFooterHeading(cleaned);
         div.innerHTML = mdToHtml(cleaned);
         if (!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
       }else{
