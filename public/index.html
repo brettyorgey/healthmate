@@ -73,6 +73,18 @@
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
     .btn-sm:hover{ background:#f9fafb; }
 
+    /* Mic + tiny controls */
+    .btn-icon{
+      padding:0 14px; border-radius:12px; border:1px solid #e5e7eb;
+      background:#fff; cursor:pointer; font-size:18px; display:flex;
+      align-items:center; justify-content:center; min-width:56px;
+    }
+    .btn-icon:hover{ background:#f9fafb; }
+    .mic-recording{ color:#dc2626; border-color:#fecaca; background:#fff5f5; }
+    .mic-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-left:6px; animation:pulse 1s infinite; }
+    @keyframes pulse{ 0%{ transform:scale(.85); opacity:.7;} 50%{ transform:scale(1); opacity:1;} 100%{ transform:scale(.85); opacity:.7;} }
+    .inline-controls{ margin-top:8px; }
+
     #categoryView, #promptView { display:none; }
     #categoryView.active, #promptView.active { display:block; }
   </style>
@@ -107,6 +119,7 @@
       </div>
 
       <div class="inputRow">
+        <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
         <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
         <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
       </div>
@@ -182,6 +195,57 @@
       return out;
     }
 
+    /* -------- Text-to-speech (Listen) -------- */
+    function speakText(text){
+      if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
+      try{
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-AU'; u.rate = 1.0; u.pitch = 1.0;
+        window.speechSynthesis.speak(u);
+      }catch(e){ console.warn('TTS error:', e); }
+    }
+
+    /* -------- Speech-to-text (mic) -------- */
+    let recognition = null, listening = false;
+    function getRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR) return null;
+      const r = new SR();
+      r.lang = 'en-AU';
+      r.interimResults = false;
+      r.maxAlternatives = 1;
+      return r;
+    }
+    function updateMicUI(active){
+      const btn = document.getElementById('micBtn');
+      if(!btn) return;
+      if(active){
+        btn.classList.add('mic-recording');
+        btn.innerHTML = '⏺️<span class="mic-dot"></span>';
+        btn.title = 'Stop recording';
+      } else {
+        btn.classList.remove('mic-recording');
+        btn.textContent = '🎤';
+        btn.title = 'Speak your question';
+      }
+    }
+    function startListening(){
+      if(listening) return;
+      recognition = getRecognition();
+      if(!recognition){ alert('Speech recognition not supported in this browser. Try Chrome or Edge.'); return; }
+      listening = true; updateMicUI(true);
+      recognition.onresult = (e)=>{
+        const transcript = e.results[0][0].transcript || '';
+        document.getElementById('msg').value = transcript;
+        sendMsg(transcript);
+      };
+      recognition.onerror = ()=>{ updateMicUI(false); listening=false; };
+      recognition.onend   = ()=>{ updateMicUI(false); listening=false; };
+      try{ recognition.start(); }catch(e){ updateMicUI(false); listening=false; }
+    }
+    function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(_){} } }
+
     function addMsg(role,text){
       TRANSCRIPT.push({role, text: text || ''});
       const div=document.createElement('div'); div.className='msg '+role;
@@ -193,6 +257,17 @@
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
         div.innerHTML = mdToHtml(cleaned);
+
+        // Add Listen control
+        const controls = document.createElement('div');
+        controls.className = 'inline-controls';
+        const listenBtn = document.createElement('button');
+        listenBtn.className = 'btn-sm';
+        listenBtn.textContent = '🔊 Listen';
+        listenBtn.addEventListener('click', ()=> speakText(cleaned));
+        controls.appendChild(listenBtn);
+        div.appendChild(controls);
+
         if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
       } else {
         div.textContent = text;
@@ -331,6 +406,8 @@
       document.getElementById('msg').addEventListener('keydown', (e)=>{
         if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
       });
+      // Mic
+      document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
     });
   </script>
 </body>
