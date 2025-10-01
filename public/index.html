@@ -9,10 +9,12 @@
     body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
     .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
 
+    /* Header */
     .hero { background: rgb(0,91,181); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; color:#fff; }
     .hero h1 { margin:0 0 8px; font-size:28px; line-height:1.2; color:#fff; }
     .hero p { margin:6px 0 0; color:#e0e7ff; }
 
+    /* Categories */
     .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
     .category-card{ display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.05); }
     .category-card:hover{ background:#f9fafb; }
@@ -20,6 +22,7 @@
     .category-title{ font-weight:700; }
     .category-sub{ color:#64748b; font-size:14px; }
 
+    /* Panel */
     .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:12px; min-height:70vh; }
     .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
     .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
@@ -31,16 +34,18 @@
     .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; margin:8px 0 16px; }
     .cat-tag .dot{ width:6px; height:6px; border-radius:50%; background:#0ea5e9; display:inline-block; }
 
+    /* Scroll area so footer can stick */
     .scroll-area{ display:flex; flex-direction:column; gap:12px; overflow:auto; max-height: calc(70vh - 150px); padding-right:4px; }
 
+    /* Chat */
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
     .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
 
-    /* Instruction headings spacing */
+    /* Instruction headings spacing + blue bar */
     .msg.assistant h2, .msg.assistant h3{
-      margin-top: 24px;   /* ensure space BEFORE heading */
+      margin-top: 26px;   /* space BEFORE */
       margin-bottom: 12px;
       font-size:18px; line-height:1.3;
       border-left:4px solid var(--brand);
@@ -57,9 +62,11 @@
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
 
+    /* Input + footer */
     .inputRow{ display:flex; gap:10px; align-items:stretch; }
     textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
     button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
+    button.send[disabled]{ opacity:.6; cursor:not-allowed; }
 
     .chat-footer{ position:sticky; bottom:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px 0 6px; font-size:13px; color:#475569; display:flex; flex-direction:column; gap:8px; }
     .chat-controls{ display:flex; gap:10px; }
@@ -78,8 +85,10 @@
       <p>Please select a category from the options below, you'll then be provided prompt options or you can type your question into the chat.</p>
     </div>
 
+    <!-- Categories (first screen) -->
     <div id="categoryView" class="categories active" aria-live="polite"></div>
 
+    <!-- Prompts + chat -->
     <div id="promptView" class="prompt-panel" aria-live="polite">
       <div class="prompt-header">
         <div id="promptTitle" class="category-title"></div>
@@ -113,11 +122,14 @@
   </div>
 
   <script>
+    // Reset per-load
     sessionStorage.removeItem('fq_thread_id');
     sessionStorage.removeItem('fq_has_initial_answer');
 
+    // State
     const TRANSCRIPT=[]; let PROMPTS={};
 
+    // DOM
     const categoryView=document.getElementById('categoryView');
     const promptView=document.getElementById('promptView');
     const promptTitle=document.getElementById('promptTitle');
@@ -126,69 +138,200 @@
     const activeCategoryEl=document.getElementById('activeCategory');
     const activeCategoryTextEl=document.getElementById('activeCategoryText');
 
-    function mdToHtml(md){ if(!md) return ''; let s=md;
+    // Utils
+    function mdToHtml(md){
+      if(!md) return '';
+      let s=md;
       s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
       s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
       s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
       s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>'); return '<p>'+s+'</p>'; }
+      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
+      return '<p>'+s+'</p>';
+    }
 
-    function normalizeFollowupHeadings(text){ if(!text) return ''; return text.replace(/^\s*Why this matters.*$/gmi,'## Why this matters').replace(/^\s*Sources.*$/gmi,'## Sources'); }
-    function normalizeSectionHeadings(text){ if(!text) return text; const list=['What to do now','Why this matters','Who to contact','What to bring','Watch for and act on','Red-flags','Sources']; let out=text; for(const h of list){ const re=new RegExp(`^\\s*\\**\\s*${h}\\s*:?\\s*\\**\\s*$`,'gmi'); out=out.replace(re,`## ${h}`);} return out; }
-    function stripInlineDisclaimer(text){ return text.replace(/Information only\s*—\s*not a medical diagnosis.*000\.*\s*/gmi,'').trim(); }
-
-    <script>
-      // Remove any line that is just a "Footer" heading, including variants like:
-      // "Footer", "**Footer**", "## Footer", "8) Footer", "### 8) Footer", "Footer:"
-      // Also strip an isolated horizontal rule '---' on its own line (often before footer).
-      function cleanFooterHeading(text){
-        if (!text) return text;
-        // Remove isolated hr lines
-        let out = text.replace(/^\s*-{3,}\s*$/gmi, '');
-        // Remove any standalone footer heading line
-        out = out.replace(
-          /^\s*(?:#{1,6}\s*)?(?:\*{0,2}\s*)?(?:\d+\)\s*)?Footer\s*:?\s*(?:\*{0,2})?\s*$/gmi,
-          ''
-        );
-        // Clean extra blank lines that may result
-        out = out.replace(/\n{3,}/g, '\n\n').trim();
-        return out;
+    function normalizeFollowupHeadings(text){
+      if(!text) return '';
+      return text
+        .replace(/^\s*Why this matters.*$/gmi,'## Why this matters')
+        .replace(/^\s*Sources.*$/gmi,'## Sources');
+    }
+    function normalizeSectionHeadings(text){
+      if(!text) return text;
+      const list=['What to do now','Why this matters','Who to contact','What to bring','Watch for and act on','Red-flags','Sources'];
+      let out=text;
+      for(const h of list){
+        const re=new RegExp(`^\\s*\\**\\s*${h}\\s*:?\\s*\\**\\s*$`,'gmi');
+        out=out.replace(re,`## ${h}`);
       }
-    </script>
+      return out;
+    }
+    function stripInlineDisclaimer(text){
+      if(!text) return text;
+      return text.replace(/Information only\s*—\s*not a medical diagnosis.*000\.*\s*/gmi,'').trim();
+    }
+    // Remove any possible "Footer" heading variants + isolated '---'
+    function cleanFooterHeading(text){
+      if (!text) return text;
+      let out = text.replace(/^\s*-{3,}\s*$/gmi, ''); // hr lines
+      out = out.replace(
+        /^\s*(?:#{1,6}\s*)?(?:\*{0,2}\s*)?(?:\d+\)\s*)?Footer\s*:?\s*(?:\*{0,2})?\s*$/gmi,
+        ''
+      );
+      out = out.replace(/\n{3,}/g, '\n\n').trim();
+      return out;
+    }
 
-    function addMsg(role,text){ TRANSCRIPT.push({role,text:text||''}); const div=document.createElement('div'); div.className='msg '+role;
-      if(role==='assistant'){ const isFollowUp=sessionStorage.getItem('fq_has_initial_answer')==='1'; let cleaned=normalizeSectionHeadings(text||''); if(isFollowUp) cleaned=normalizeFollowupHeadings(cleaned); cleaned=stripInlineDisclaimer(cleaned); cleaned=cleanFooterHeading(cleaned); div.innerHTML=mdToHtml(cleaned); if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1'); } else { div.textContent=text; }
-      chatEl.appendChild(div); chatEl.scrollTop=chatEl.scrollHeight; return div; }
+    function addMsg(role,text){
+      TRANSCRIPT.push({role, text: text || ''});
+      const div=document.createElement('div'); div.className='msg '+role;
 
-      <script>
-      function showThinking(){
-        const d = addMsg('assistant','');
-        d.innerHTML = `
-          <span class="thinking">
-            Thinking…
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          </span>`;
-        return d;
+      if(role==='assistant'){
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        let cleaned = normalizeSectionHeadings(text || '');
+        if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
+        cleaned = stripInlineDisclaimer(cleaned);
+        cleaned = cleanFooterHeading(cleaned);
+        div.innerHTML = mdToHtml(cleaned);
+        if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
+      } else {
+        div.textContent = text;
       }
-    </script>
+      chatEl.appendChild(div);
+      chatEl.scrollTop=chatEl.scrollHeight;
+      return div;
+    }
 
-    async function sendMsg(txt){ categoryView.classList.remove('active'); promptView.classList.add('active'); const inp=document.getElementById('msg'); const content=(txt||inp.value||'').trim(); if(!content) return; addMsg('user',content); inp.value=''; document.getElementById('sendBtn').disabled=true; const thinkingEl=showThinking();
-      try{ const isFollowUp=sessionStorage.getItem('fq_has_initial_answer')==='1'; const threadId=sessionStorage.getItem('fq_thread_id')||null;
-        const r=await fetch('/api/mascot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:content,followup:isFollowUp,thread_id:threadId})}); const data=await r.json().catch(()=>({})); thinkingEl.remove();
-        if(!r.ok){ addMsg('assistant','Sorry — server error.'); } else { addMsg('assistant',data.output||'No response'); if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id); }
-      }catch(e){ thinkingEl.remove(); addMsg('assistant','Sorry — network error.'); } finally{ document.getElementById('sendBtn').disabled=false; }
+    function showThinking(){
+      const d = addMsg('assistant','');
+      d.innerHTML = `
+        <span class="thinking">
+          Thinking…
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </span>`;
+      return d;
+    }
+
+    async function sendMsg(txt){
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
+
+      const inp=document.getElementById('msg');
+      const content=(txt||inp.value||'').trim(); if(!content) return;
+
+      addMsg('user',content);
+      inp.value=''; document.getElementById('sendBtn').disabled=true;
+      const thinkingEl = showThinking();
+
+      try{
+        const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
+        const threadId   = sessionStorage.getItem('fq_thread_id') || null;
+        const r=await fetch('/api/mascot',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ message:content, followup:isFollowUp, thread_id:threadId })
+        });
+        const data=await r.json().catch(()=>({}));
+        thinkingEl.remove();
+        if(!r.ok){ addMsg('assistant','Sorry — server error.'); }
+        else{
+          addMsg('assistant', data.output || 'No response');
+          if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id);
+        }
+      }catch(e){
+        thinkingEl.remove();
+        addMsg('assistant','Sorry — network error.');
+      }finally{
+        document.getElementById('sendBtn').disabled=false;
+      }
     }
 
     function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); }
-    function setActiveCategory(l){activeCategoryTextEl.textContent=`You’re asking about: ${(l||'').split(' – ')[0]||l}`;activeCategoryEl.style.display='inline-flex';}
-    function clearActiveCategory(){activeCategoryEl.style.display='none';activeCategoryTextEl.textContent='You’re asking about: …';}
 
-    async function loadPrompts(){ const res=await fetch('/prompts.json'); if(res.ok){PROMPTS=await res.json(); renderCategories();}}
-    function renderCategories(){ categoryView.innerHTML=''; Object.keys(PROMPTS).forEach(l=>{ const c=document.createElement('div'); c.className='category-card'; const e=document.createElement('div'); e.className='category-emoji'; e.textContent='❖'; const t=document.createElement('div'); const ti=document.createElement('div'); ti.className='category-title'; ti.textContent=l.split(' – ')[0]; const s=document.createElement('div'); s.className='category-sub'; s.textContent=l.split(' – ')[1]||''; t.appendChild(ti);t.appendChild(s); c.appendChild(e);c.appendChild(t); c.onclick=()=>showPrompts(l); categoryView.appendChild(c); }); categoryView.classList.add('active'); promptView.classList.remove('active'); resetChat(); document.getElementById('msg').value=''; clearActiveCategory();}
-    function showPrompts(l){ sessionStorage.clear(); promptTitle.textContent=l; setActiveCategory(l); promptList.innerHTML=''; (PROMPTS[l]||[]).forEach(p=>{ const b=document.createElement('button'); b.className='prompt-btn'; b.textContent=p; b.onclick=()=>sendMsg(p); promptList.appendChild(b); }); categoryView.classList.remove('active'); promptView.classList.add('active'); document.getElementById('scrollArea').scrollTop=0; }
+    function setActiveCategory(label){
+      const short=(label||'').split(' – ')[0]||label||'General';
+      activeCategoryTextEl.textContent=`You’re asking about: ${short}`;
+      activeCategoryEl.style.display='inline-flex';
+    }
+    function clearActiveCategory(){
+      activeCategoryEl.style.display='none';
+      activeCategoryTextEl.textContent='You’re asking about: …';
+    }
+
+    // Emojis for category cards
+    function categoryEmoji(label){
+      if(!label) return '❖';
+      const map = [
+        { key: 'Psychological',  emoji: '🧠' },
+        { key: 'Physical',       emoji: '🏋️' },
+        { key: 'Career',         emoji: '💼' },
+        { key: 'Family',         emoji: '👨‍👩‍👧‍👦' },
+        { key: 'Cultural',       emoji: '🌏' },
+        { key: 'Identity',       emoji: '🎭' },
+        { key: 'Financial',      emoji: '💰' },
+        { key: 'Environmental',  emoji: '⚠️' },
+        { key: 'Female',         emoji: '♀️' }
+      ];
+      const hit = map.find(m => label.startsWith(m.key));
+      return hit ? hit.emoji : '❖';
+    }
+
+    async function loadPrompts(){
+      const res = await fetch('/prompts.json');
+      if (!res.ok) { console.error('Failed to load /prompts.json'); return; }
+      PROMPTS = await res.json();
+      renderCategories();
+    }
+
+    function renderCategories(){
+      categoryView.innerHTML='';
+      Object.keys(PROMPTS).forEach(label=>{
+        const card=document.createElement('div'); card.className='category-card';
+        const em=document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(label);
+        const textWrap=document.createElement('div');
+        const title=document.createElement('div'); title.className='category-title'; title.textContent = label.split(' – ')[0];
+        const sub=document.createElement('div'); sub.className='category-sub'; sub.textContent = label.split(' – ')[1] || '';
+        textWrap.appendChild(title); textWrap.appendChild(sub);
+        card.appendChild(em); card.appendChild(textWrap);
+        card.addEventListener('click',()=>showPrompts(label));
+        categoryView.appendChild(card);
+      });
+      categoryView.classList.add('active');
+      promptView.classList.remove('active');
+      resetChat();
+      document.getElementById('msg').value='';
+      clearActiveCategory();
+    }
+
+    function showPrompts(label){
+      sessionStorage.clear();
+      promptTitle.textContent = label;
+      setActiveCategory(label);
+      promptList.innerHTML = '';
+      (PROMPTS[label]||[]).forEach(p=>{
+        const btn=document.createElement('button');
+        btn.className='prompt-btn';
+        btn.textContent=p;
+        btn.addEventListener('click',()=>sendMsg(p));
+        promptList.appendChild(btn);
+      });
+      categoryView.classList.remove('active');
+      promptView.classList.add('active');
+      document.getElementById('scrollArea').scrollTop=0;
+    }
     function showCategories(){ renderCategories(); }
 
-    document.addEventListener('DOMContentLoaded',()=>{ loadPrompts(); document.getElementById('copyBtn').onclick=()=>navigator.clipboard.writeText(TRANSCRIPT.map(m=>`${m.role}: ${m.text}`).join('\n')); document.getElementById('resetBtn').onclick=resetChat; document.getElementById('msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});});
+    // Init
+    document.addEventListener('DOMContentLoaded', ()=>{
+      loadPrompts();
+      document.getElementById('copyBtn').addEventListener('click', ()=>navigator.clipboard.writeText(
+        TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n') || '(empty)'
+      ));
+      document.getElementById('resetBtn').addEventListener('click', resetChat);
+      document.getElementById('msg').addEventListener('keydown', (e)=>{
+        if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
+      });
+    });
   </script>
 </body>
 </html>
