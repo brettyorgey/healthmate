@@ -44,6 +44,12 @@ function stripTrackingParams(raw) {
 function getOrigin(raw) {
   try { return new URL(raw).origin; } catch { return null; }
 }
+function ensureHttps(url) {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (/^www\./i.test(url)) return 'https://' + url;
+  return url;
+}
 
 /* ----------------------------- HTTP helpers -------------------------------- */
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
@@ -62,7 +68,7 @@ async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
 }
 
 /* --------------------------- (Optional) AU domain gate ---------------------- */
-// Set true to only allow .gov.au / .org.au external links
+// Keep false — you asked for items 1–4 only. Flip to true later if desired.
 const LIMIT_TO_AU_PUBLIC = false;
 function allowDomain(url) {
   try {
@@ -106,24 +112,31 @@ async function validateSources(sources) {
   const out = [];
   for (const s of sources || []) {
     if (s.url) {
-      if (LIMIT_TO_AU_PUBLIC && !allowDomain(s.url)) {
+      // (3) normalize www… → https://…
+      const normalized = ensureHttps(s.url);
+
+      if (LIMIT_TO_AU_PUBLIC && !allowDomain(normalized)) {
         out.push({ title: (s.title || 'Source') + ' (link unavailable)' });
         continue;
       }
-      // Try original, then stripped, then origin (and upgrade URL if needed)
-      if (await checkUrlOK(s.url)) { out.push(s); continue; }
-      const stripped = stripTrackingParams(s.url);
-      if (stripped !== s.url && await checkUrlOK(stripped)) {
+
+      // (4) Try original, then stripped, then origin; upgrade URL to a working variant
+      if (await checkUrlOK(normalized)) { out.push({ ...s, url: normalized }); continue; }
+
+      const stripped = stripTrackingParams(normalized);
+      if (stripped !== normalized && await checkUrlOK(stripped)) {
         out.push({ ...s, url: stripped });
         continue;
       }
-      const origin = getOrigin(s.url);
+
+      const origin = getOrigin(normalized);
       if (origin && await checkUrlOK(origin)) {
         out.push({ ...s, url: origin });
         continue;
       }
+
       // Give up
-      out.push({ title: (s.title || s.url || 'Source') + ' (link unavailable)' });
+      out.push({ title: (s.title || normalized || 'Source') + ' (link unavailable)' });
     } else {
       // file citations or items without URLs
       out.push(s);
@@ -133,26 +146,30 @@ async function validateSources(sources) {
 }
 
 /* ------------------- Rewrite model output markdown links -------------------- */
+// Keep this so broken inline links in the narrative aren’t clickable.
 function rewriteOutputLinks(output, validatedSources) {
   if (!output) return output;
   const okUrls = new Set((validatedSources || []).filter(s => s.url).map(s => s.url));
   const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-  return output.replace(linkRe, (m, text, url) => {
-    if (okUrls.has(url)) return m;           // keep valid link
-    return `${text} (link unavailable)`;     // drop broken link
-  });
+  return output.replace(linkRe, (m, text, url) => okUrls.has(url) ? m : `${text} (link unavailable)`);
 }
 
-/* ----------- Replace placeholders with a friendly base domain --------------- */
+/* ----------- Strip the model’s own “Sources” section from output ------------ */
+function stripModelSourcesSection(output) {
+  if (!output) return output;
+  // Remove from a "## Sources" (or "Sources") heading to the end
+  const re = /(?:^|\n)\s{0,3}(?:##\s+)?Sources\s*(?:\n|$)[\s\S]*$/i;
+  return output.replace(re, '').trim();
+}
+
+/* -------- Replace placeholders with a friendlier base-domain hint ----------- */
 function rewritePlaceholders(output, validatedSources) {
   if (!output) return output;
   const firstWeb = (validatedSources || []).find(s => s.url);
   const host = firstWeb ? safeHost(firstWeb.url) : null;
-
-  // Replace common placeholder like "([insert relevant section or link])"
+  // e.g. "([insert relevant section or link])" → "(fifthqtr.org.au)" or "(link unavailable)"
   output = output.replace(/\(\s*\[?insert relevant section or link\]?\s*\)/gi,
     host ? `(${host})` : `(link unavailable)`);
-
   return output;
 
   function safeHost(u){
@@ -239,9 +256,10 @@ export default async function handler(req) {
     const rawSources = normalizeSources(extractSourcesFromMessage(msg));
     const sources = await validateSources(rawSources);
 
-    // Rewrite output: remove broken links & replace placeholders with base domain
+    // Rewrite output: remove broken links, placeholders, and model's own Sources block
     let output = rewriteOutputLinks(outputRaw, sources);
     output = rewritePlaceholders(output, sources);
+    output = stripModelSourcesSection(output);
 
     return json({ output, sources, thread_id }, 200);
   } catch (e) {
@@ -301,6 +319,13 @@ function extractSourcesFromMessage(msg) {
     let m;
     while ((m = linkRe.exec(text)) !== null) {
       out.push({ title: m[1], url: m[2] });
+    }
+
+    // c) Very plain "www.example.com/..." patterns (rare)
+    const wwwRe = /\b(www\.[^\s)]+)\b/g;
+    let n;
+    while ((n = wwwRe.exec(text)) !== null) {
+      out.push({ title: n[1], url: n[1] }); // ensureHttps() will normalize later
     }
   } catch {}
   return out;
