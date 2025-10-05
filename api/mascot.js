@@ -84,9 +84,54 @@ function buildSiteSearch(origin, title='') {
     if (host.includes('healthdirect.gov.au')) return `https://www.healthdirect.gov.au/search?query=${q}`;
     if (host.includes('concussioninsport.gov.au')) return `https://www.concussioninsport.gov.au/search?query=${q}`;
     if (host.includes('dementia.org.au')) return `https://www.dementia.org.au/search?keys=${q}`;
+    if (host.includes('naccho.org.au')) return `https://www.naccho.org.au/?s=${q}`;
     if (host.includes('fifthqtr.org.au')) return `https://fifthqtr.org.au/?s=${q}`;
     return `https://www.google.com/search?q=site:${host}+${q}`;
   } catch { return null; }
+}
+
+/* ------------------------- Canonical link mappings -------------------------- */
+/* If the model gives a fuzzy/placeholder link, rewrite to our trusted URL. */
+const CANONICAL = [
+  {
+    match: /healthdirect.*aboriginal.*torres.*islander.*health services/i,
+    title: 'Healthdirect: Aboriginal and Torres Strait Islander Health Services',
+    url: 'https://www.healthdirect.gov.au/aboriginal-and-torres-strait-islander-health-services'
+  },
+  {
+    match: /concussion in sport australia.*about concussion/i,
+    title: 'Concussion in Sport Australia: About concussion',
+    url: 'https://www.concussioninsport.gov.au/about-concussion'
+  },
+  {
+    match: /dementia australia.*traumatic brain injury/i,
+    title: 'Dementia Australia: Traumatic Brain Injury and dementia',
+    url: 'https://www.dementia.org.au/information/traumatic-brain-injury-dementia'
+  },
+  // add more trusted mappings here as needed
+];
+
+/* Try to upgrade a source to a canonical trusted URL based on its title */
+function applyCanonical(source) {
+  const t = (source.title || source.filename || '').trim();
+  if (!t) return source;
+  for (const c of CANONICAL) {
+    if (c.match.test(t)) {
+      return { ...source, title: c.title, url: c.url };
+    }
+  }
+  return source;
+}
+
+/* If a title contains a bare "www.example/..." and no url is set, set url from it */
+function coerceUrlFromTitle(source) {
+  if (source.url) return source;
+  const t = source.title || source.filename || '';
+  const m = t.match(/\b(www\.[\w.-]+(?:\/[^\s)]*)?)/i);
+  if (m) {
+    source = { ...source, url: m[1] };
+  }
+  return source;
 }
 
 /* --------------------------- Validate external links ------------------------ */
@@ -122,7 +167,17 @@ async function checkUrlOK(url) {
 
 async function validateSources(sources) {
   const out = [];
-  for (const s of sources || []) {
+  for (let s of sources || []) {
+    // 1) clean placeholders in titles
+    if (s && s.title) s.title = cleanTitle(s.title);
+    if (s && s.filename) s.filename = cleanTitle(s.filename);
+
+    // 2) canonical rewrite if matches trusted patterns
+    s = applyCanonical(s);
+
+    // 3) coerce URL from title if only "www..." is present
+    s = coerceUrlFromTitle(s);
+
     if (s.url) {
       const normalized = ensureHttps(s.url);
 
@@ -153,7 +208,8 @@ async function validateSources(sources) {
 
       out.push({ title: (s.title || normalized || 'Source') + ' (link unavailable)' });
     } else {
-      out.push(s); // file citations or items without URLs
+      // file citations or items without URLs
+      out.push(s);
     }
   }
   return out;
@@ -342,7 +398,7 @@ function extractSourcesFromMessage(msg) {
     const wwwRe = /\b(www\.[^\s)]+)\b/g;
     let n;
     while ((n = wwwRe.exec(text)) !== null) {
-      out.push({ title: cleanTitle(n[1]), url: n[1] }); // ensureHttps() will normalize later
+      out.push({ title: cleanTitle(n[1]), url: n[1] }); // will be normalized later
     }
   } catch {}
   return out;
