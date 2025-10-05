@@ -68,7 +68,6 @@ async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
 }
 
 /* --------------------------- (Optional) AU domain gate ---------------------- */
-// Keep false — you asked for items 1–4 only. Flip to true later if desired.
 const LIMIT_TO_AU_PUBLIC = false;
 function allowDomain(url) {
   try {
@@ -112,7 +111,7 @@ async function validateSources(sources) {
   const out = [];
   for (const s of sources || []) {
     if (s.url) {
-      // (3) normalize www… → https://…
+      // normalize www… → https://…
       const normalized = ensureHttps(s.url);
 
       if (LIMIT_TO_AU_PUBLIC && !allowDomain(normalized)) {
@@ -120,7 +119,7 @@ async function validateSources(sources) {
         continue;
       }
 
-      // (4) Try original, then stripped, then origin; upgrade URL to a working variant
+      // original → stripped → origin (upgrade URL to first working)
       if (await checkUrlOK(normalized)) { out.push({ ...s, url: normalized }); continue; }
 
       const stripped = stripTrackingParams(normalized);
@@ -135,7 +134,7 @@ async function validateSources(sources) {
         continue;
       }
 
-      // Give up
+      // give up
       out.push({ title: (s.title || normalized || 'Source') + ' (link unavailable)' });
     } else {
       // file citations or items without URLs
@@ -146,7 +145,6 @@ async function validateSources(sources) {
 }
 
 /* ------------------- Rewrite model output markdown links -------------------- */
-// Keep this so broken inline links in the narrative aren’t clickable.
 function rewriteOutputLinks(output, validatedSources) {
   if (!output) return output;
   const okUrls = new Set((validatedSources || []).filter(s => s.url).map(s => s.url));
@@ -175,6 +173,13 @@ function rewritePlaceholders(output, validatedSources) {
   function safeHost(u){
     try { return new URL(u).hostname.replace(/^www\./,''); } catch { return null; }
   }
+}
+
+/* ------------------------------ Title cleaner ------------------------------- */
+function cleanTitle(t) {
+  if (!t) return t;
+  // drop placeholders such as ([link]) or ([insert relevant section or link])
+  return t.replace(/\(\s*\[.*?link.*?\]\s*\)/gi, '').trim();
 }
 
 /* --------------------------------- Handler ---------------------------------- */
@@ -301,14 +306,14 @@ function extractSourcesFromMessage(msg) {
     for (const a of ann) {
       if (a.type === 'file_citation' && a.file_citation?.file_id) {
         out.push({
-          filename: a.file_citation?.title || 'Document',
+          filename: cleanTitle(a.file_citation?.title || 'Document'),
           file_id: a.file_citation.file_id,
           quote: a.text || ''
         });
       }
       if (a.type === 'file_path' && a.file_path?.file_id) {
         out.push({
-          filename: a.file_path?.file_name || 'Attachment',
+          filename: cleanTitle(a.file_path?.file_name || 'Attachment'),
           file_id: a.file_path.file_id
         });
       }
@@ -318,14 +323,14 @@ function extractSourcesFromMessage(msg) {
     const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
     let m;
     while ((m = linkRe.exec(text)) !== null) {
-      out.push({ title: m[1], url: m[2] });
+      out.push({ title: cleanTitle(m[1]), url: m[2] });
     }
 
     // c) Very plain "www.example.com/..." patterns (rare)
     const wwwRe = /\b(www\.[^\s)]+)\b/g;
     let n;
     while ((n = wwwRe.exec(text)) !== null) {
-      out.push({ title: n[1], url: n[1] }); // ensureHttps() will normalize later
+      out.push({ title: cleanTitle(n[1]), url: n[1] }); // ensureHttps() will normalize later
     }
   } catch {}
   return out;
@@ -336,6 +341,9 @@ function normalizeSources(items) {
   const seen = new Set();
   const out = [];
   for (const s of items || []) {
+    if (s && s.title) s.title = cleanTitle(s.title);
+    if (s && s.filename) s.filename = cleanTitle(s.filename);
+
     const key = s.url ? `u:${s.url}` :
                 s.file_id ? `f:${s.file_id}` :
                 s.title ? `t:${s.title}` :
