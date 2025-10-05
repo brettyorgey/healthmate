@@ -1,6 +1,7 @@
 // /api/mascot.js
-export const config = { runtime: 'edge' }; // Edge runtime
+export const config = { runtime: 'edge' }; // use Node runtime if you prefer
 
+/* ----------------------------- Follow-up template --------------------------- */
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
 Return ONLY these two sections using markdown headings:
@@ -29,25 +30,33 @@ function cacheSet(url, ok) {
   LINK_CACHE.set(url, { ok, until: Date.now() + LINK_TTL_MS });
 }
 
-/* ----------------------------- Abortable fetch ------------------------------ */
+/* ----------------------------- HTTP helpers -------------------------------- */
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
   try {
-    const res = await fetch(url, { ...opts, signal: ctrl.signal, redirect: 'follow' });
-    return res;
+    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: 'follow' });
   } finally {
     clearTimeout(to);
   }
 }
 
+/* --------------------------- (Optional) AU domain gate ---------------------- */
+// Toggle to true to only allow .gov.au / .org.au external links
+const LIMIT_TO_AU_PUBLIC = false;
+function allowDomain(url) {
+  try {
+    const u = new URL(url);
+    return u.hostname.endsWith('.gov.au') || u.hostname.endsWith('.org.au');
+  } catch { return false; }
+}
+
 /* --------------------------- Validate external links ------------------------ */
 async function checkUrlOK(url) {
-  // Cache
   const c = cacheGet(url);
   if (typeof c === 'boolean') return c;
 
-  // Try HEAD first (cheap), then GET if HEAD not allowed/blocked
+  // HEAD (cheap). Some sites block HEAD -> fallback to GET.
   try {
     const head = await fetchWithTimeout(url, { method: 'HEAD' }, 4000);
     if (head.ok) { cacheSet(url, true); return true; }
@@ -68,22 +77,36 @@ async function validateSources(sources) {
   const out = [];
   for (const s of sources || []) {
     if (s.url) {
+      if (LIMIT_TO_AU_PUBLIC && !allowDomain(s.url)) {
+        out.push({ title: (s.title || 'Source') + ' (link unavailable)' });
+        continue;
+      }
       const ok = await checkUrlOK(s.url);
       if (ok) {
         out.push(s);
       } else {
-        // Keep readable provenance, drop dead link
         out.push({ title: (s.title || s.url || 'Source') + ' (link unavailable)' });
       }
     } else {
-      // File-based citations or items without URLs are retained as-is
+      // file citations or items without URLs
       out.push(s);
     }
   }
   return out;
 }
 
-/* ------------------------------- API handler -------------------------------- */
+/* ------------------- Rewrite model output markdown links -------------------- */
+function rewriteOutputLinks(output, validatedSources) {
+  if (!output) return output;
+  const okUrls = new Set((validatedSources || []).filter(s => s.url).map(s => s.url));
+  const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  return output.replace(linkRe, (m, text, url) => {
+    if (okUrls.has(url)) return m; // keep valid link
+    return `${text} (link unavailable)`; // drop broken link
+  });
+}
+
+/* --------------------------------- Handler ---------------------------------- */
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return json({ error: 'Use POST' }, 405);
@@ -112,9 +135,23 @@ export default async function handler(req) {
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // 3) Create run (override instructions only for follow-ups)
+    // ✅ Detect FIRST TURN to prevent accidental follow-up formatting
+    let isFirstTurn = true;
+    try {
+      const listResp = await fetch(
+        `https://api.openai.com/v1/threads/${thread_id}/messages?order=asc&limit=3`,
+        { headers: headers() }
+      );
+      const listJson = await listResp.json();
+      // After posting, if there's only 1 message, it's the first turn
+      isFirstTurn = !(Array.isArray(listJson?.data) && listJson.data.length > 1);
+    } catch { isFirstTurn = true; }
+
+    // 3) Create run (override instructions only for valid follow-ups)
     const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
-    if (followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+    if (followup === true && !isFirstTurn) {
+      runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+    }
 
     const runResp = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
       method: 'POST',
@@ -128,7 +165,7 @@ export default async function handler(req) {
     const run_id = run.id;
     const started = Date.now();
     while (status === 'in_progress' || status === 'queued') {
-      if (Date.now() - started > 60000) break; // 60s guard
+      if (Date.now() - started > 60000) break; // 60s cap
       await sleep(800);
       const r2 = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`, {
         headers: headers(),
@@ -145,9 +182,12 @@ export default async function handler(req) {
     const msgs = await msgsResp.json();
     const msg = msgs.data?.[0];
 
-    const output = msg?.content?.[0]?.text?.value || 'No response';
+    const outputRaw = msg?.content?.[0]?.text?.value || 'No response';
     const rawSources = normalizeSources(extractSourcesFromMessage(msg));
     const sources = await validateSources(rawSources);
+
+    // ✅ rewrite output so broken links are not clickable
+    const output = rewriteOutputLinks(outputRaw, sources);
 
     return json({ output, sources, thread_id }, 200);
   } catch (e) {
@@ -202,7 +242,7 @@ function extractSourcesFromMessage(msg) {
       }
     }
 
-    // b) Markdown links for web sources (title + url)
+    // b) Markdown links for web sources
     const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
     let m;
     while ((m = linkRe.exec(text)) !== null) {
@@ -212,7 +252,7 @@ function extractSourcesFromMessage(msg) {
   return out;
 }
 
-/** Deduplicate sources by (url or file_id + title/filename) */
+/** De-duplicate by url or file_id (or title/filename if needed) */
 function normalizeSources(items) {
   const seen = new Set();
   const out = [];
