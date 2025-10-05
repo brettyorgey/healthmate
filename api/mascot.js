@@ -76,6 +76,19 @@ function allowDomain(url) {
   } catch { return false; }
 }
 
+/* --------------------------- Site-search helper ----------------------------- */
+function buildSiteSearch(origin, title='') {
+  try {
+    const host = new URL(origin).hostname.replace(/^www\./,'');
+    const q = encodeURIComponent((title || '').replace(/^.*?:\s*/,'').trim() || 'concussion');
+    if (host.includes('healthdirect.gov.au')) return `https://www.healthdirect.gov.au/search?query=${q}`;
+    if (host.includes('concussioninsport.gov.au')) return `https://www.concussioninsport.gov.au/search?query=${q}`;
+    if (host.includes('dementia.org.au')) return `https://www.dementia.org.au/search?keys=${q}`;
+    if (host.includes('fifthqtr.org.au')) return `https://fifthqtr.org.au/?s=${q}`;
+    return `https://www.google.com/search?q=site:${host}+${q}`;
+  } catch { return null; }
+}
+
 /* --------------------------- Validate external links ------------------------ */
 async function checkUrlOK(url) {
   const cached = cacheGet(url);
@@ -84,7 +97,7 @@ async function checkUrlOK(url) {
   // 1) Original
   if (await tryOk(url)) { cacheSet(url, true); return true; }
 
-  // 2) Stripped of tracking
+  // 2) Stripped tracking
   const stripped = stripTrackingParams(url);
   if (stripped !== url && await tryOk(stripped)) {
     cacheSet(url, true); cacheSet(stripped, true);
@@ -111,7 +124,6 @@ async function validateSources(sources) {
   const out = [];
   for (const s of sources || []) {
     if (s.url) {
-      // normalize www… → https://…
       const normalized = ensureHttps(s.url);
 
       if (LIMIT_TO_AU_PUBLIC && !allowDomain(normalized)) {
@@ -130,15 +142,18 @@ async function validateSources(sources) {
 
       const origin = getOrigin(normalized);
       if (origin && await checkUrlOK(origin)) {
-        out.push({ ...s, url: origin });
+        out.push({
+          ...s,
+          url: origin,
+          originFallback: true,
+          searchUrl: buildSiteSearch(origin, s.title)
+        });
         continue;
       }
 
-      // give up
       out.push({ title: (s.title || normalized || 'Source') + ' (link unavailable)' });
     } else {
-      // file citations or items without URLs
-      out.push(s);
+      out.push(s); // file citations or items without URLs
     }
   }
   return out;
@@ -155,7 +170,6 @@ function rewriteOutputLinks(output, validatedSources) {
 /* ----------- Strip the model’s own “Sources” section from output ------------ */
 function stripModelSourcesSection(output) {
   if (!output) return output;
-  // Remove from a "## Sources" (or "Sources") heading to the end
   const re = /(?:^|\n)\s{0,3}(?:##\s+)?Sources\s*(?:\n|$)[\s\S]*$/i;
   return output.replace(re, '').trim();
 }
@@ -165,7 +179,6 @@ function rewritePlaceholders(output, validatedSources) {
   if (!output) return output;
   const firstWeb = (validatedSources || []).find(s => s.url);
   const host = firstWeb ? safeHost(firstWeb.url) : null;
-  // e.g. "([insert relevant section or link])" → "(fifthqtr.org.au)" or "(link unavailable)"
   output = output.replace(/\(\s*\[?insert relevant section or link\]?\s*\)/gi,
     host ? `(${host})` : `(link unavailable)`);
   return output;
@@ -178,7 +191,6 @@ function rewritePlaceholders(output, validatedSources) {
 /* ------------------------------ Title cleaner ------------------------------- */
 function cleanTitle(t) {
   if (!t) return t;
-  // drop placeholders such as ([link]) or ([insert relevant section or link])
   return t.replace(/\(\s*\[.*?link.*?\]\s*\)/gi, '').trim();
 }
 
@@ -326,7 +338,7 @@ function extractSourcesFromMessage(msg) {
       out.push({ title: cleanTitle(m[1]), url: m[2] });
     }
 
-    // c) Very plain "www.example.com/..." patterns (rare)
+    // c) Very plain "www.example.com/..." patterns (no scheme)
     const wwwRe = /\b(www\.[^\s)]+)\b/g;
     let n;
     while ((n = wwwRe.exec(text)) !== null) {
