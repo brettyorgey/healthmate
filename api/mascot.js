@@ -1,5 +1,5 @@
 // /api/mascot.js
-export const config = { runtime: 'edge' }; // use Node runtime if you prefer
+export const config = { runtime: 'edge' };
 
 /* ----------------------------- Follow-up template --------------------------- */
 const FOLLOWUP_INSTRUCTIONS = `
@@ -30,19 +30,39 @@ function cacheSet(url, ok) {
   LINK_CACHE.set(url, { ok, until: Date.now() + LINK_TTL_MS });
 }
 
+/* ----------------------------- URL helpers --------------------------------- */
+function stripTrackingParams(raw) {
+  try {
+    const u = new URL(raw);
+    [
+      'utm_source','utm_medium','utm_campaign','utm_term','utm_content',
+      'gclid','gbraid','gad_source','gad_campaignid'
+    ].forEach(p => u.searchParams.delete(p));
+    return u.toString();
+  } catch { return raw; }
+}
+function getOrigin(raw) {
+  try { return new URL(raw).origin; } catch { return null; }
+}
+
 /* ----------------------------- HTTP helpers -------------------------------- */
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
   try {
-    return await fetch(url, { ...opts, signal: ctrl.signal, redirect: 'follow' });
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      ...(opts.headers || {})
+    };
+    return await fetch(url, { ...opts, headers, signal: ctrl.signal, redirect: 'follow' });
   } finally {
     clearTimeout(to);
   }
 }
 
 /* --------------------------- (Optional) AU domain gate ---------------------- */
-// Toggle to true to only allow .gov.au / .org.au external links
+// Set true to only allow .gov.au / .org.au external links
 const LIMIT_TO_AU_PUBLIC = false;
 function allowDomain(url) {
   try {
@@ -53,23 +73,32 @@ function allowDomain(url) {
 
 /* --------------------------- Validate external links ------------------------ */
 async function checkUrlOK(url) {
-  const c = cacheGet(url);
-  if (typeof c === 'boolean') return c;
+  const cached = cacheGet(url);
+  if (typeof cached === 'boolean') return cached;
 
-  // HEAD (cheap). Some sites block HEAD -> fallback to GET.
-  try {
-    const head = await fetchWithTimeout(url, { method: 'HEAD' }, 4000);
-    if (head.ok) { cacheSet(url, true); return true; }
-  } catch { /* ignore */ }
+  // 1) Original
+  if (await tryOk(url)) { cacheSet(url, true); return true; }
 
-  try {
-    const get = await fetchWithTimeout(url, { method: 'GET' }, 5000);
-    const ok = get.ok;
-    cacheSet(url, ok);
-    return ok;
-  } catch {
-    cacheSet(url, false);
-    return false;
+  // 2) Stripped of tracking
+  const stripped = stripTrackingParams(url);
+  if (stripped !== url && await tryOk(stripped)) {
+    cacheSet(url, true); cacheSet(stripped, true);
+    return true;
+  }
+
+  // 3) Site origin
+  const origin = getOrigin(url);
+  if (origin && await tryOk(origin)) {
+    cacheSet(url, true); cacheSet(origin, true);
+    return true;
+  }
+
+  cacheSet(url, false);
+  return false;
+
+  async function tryOk(u) {
+    try { const r = await fetchWithTimeout(u, { method:'HEAD' }, 4000); if (r.ok) return true; } catch {}
+    try { const r = await fetchWithTimeout(u, { method:'GET'  }, 5000); return r.ok; } catch { return false; }
   }
 }
 
@@ -81,12 +110,20 @@ async function validateSources(sources) {
         out.push({ title: (s.title || 'Source') + ' (link unavailable)' });
         continue;
       }
-      const ok = await checkUrlOK(s.url);
-      if (ok) {
-        out.push(s);
-      } else {
-        out.push({ title: (s.title || s.url || 'Source') + ' (link unavailable)' });
+      // Try original, then stripped, then origin (and upgrade URL if needed)
+      if (await checkUrlOK(s.url)) { out.push(s); continue; }
+      const stripped = stripTrackingParams(s.url);
+      if (stripped !== s.url && await checkUrlOK(stripped)) {
+        out.push({ ...s, url: stripped });
+        continue;
       }
+      const origin = getOrigin(s.url);
+      if (origin && await checkUrlOK(origin)) {
+        out.push({ ...s, url: origin });
+        continue;
+      }
+      // Give up
+      out.push({ title: (s.title || s.url || 'Source') + ' (link unavailable)' });
     } else {
       // file citations or items without URLs
       out.push(s);
@@ -101,9 +138,26 @@ function rewriteOutputLinks(output, validatedSources) {
   const okUrls = new Set((validatedSources || []).filter(s => s.url).map(s => s.url));
   const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
   return output.replace(linkRe, (m, text, url) => {
-    if (okUrls.has(url)) return m; // keep valid link
-    return `${text} (link unavailable)`; // drop broken link
+    if (okUrls.has(url)) return m;           // keep valid link
+    return `${text} (link unavailable)`;     // drop broken link
   });
+}
+
+/* ----------- Replace placeholders with a friendly base domain --------------- */
+function rewritePlaceholders(output, validatedSources) {
+  if (!output) return output;
+  const firstWeb = (validatedSources || []).find(s => s.url);
+  const host = firstWeb ? safeHost(firstWeb.url) : null;
+
+  // Replace common placeholder like "([insert relevant section or link])"
+  output = output.replace(/\(\s*\[?insert relevant section or link\]?\s*\)/gi,
+    host ? `(${host})` : `(link unavailable)`);
+
+  return output;
+
+  function safeHost(u){
+    try { return new URL(u).hostname.replace(/^www\./,''); } catch { return null; }
+  }
 }
 
 /* --------------------------------- Handler ---------------------------------- */
@@ -135,7 +189,7 @@ export default async function handler(req) {
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // ✅ Detect FIRST TURN to prevent accidental follow-up formatting
+    // Detect FIRST TURN to prevent accidental follow-up formatting
     let isFirstTurn = true;
     try {
       const listResp = await fetch(
@@ -143,7 +197,6 @@ export default async function handler(req) {
         { headers: headers() }
       );
       const listJson = await listResp.json();
-      // After posting, if there's only 1 message, it's the first turn
       isFirstTurn = !(Array.isArray(listJson?.data) && listJson.data.length > 1);
     } catch { isFirstTurn = true; }
 
@@ -165,7 +218,7 @@ export default async function handler(req) {
     const run_id = run.id;
     const started = Date.now();
     while (status === 'in_progress' || status === 'queued') {
-      if (Date.now() - started > 60000) break; // 60s cap
+      if (Date.now() - started > 60000) break;
       await sleep(800);
       const r2 = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`, {
         headers: headers(),
@@ -186,8 +239,9 @@ export default async function handler(req) {
     const rawSources = normalizeSources(extractSourcesFromMessage(msg));
     const sources = await validateSources(rawSources);
 
-    // ✅ rewrite output so broken links are not clickable
-    const output = rewriteOutputLinks(outputRaw, sources);
+    // Rewrite output: remove broken links & replace placeholders with base domain
+    let output = rewriteOutputLinks(outputRaw, sources);
+    output = rewritePlaceholders(output, sources);
 
     return json({ output, sources, thread_id }, 200);
   } catch (e) {
