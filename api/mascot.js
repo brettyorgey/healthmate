@@ -16,263 +16,172 @@ Return ONLY these two sections using markdown headings:
 End with: "Information only — not a medical diagnosis. In an emergency call 000."
 `;
 
-/* ----------------------------- Link check cache ----------------------------- */
-const LINK_CACHE = new Map(); // key=url, value={ ok:boolean, until:number }
-const LINK_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+/* ----------------------------- Registry cache ------------------------------ */
+let LINK_REGISTRY = null;          // array of {id,title,url,domain,...}
+let REGISTRY_ETAG = null;
+let REGISTRY_LAST_LOAD = 0;
+const REGISTRY_TTL_MS = 5 * 60 * 1000;  // 5 minutes (adjust if you want)
 
-function cacheGet(url) {
-  const hit = LINK_CACHE.get(url);
-  if (!hit) return null;
-  if (Date.now() > hit.until) { LINK_CACHE.delete(url); return null; }
-  return hit.ok;
-}
-function cacheSet(url, ok) {
-  LINK_CACHE.set(url, { ok, until: Date.now() + LINK_TTL_MS });
-}
+/* Load /links.json once, then cache; auto-refresh every REGISTRY_TTL_MS */
+async function loadRegistry(req) {
+  const now = Date.now();
+  if (LINK_REGISTRY && (now - REGISTRY_LAST_LOAD < REGISTRY_TTL_MS)) {
+    return LINK_REGISTRY;
+  }
+  const origin = new URL(req.url).origin;
+  const url = `${origin}/links.json`;
 
-/* ----------------------------- URL helpers --------------------------------- */
-function stripTrackingParams(raw) {
+  const headers = {};
+  if (REGISTRY_ETAG) headers['If-None-Match'] = REGISTRY_ETAG;
+
+  const res = await fetch(url, { headers });
+  if (res.status === 304 && LINK_REGISTRY) {
+    REGISTRY_LAST_LOAD = now;
+    return LINK_REGISTRY;
+  }
+  if (!res.ok) {
+    // If fetch fails but we have a previous copy, keep serving it.
+    if (LINK_REGISTRY) return LINK_REGISTRY;
+    throw new Error(`Failed to load links.json (${res.status})`);
+  }
   try {
-    const u = new URL(raw);
-    [
-      'utm_source','utm_medium','utm_campaign','utm_term','utm_content',
-      'gclid','gbraid','gad_source','gad_campaignid'
-    ].forEach(p => u.searchParams.delete(p));
-    return u.toString();
-  } catch { return raw; }
-}
-function getOrigin(raw) {
-  try { return new URL(raw).origin; } catch { return null; }
-}
-function ensureHttps(url) {
-  if (!url) return url;
-  if (/^https?:\/\//i.test(url)) return url;
-  if (/^www\./i.test(url)) return 'https://' + url;
-  return url;
-}
-
-/* Force known-good hostnames (e.g., FifthQtr .org.au) */
-function correctHostname(u) {
-  try {
-    const url = new URL(ensureHttps(u));
-    if (url.hostname === 'fifthqtr.org' || url.hostname === 'www.fifthqtr.org') {
-      url.hostname = 'www.fifthqtr.org.au';
-      return url.toString();
-    }
-    return url.toString();
-  } catch { return u; }
-}
-
-/* ----------------------------- HTTP helpers -------------------------------- */
-async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
-  const ctrl = new AbortController();
-  const to = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
-  try {
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      ...(opts.headers || {})
-    };
-    return await fetch(url, { ...opts, headers, signal: ctrl.signal, redirect: 'follow' });
-  } finally {
-    clearTimeout(to);
+    const json = await res.json();
+    // Normalize domains if missing
+    LINK_REGISTRY = (json || []).map(r => ({
+      ...r,
+      domain: r.domain || safeHost(r.url)
+    }));
+    REGISTRY_ETAG = res.headers.get('etag') || null;
+    REGISTRY_LAST_LOAD = now;
+    return LINK_REGISTRY;
+  } catch {
+    if (LINK_REGISTRY) return LINK_REGISTRY;
+    throw new Error('Invalid links.json');
   }
 }
 
-/* --------------------------- (Optional) AU domain gate ---------------------- */
-const LIMIT_TO_AU_PUBLIC = false;
-function allowDomain(url) {
-  try {
-    const u = new URL(url);
-    return u.hostname.endsWith('.gov.au') || u.hostname.endsWith('.org.au');
-  } catch { return false; }
+function safeHost(u) { try { return new URL(u).hostname.replace(/^www\./,''); } catch { return ''; } }
+function norm(s) { return (s || '').toLowerCase().trim(); }
+function sim(a,b){
+  a=norm(a); b=norm(b);
+  if (!a || !b) return 0;
+  if (a===b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.82;
+  return 0;
 }
 
-/* --------------------------- Site-search helper ----------------------------- */
-function buildSiteSearch(origin, title='') {
-  try {
-    const host = new URL(origin).hostname.replace(/^www\./,'');
-    const q = encodeURIComponent((title || '').replace(/^.*?:\s*/,'').trim() || 'concussion');
-    if (host.includes('healthdirect.gov.au')) return `https://www.healthdirect.gov.au/search?query=${q}`;
-    if (host.includes('concussioninsport.gov.au')) return `https://www.concussioninsport.gov.au/search?query=${q}`;
-    if (host.includes('dementia.org.au')) return `https://www.dementia.org.au/search?keys=${q}`;
-    if (host.includes('naccho.org.au')) return `https://www.naccho.org.au/?s=${q}`;
-    if (host.includes('fifthqtr.org.au')) return `https://fifthqtr.org.au/?s=${q}`;
-    return `https://www.google.com/search?q=site:${host}+${q}`;
-  } catch { return null; }
+/* Resolve one candidate source to the best registry entry */
+function resolveToRegistry(cand, registry){
+  const title = (cand.title || cand.filename || '').trim();
+  const url = cand.url || '';
+  const host = safeHost(url);
+
+  let best = null, score = 0;
+
+  for (const r of registry){
+    const sHost = host && r.domain ? sim(host, r.domain) : 0;
+    const sTitle = title ? sim(title, r.title) : 0;
+    const s = Math.max(sHost * 1.25, sTitle);   // weight host slightly higher
+    if (s > score) { score = s; best = r; }
+  }
+
+  // accept only reasonable matches
+  if (best && score >= 0.6) return { id: best.id, title: best.title, url: best.url };
+  return null;
 }
 
-/* ------------------------- Canonical link mappings -------------------------- */
-const CANONICAL = [
-  {
-    match: /healthdirect.*concussion/i,
-    title: 'Healthdirect: Concussion',
-    url: 'https://www.healthdirect.gov.au/concussion'
-  },
-  {
-    match: /concussion in sport australia.*about concussion/i,
-    title: 'Concussion in Sport Australia: About concussion',
-    url: 'https://www.concussioninsport.gov.au/about-concussion'
-  },
-  {
-    match: /dementia australia.*traumatic brain injury/i,
-    title: 'Dementia Australia: Traumatic Brain Injury and dementia',
-    url: 'https://www.dementia.org.au/information/traumatic-brain-injury-dementia'
-  }
-];
-
-/* Extra canonical rules for tricky cases (stable landing pages) */
-const EXTRA_CANONICAL = [
-  {
-    when: (src) =>
-      /dementia australia.*cte/i.test(src.title || '') ||
-      (/dementia\.org\.au/i.test(String(src.url)) && /cte/i.test(String(src.url))),
-    rewrite: (src) => ({
-      ...src,
-      title: 'Dementia Australia: CTE — overview & resources',
-      url: 'https://www.dementia.org.au/search?keys=CTE',
-      originFallback: true,
-      searchUrl: 'https://www.dementia.org.au/search?keys=CTE'
-    })
-  },
-  {
-    when: (src) => /fifthqtr/i.test(src.title || '') && !src.url,
-    rewrite: (src) => ({
-      ...src,
-      title: 'FifthQtr: Athlete care resources',
-      url: 'https://www.fifthqtr.org.au/'
-    })
-  }
-];
-
-function applyCanonical(source) {
-  const t = (source.title || source.filename || '').trim();
-  if (!t) return source;
-  for (const c of CANONICAL) {
-    if (c.match.test(t)) return { ...source, title: c.title, url: c.url };
-  }
-  return source;
-}
-function applyExtraCanonical(src) {
-  for (const rule of EXTRA_CANONICAL) {
-    if (rule.when(src)) return rule.rewrite(src);
-  }
-  return src;
-}
-
-/* If a title contains a bare "www.example/..." and no url is set, set url from it */
-function coerceUrlFromTitle(source) {
-  if (source.url) return source;
-  const t = source.title || source.filename || '';
-  const m = t.match(/\b(www\.[\w.-]+(?:\/[^\s)]*)?)/i);
-  if (m) source = { ...source, url: m[1] };
-  return source;
-}
-
-/* --------------------------- Validate external links ------------------------ */
-async function checkUrlOK(url) {
-  const cached = cacheGet(url);
-  if (typeof cached === 'boolean') return cached;
-
-  if (await tryOk(url)) { cacheSet(url, true); return true; }
-  const stripped = stripTrackingParams(url);
-  if (stripped !== url && await tryOk(stripped)) {
-    cacheSet(url, true); cacheSet(stripped, true); return true;
-  }
-  const origin = getOrigin(url);
-  if (origin && await tryOk(origin)) {
-    cacheSet(url, true); cacheSet(origin, true); return true;
-  }
-  cacheSet(url, false);
-  return false;
-
-  async function tryOk(u) {
-    try { const r = await fetchWithTimeout(u, { method:'HEAD' }, 4000); if (r.ok) return true; } catch {}
-    try { const r = await fetchWithTimeout(u, { method:'GET'  }, 5000); return r.ok; } catch { return false; }
-  }
-}
-
-async function validateSources(sources) {
+/* Map all extracted sources to the registry (dedup, cap at 5) */
+async function mapSourcesToRegistry(extracted, req){
+  const registry = await loadRegistry(req);
   const out = [];
-  for (let s of sources || []) {
-    if (s && s.title) s.title = cleanTitle(s.title);
-    if (s && s.filename) s.filename = cleanTitle(s.filename);
+  const used = new Set();
 
-    // Canonical, coercion, extra canonical
-    s = applyCanonical(s);
-    s = coerceUrlFromTitle(s);
-    s = applyExtraCanonical(s);
-
-    if (s.url) {
-      // Ensure scheme and correct known hostnames
-      const corrected = correctHostname(s.url);
-      const normalized = ensureHttps(corrected);
-
-      if (LIMIT_TO_AU_PUBLIC && !allowDomain(normalized)) {
-        out.push({ title: (s.title || 'Source') + ' (link unavailable)' });
-        continue;
-      }
-
-      // original → stripped → origin (upgrade to first working)
-      if (await checkUrlOK(normalized)) { out.push({ ...s, url: normalized }); continue; }
-
-      const stripped = stripTrackingParams(normalized);
-      if (stripped !== normalized && await checkUrlOK(stripped)) {
-        out.push({ ...s, url: stripped }); continue;
-      }
-
-      const origin = getOrigin(normalized);
-      if (origin && await checkUrlOK(origin)) {
-        out.push({
-          ...s,
-          url: origin,
-          originFallback: true,
-          searchUrl: buildSiteSearch(origin, s.title)
-        });
-        continue;
-      }
-
-      out.push({ title: (s.title || normalized || 'Source') + ' (link unavailable)' });
-    } else {
-      out.push(s); // file citations or items without URLs
+  for (const c of extracted || []){
+    const m = resolveToRegistry(c, registry);
+    if (m && !used.has(m.id)){
+      out.push(m);
+      used.add(m.id);
+      if (out.length >= 5) break;
     }
   }
+
+  // Fallbacks if model didn’t provide anything useful
+  if (!out.length) {
+    // Try to include a sensible default (adjust these IDs to ones in your links.json)
+    const prefer = [
+      'healthdirect-concussion',
+      'cisa-about-concussion',
+      'dementia-cte-overview',
+      'fifthqtr-home'
+    ];
+    for (const id of prefer){
+      const r = registry.find(x => x.id === id);
+      if (r && !used.has(r.id)){
+        out.push({ id:r.id, title:r.title, url:r.url });
+        used.add(r.id);
+        if (out.length >= 3) break;
+      }
+    }
+  }
+
   return out;
 }
 
-/* ------------------- Rewrite model output markdown links -------------------- */
-function rewriteOutputLinks(output, validatedSources) {
+/* ------------------- Strip & rewrite links in model output ------------------ */
+/* Keep only the links we return in sources[]; downgrade others to "(link unavailable)" */
+function rewriteOutputLinks(output, sources) {
   if (!output) return output;
-  const okUrls = new Set((validatedSources || []).filter(s => s.url).map(s => s.url));
+  const ok = new Set((sources || []).map(s => s.url));
   const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-  return output.replace(linkRe, (m, text, url) => okUrls.has(url) ? m : `${text} (link unavailable)`);
+  return output.replace(linkRe, (m, text, url) => ok.has(url) ? m : `${text} (link unavailable)`);
 }
 
-/* ----------- Strip the model’s own “Sources” section from output ------------ */
+/* Remove model’s own “Sources” section so we render only our curated list */
 function stripModelSourcesSection(output) {
   if (!output) return output;
   const re = /(?:^|\n)\s{0,3}(?:##\s+)?Sources\s*(?:\n|$)[\s\S]*$/i;
   return output.replace(re, '').trim();
 }
 
-/* -------- Replace placeholders with a friendlier base-domain hint ----------- */
-function rewritePlaceholders(output, validatedSources) {
-  if (!output) return output;
-  const firstWeb = (validatedSources || []).find(s => s.url);
-  const host = firstWeb ? safeHost(firstWeb.url) : null;
-  output = output.replace(/\(\s*\[?insert relevant section or link\]?\s*\)/gi,
-    host ? `(${host})` : `(link unavailable)`);
-  return output;
-
-  function safeHost(u){
-    try { return new URL(u).hostname.replace(/^www\./,''); } catch { return null; }
-  }
-}
-
 /* ------------------------------ Title cleaner ------------------------------- */
 function cleanTitle(t) {
   if (!t) return t;
   return t.replace(/\(\s*\[.*?link.*?\]\s*\)/gi, '').trim();
+}
+
+/* ---------------------- Extract links the model mentioned ------------------- */
+function extractSourcesFromMessage(msg) {
+  const out = [];
+  try {
+    const block = msg?.content?.[0]?.text;
+    const text = block?.value || '';
+    const ann = block?.annotations || [];
+
+    // Vector-store file citations (kept as title-only; they will map to registry if you add them)
+    for (const a of ann) {
+      if (a.type === 'file_citation' && a.file_citation?.file_id) {
+        out.push({ title: cleanTitle(a.file_citation?.title || 'Document') });
+      }
+      if (a.type === 'file_path' && a.file_path?.file_id) {
+        out.push({ title: cleanTitle(a.file_path?.file_name || 'Attachment') });
+      }
+    }
+
+    // Markdown links
+    const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    let m;
+    while ((m = linkRe.exec(text)) !== null) {
+      out.push({ title: cleanTitle(m[1]), url: m[2] });
+    }
+
+    // Bare "www.example.com/..." patterns
+    const wwwRe = /\b(www\.[^\s)]+)\b/g;
+    let n;
+    while ((n = wwwRe.exec(text)) !== null) {
+      out.push({ title: cleanTitle(n[1]), url: 'https://' + n[1] });
+    }
+  } catch {}
+  return out;
 }
 
 /* --------------------------------- Handler ---------------------------------- */
@@ -351,12 +260,13 @@ export default async function handler(req) {
     const msg = msgs.data?.[0];
 
     const outputRaw = msg?.content?.[0]?.text?.value || 'No response';
-    const rawSources = normalizeSources(extractSourcesFromMessage(msg));
-    const sources = await validateSources(rawSources);
 
-    // Rewrite output: remove broken links, placeholders, and model's own Sources block
+    // EXTRACT → MAP TO REGISTRY (no live URL checks)
+    const extracted = extractSourcesFromMessage(msg);
+    const sources = await mapSourcesToRegistry(extracted, req);
+
+    // Rewrite output: keep only registry links; strip model’s “Sources” section
     let output = rewriteOutputLinks(outputRaw, sources);
-    output = rewritePlaceholders(output, sources);
     output = stripModelSourcesSection(output);
 
     return json({ output, sources, thread_id }, 200);
@@ -380,71 +290,4 @@ function json(obj, status=200){
     status,
     headers: { 'Content-Type': 'application/json' }
   });
-}
-
-/**
- * Pulls both vector-store file citations and markdown links from the message.
- * Returns list items like:
- *   { filename, file_id, quote }  // file citations
- *   { title, url }                // web links
- */
-function extractSourcesFromMessage(msg) {
-  const out = [];
-  try {
-    const block = msg?.content?.[0]?.text;
-    const text = block?.value || '';
-    const ann = block?.annotations || [];
-
-    // a) File citations from vector store
-    for (const a of ann) {
-      if (a.type === 'file_citation' && a.file_citation?.file_id) {
-        out.push({
-          filename: cleanTitle(a.file_citation?.title || 'Document'),
-          file_id: a.file_citation.file_id,
-          quote: a.text || ''
-        });
-      }
-      if (a.type === 'file_path' && a.file_path?.file_id) {
-        out.push({
-          filename: cleanTitle(a.file_path?.file_name || 'Attachment'),
-          file_id: a.file_path.file_id
-        });
-      }
-    }
-
-    // b) Markdown links for web sources
-    const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-    let m;
-    while ((m = linkRe.exec(text)) !== null) {
-      out.push({ title: cleanTitle(m[1]), url: m[2] });
-    }
-
-    // c) Very plain "www.example.com/..." patterns (no scheme)
-    const wwwRe = /\b(www\.[^\s)]+)\b/g;
-    let n;
-    while ((n = wwwRe.exec(text)) !== null) {
-      out.push({ title: cleanTitle(n[1]), url: n[1] }); // will be normalized later
-    }
-  } catch {}
-  return out;
-}
-
-/** De-duplicate by url or file_id (or title/filename if needed) */
-function normalizeSources(items) {
-  const seen = new Set();
-  const out = [];
-  for (const s of items || []) {
-    if (s && s.title) s.title = cleanTitle(s.title);
-    if (s && s.filename) s.filename = cleanTitle(s.filename);
-
-    const key = s.url ? `u:${s.url}` :
-                s.file_id ? `f:${s.file_id}` :
-                s.title ? `t:${s.title}` :
-                s.filename ? `n:${s.filename}` :
-                Math.random().toString(36).slice(2);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(s);
-  }
-  return out;
 }
