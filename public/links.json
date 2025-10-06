@@ -115,5 +115,15 @@
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["ACCHO","First Nations","Indigenous"]
+  },
+    {
+    "id": "prideinsport-lgbtq+",
+    "title": "Pridein Sport: Explore LGBTQ+ sports clubs across Australia",
+    "url": "https://prideinsport.com.au/resources-and-initiatives/lgbtq-sports-club-directory/",
+    "domain": "prideinsport.com.au",
+    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
   }
 ]
