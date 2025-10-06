@@ -45,7 +45,7 @@
 
     /* Instruction headings spacing + blue bar */
     .msg.assistant h2, .msg.assistant h3{
-      margin-top: 26px;   /* space BEFORE */
+      margin-top: 26px;
       margin-bottom: 12px;
       font-size:18px; line-height:1.3;
       border-left:4px solid var(--brand);
@@ -55,6 +55,13 @@
     .msg.assistant h3:first-of-type { margin-top: 12px; }
 
     .msg.assistant p { margin: 8px 0 12px; }
+
+    /* Sources box */
+    .sources { margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; }
+    .sources strong{ display:block; margin-bottom:6px; }
+    .sources ul{ margin:0; padding-left:18px; }
+    .sources li{ margin-bottom:4px; }
+    .sources a{ color:var(--brand); text-decoration:underline; }
 
     /* Thinking animation */
     .thinking{ display:inline-flex; gap:6px; align-items:center; color:#475569; }
@@ -73,17 +80,12 @@
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
     .btn-sm:hover{ background:#f9fafb; }
 
-    /* Mic + tiny controls */
-    .btn-icon{
-      padding:0 14px; border-radius:12px; border:1px solid #e5e7eb;
-      background:#fff; cursor:pointer; font-size:18px; display:flex;
-      align-items:center; justify-content:center; min-width:56px;
-    }
+    /* Mic button */
+    .btn-icon{ padding:0 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; min-width:56px; }
     .btn-icon:hover{ background:#f9fafb; }
     .mic-recording{ color:#dc2626; border-color:#fecaca; background:#fff5f5; }
     .mic-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-left:6px; animation:pulse 1s infinite; }
     @keyframes pulse{ 0%{ transform:scale(.85); opacity:.7;} 50%{ transform:scale(1); opacity:1;} 100%{ transform:scale(.85); opacity:.7;} }
-    .inline-controls{ margin-top:8px; }
 
     #categoryView, #promptView { display:none; }
     #categoryView.active, #promptView.active { display:block; }
@@ -151,16 +153,51 @@
     const activeCategoryEl=document.getElementById('activeCategory');
     const activeCategoryTextEl=document.getElementById('activeCategoryText');
 
-    // Utils
+    // Markdown (NO inline links)
     function mdToHtml(md){
       if(!md) return '';
       let s=md;
       s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
       s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
       s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-      s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+      // deliberately DO NOT convert [text](url) into <a> here
       s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
       return '<p>'+s+'</p>';
+    }
+
+    // Sources box (ONLY from data.sources)
+    function renderSourcesBox(parent, sources){
+      if(!Array.isArray(sources) || !sources.length) return;
+      const box = document.createElement('div');
+      box.className = 'sources';
+      const h = document.createElement('strong');
+      h.textContent = 'Sources';
+      box.appendChild(h);
+
+      const ul = document.createElement('ul');
+      for(const s of sources){
+        const li = document.createElement('li');
+        if(s.url){
+          const a = document.createElement('a');
+          a.href = s.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = s.title || s.url;
+          li.appendChild(a);
+        } else if (s.file_id){
+          const a = document.createElement('a');
+          a.href = `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = s.filename || 'Document';
+          li.appendChild(a);
+        } else {
+          li.textContent = s.title || s.filename || 'Source';
+        }
+        ul.appendChild(li);
+      }
+      box.appendChild(ul);
+      parent.appendChild(box);
     }
 
     function normalizeFollowupHeadings(text){
@@ -183,19 +220,15 @@
       if(!text) return text;
       return text.replace(/Information only\s*—\s*not a medical diagnosis.*000\.*\s*/gmi,'').trim();
     }
-    // Remove any possible "Footer" heading variants + isolated '---'
     function cleanFooterHeading(text){
       if (!text) return text;
-      let out = text.replace(/^\s*-{3,}\s*$/gmi, ''); // hr lines
-      out = out.replace(
-        /^\s*(?:#{1,6}\s*)?(?:\*{0,2}\s*)?(?:\d+\)\s*)?Footer\s*:?\s*(?:\*{0,2})?\s*$/gmi,
-        ''
-      );
+      let out = text.replace(/^\s*-{3,}\s*$/gmi, '');
+      out = out.replace(/^\s*(?:#{1,6}\s*)?(?:\*{0,2}\s*)?(?:\d+\)\s*)?Footer\s*:?\s*(?:\*{0,2})?\s*$/gmi,'');
       out = out.replace(/\n{3,}/g, '\n\n').trim();
       return out;
     }
 
-    /* -------- Text-to-speech (Listen) -------- */
+    /* TTS (Listen) */
     function speakText(text){
       if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
       try{
@@ -206,47 +239,32 @@
       }catch(e){ console.warn('TTS error:', e); }
     }
 
-    /* -------- Speech-to-text (mic) -------- */
+    /* STT (Mic) */
     let recognition = null, listening = false;
     function getRecognition(){
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if(!SR) return null;
-      const r = new SR();
-      r.lang = 'en-AU';
-      r.interimResults = false;
-      r.maxAlternatives = 1;
-      return r;
+      const r = new SR(); r.lang='en-AU'; r.interimResults=false; r.maxAlternatives=1; return r;
     }
     function updateMicUI(active){
       const btn = document.getElementById('micBtn');
       if(!btn) return;
-      if(active){
-        btn.classList.add('mic-recording');
-        btn.innerHTML = '⏺️<span class="mic-dot"></span>';
-        btn.title = 'Stop recording';
-      } else {
-        btn.classList.remove('mic-recording');
-        btn.textContent = '🎤';
-        btn.title = 'Speak your question';
-      }
+      if(active){ btn.classList.add('mic-recording'); btn.innerHTML='⏺️<span class="mic-dot"></span>'; btn.title='Stop recording'; }
+      else { btn.classList.remove('mic-recording'); btn.textContent='🎤'; btn.title='Speak your question'; }
     }
     function startListening(){
       if(listening) return;
       recognition = getRecognition();
       if(!recognition){ alert('Speech recognition not supported in this browser. Try Chrome or Edge.'); return; }
       listening = true; updateMicUI(true);
-      recognition.onresult = (e)=>{
-        const transcript = e.results[0][0].transcript || '';
-        document.getElementById('msg').value = transcript;
-        sendMsg(transcript);
-      };
+      recognition.onresult = (e)=>{ const t=e.results[0][0].transcript; document.getElementById('msg').value=t; sendMsg(t); };
       recognition.onerror = ()=>{ updateMicUI(false); listening=false; };
-      recognition.onend   = ()=>{ updateMicUI(false); listening=false; };
+      recognition.onend = ()=>{ updateMicUI(false); listening=false; };
       try{ recognition.start(); }catch(e){ updateMicUI(false); listening=false; }
     }
     function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(_){} } }
 
-    function addMsg(role,text){
+    function addMsg(role,text,sources){
       TRANSCRIPT.push({role, text: text || ''});
       const div=document.createElement('div'); div.className='msg '+role;
 
@@ -267,6 +285,11 @@
         listenBtn.addEventListener('click', ()=> speakText(cleaned));
         controls.appendChild(listenBtn);
         div.appendChild(controls);
+
+        // Render curated sources under the answer
+        if (Array.isArray(sources) && sources.length) {
+          renderSourcesBox(div, sources);
+        }
 
         if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
       } else {
@@ -310,7 +333,7 @@
         thinkingEl.remove();
         if(!r.ok){ addMsg('assistant','Sorry — server error.'); }
         else{
-          addMsg('assistant', data.output || 'No response');
+          addMsg('assistant', data.output || 'No response', data.sources || []);
           if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id);
         }
       }catch(e){
@@ -333,7 +356,6 @@
       activeCategoryTextEl.textContent='You’re asking about: …';
     }
 
-    // Emojis for category cards
     function categoryEmoji(label){
       if(!label) return '❖';
       const map = [
@@ -406,7 +428,6 @@
       document.getElementById('msg').addEventListener('keydown', (e)=>{
         if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
       });
-      // Mic
       document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
     });
   </script>
