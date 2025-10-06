@@ -1,1 +1,111 @@
+[
+  {
+    "id": "healthdirect-concussion",
+    "title": "Healthdirect: Concussion",
+    "url": "https://www.healthdirect.gov.au/concussion",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Brain-Health"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "healthdirect-memory-disorder",
+    "title": "Healthdirect: Memory Disorder",
+    "url": "https://www.healthdirect.gov.au/memory-disorders",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "healthdirect-headaches",
+    "title": "Healthdirect: Headaches",
+    "url": "https://www.healthdirect.gov.au/headaches",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "healthdirect-knee-pain",
+    "title": "Healthdirect: Knee Pain",
+    "url": "https://www.healthdirect.gov.au/knee-pain",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Physical","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "healthdirect-loneliness-isolation",
+    "title": "Healthdirect: Loneliness and Isolation",
+    "url": "https://www.healthdirect.gov.au/loneliness-isolation-mental-health",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "healthdirect-Aboriginal-and-Torres-Strait-Islander",
+    "title": "Healthdirect: Aboriginal and Torres Strait Islander people and social and emotional wellbeing",
+    "url": "https://www.healthdirect.gov.au/loneliness-isolation-mental-health",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "mensshed-loneliness-isolation",
+    "title": "Australian Mens Shed: Loneliness and Isolation",
+    "url": "https://mensshed.org/",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "beyondblue-loneliness-isolation",
+    "title": "Beyond Blue: Loneliness and Isolation",
+    "url": "https://www.beyondblue.org.au/",
+    "domain": "beyondblue.org.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "ais-about-concussion",
+    "title": "Concussion in Sport Australia: About concussion",
+    "url": "https://www.ausport.gov.au/concussion/about-concussion",
+    "domain": "ausport.gov.au/",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+  },
+  {
+    "id": "dementia-cte-overview",
+    "title": "Dementia Australia: CTE — overview & resources",
+    "url": "https://www.dementia.org.au/about-dementia",
+    "domain": "dementia.org.au",
+    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing],
+    "audience": ["All"],
+    "region": "AU"
+  },
+  {
+    "id": "fifthqtr-home",
+    "title": "FifthQtr: Athlete care resources",
+    "url": "https://www.fifthqtr.org.au/",
+    "domain": "fifthqtr.org.au",
+    "category": ["All"],
+    "audience": ["All"],
+    "region": "AU"
+  },
+ {
+    "id": "naccho-home",
+    "title": "NACCHO: Aboriginal Community Controlled Health Organisations",
+    "url": "https://www.naccho.org.au/aboriginal-community-controlled-health/",
+    "domain": "naccho.org.au",
+    "category": ["All"],
+    "audience": ["All"],
+    "region": "AU"
+  }
+]
 
