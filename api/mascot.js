@@ -17,12 +17,11 @@ End with: "Information only — not a medical diagnosis. In an emergency call 00
 `;
 
 /* ----------------------------- Registry cache ------------------------------ */
-let LINK_REGISTRY = null;          // array of {id,title,url,domain,...}
+let LINK_REGISTRY = null;          // array of {id,title,url,domain,keywords?,...}
 let REGISTRY_ETAG = null;
 let REGISTRY_LAST_LOAD = 0;
-const REGISTRY_TTL_MS = 5 * 60 * 1000;  // 5 minutes (adjust if you want)
+const REGISTRY_TTL_MS = 5 * 60 * 1000;  // refresh every 5 mins
 
-/* Load /links.json once, then cache; auto-refresh every REGISTRY_TTL_MS */
 async function loadRegistry(req) {
   const now = Date.now();
   if (LINK_REGISTRY && (now - REGISTRY_LAST_LOAD < REGISTRY_TTL_MS)) {
@@ -40,26 +39,21 @@ async function loadRegistry(req) {
     return LINK_REGISTRY;
   }
   if (!res.ok) {
-    // If fetch fails but we have a previous copy, keep serving it.
     if (LINK_REGISTRY) return LINK_REGISTRY;
     throw new Error(`Failed to load links.json (${res.status})`);
   }
-  try {
-    const json = await res.json();
-    // Normalize domains if missing
-    LINK_REGISTRY = (json || []).map(r => ({
-      ...r,
-      domain: r.domain || safeHost(r.url)
-    }));
-    REGISTRY_ETAG = res.headers.get('etag') || null;
-    REGISTRY_LAST_LOAD = now;
-    return LINK_REGISTRY;
-  } catch {
-    if (LINK_REGISTRY) return LINK_REGISTRY;
-    throw new Error('Invalid links.json');
-  }
+  const json = await res.json();
+  LINK_REGISTRY = (json || []).map(r => ({
+    ...r,
+    domain: r.domain || safeHost(r.url),
+    keywords: Array.isArray(r.keywords) ? r.keywords : []
+  }));
+  REGISTRY_ETAG = res.headers.get('etag') || null;
+  REGISTRY_LAST_LOAD = now;
+  return LINK_REGISTRY;
 }
 
+/* ------------------------------- Utilities --------------------------------- */
 function safeHost(u) { try { return new URL(u).hostname.replace(/^www\./,''); } catch { return ''; } }
 function norm(s) { return (s || '').toLowerCase().trim(); }
 function sim(a,b){
@@ -70,27 +64,36 @@ function sim(a,b){
   return 0;
 }
 
-/* Resolve one candidate source to the best registry entry */
+/* Resolve one candidate to best registry entry using host, title, and keywords */
 function resolveToRegistry(cand, registry){
   const title = (cand.title || cand.filename || '').trim();
   const url = cand.url || '';
   const host = safeHost(url);
+  const titleN = norm(title);
 
   let best = null, score = 0;
 
   for (const r of registry){
-    const sHost = host && r.domain ? sim(host, r.domain) : 0;
-    const sTitle = title ? sim(title, r.title) : 0;
-    const s = Math.max(sHost * 1.25, sTitle);   // weight host slightly higher
+    const rHost = r.domain || safeHost(r.url);
+    const sHost = host && rHost ? sim(host, rHost) : 0;
+
+    // Compare against title and keywords
+    const candidates = [r.title, ...(r.keywords || [])].filter(Boolean);
+    let sText = 0;
+    for (const txt of candidates) {
+      sText = Math.max(sText, sim(titleN, txt));
+    }
+
+    // Weight host slightly more; allow keywords to lift fuzzy titles
+    const s = Math.max(sHost * 1.25, sText);
     if (s > score) { score = s; best = r; }
   }
 
-  // accept only reasonable matches
-  if (best && score >= 0.6) return { id: best.id, title: best.title, url: best.url };
-  return null;
+  // Only accept if reasonably close
+  return (best && score >= 0.60) ? { id: best.id, title: best.title, url: best.url } : null;
 }
 
-/* Map all extracted sources to the registry (dedup, cap at 5) */
+/* Map all extracted sources to registry; dedupe and cap at 5 */
 async function mapSourcesToRegistry(extracted, req){
   const registry = await loadRegistry(req);
   const out = [];
@@ -105,9 +108,8 @@ async function mapSourcesToRegistry(extracted, req){
     }
   }
 
-  // Fallbacks if model didn’t provide anything useful
+  // Fallbacks if nothing mapped; adjust IDs for your registry
   if (!out.length) {
-    // Try to include a sensible default (adjust these IDs to ones in your links.json)
     const prefer = [
       'healthdirect-concussion',
       'cisa-about-concussion',
@@ -128,19 +130,45 @@ async function mapSourcesToRegistry(extracted, req){
 }
 
 /* ------------------- Strip & rewrite links in model output ------------------ */
-/* Keep only the links we return in sources[]; downgrade others to "(link unavailable)" */
+/* Remove model-written Sources/References/etc blocks so we render our curated list only */
+function stripModelReferencesSection(output) {
+  if (!output) return output;
+  // Headings commonly used by models for source lists
+  const heads = [
+    'Sources',
+    'Source',
+    'References',
+    'Further reading',
+    'Citations'
+  ];
+  const re = new RegExp(
+    `(?:^|\\n)\\s{0,3}(?:#{1,3}\\s*)?(?:${heads.join('|')})\\s*(?:\\n|$)[\\s\\S]*$`,
+    'i'
+  );
+  return output.replace(re, '').trim();
+}
+
+/* Keep only links that appear in sources[]; downgrade all others to plain text */
 function rewriteOutputLinks(output, sources) {
   if (!output) return output;
   const ok = new Set((sources || []).map(s => s.url));
-  const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-  return output.replace(linkRe, (m, text, url) => ok.has(url) ? m : `${text} (link unavailable)`);
-}
 
-/* Remove model’s own “Sources” section so we render only our curated list */
-function stripModelSourcesSection(output) {
-  if (!output) return output;
-  const re = /(?:^|\n)\s{0,3}(?:##\s+)?Sources\s*(?:\n|$)[\s\S]*$/i;
-  return output.replace(re, '').trim();
+  // 1) Neutralize markdown links not in sources
+  const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  output = output.replace(linkRe, (m, text, url) => ok.has(url) ? m : `${text} (link unavailable)`);
+
+  // 2) Neutralize bare URLs not in sources (auto-linked by some browsers)
+  const bareUrlRe = /\bhttps?:\/\/[^\s)]+/gi;
+  output = output.replace(bareUrlRe, (url) => ok.has(url) ? url : `${url} (link unavailable)`);
+
+  // 3) Neutralize bare www. URLs not in sources
+  const wwwRe = /\bwww\.[^\s)]+/gi;
+  output = output.replace(wwwRe, (u) => {
+    const full = `https://${u}`;
+    return ok.has(full) ? u : `${u} (link unavailable)`;
+  });
+
+  return output;
 }
 
 /* ------------------------------ Title cleaner ------------------------------- */
@@ -157,7 +185,7 @@ function extractSourcesFromMessage(msg) {
     const text = block?.value || '';
     const ann = block?.annotations || [];
 
-    // Vector-store file citations (kept as title-only; they will map to registry if you add them)
+    // Vector-store citations → title only; will map if you add those docs to registry
     for (const a of ann) {
       if (a.type === 'file_citation' && a.file_citation?.file_id) {
         out.push({ title: cleanTitle(a.file_citation?.title || 'Document') });
@@ -167,17 +195,15 @@ function extractSourcesFromMessage(msg) {
       }
     }
 
-    // Markdown links
+    // Markdown links in body
     const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-    let m;
-    while ((m = linkRe.exec(text)) !== null) {
+    let m; while ((m = linkRe.exec(text)) !== null) {
       out.push({ title: cleanTitle(m[1]), url: m[2] });
     }
 
-    // Bare "www.example.com/..." patterns
+    // Bare www.* hints
     const wwwRe = /\b(www\.[^\s)]+)\b/g;
-    let n;
-    while ((n = wwwRe.exec(text)) !== null) {
+    let n; while ((n = wwwRe.exec(text)) !== null) {
       out.push({ title: cleanTitle(n[1]), url: 'https://' + n[1] });
     }
   } catch {}
@@ -265,9 +291,9 @@ export default async function handler(req) {
     const extracted = extractSourcesFromMessage(msg);
     const sources = await mapSourcesToRegistry(extracted, req);
 
-    // Rewrite output: keep only registry links; strip model’s “Sources” section
-    let output = rewriteOutputLinks(outputRaw, sources);
-    output = stripModelSourcesSection(output);
+    // Rewrite output body: remove model Sources/References; neutralize stray links
+    let output = stripModelReferencesSection(outputRaw);
+    output = rewriteOutputLinks(output, sources);
 
     return json({ output, sources, thread_id }, 200);
   } catch (e) {
