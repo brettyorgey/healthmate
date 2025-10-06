@@ -51,6 +51,18 @@ function ensureHttps(url) {
   return url;
 }
 
+/* Force known-good hostnames (e.g., FifthQtr .org.au) */
+function correctHostname(u) {
+  try {
+    const url = new URL(ensureHttps(u));
+    if (url.hostname === 'fifthqtr.org' || url.hostname === 'www.fifthqtr.org') {
+      url.hostname = 'www.fifthqtr.org.au';
+      return url.toString();
+    }
+    return url.toString();
+  } catch { return u; }
+}
+
 /* ----------------------------- HTTP helpers -------------------------------- */
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 4000) {
   const ctrl = new AbortController();
@@ -91,12 +103,11 @@ function buildSiteSearch(origin, title='') {
 }
 
 /* ------------------------- Canonical link mappings -------------------------- */
-/* If the model gives a fuzzy/placeholder link, rewrite to our trusted URL. */
 const CANONICAL = [
   {
-    match: /healthdirect.*aboriginal.*torres.*islander.*health services/i,
-    title: 'Healthdirect: Aboriginal and Torres Strait Islander Health Services',
-    url: 'https://www.healthdirect.gov.au/aboriginal-and-torres-strait-islander-health-services'
+    match: /healthdirect.*concussion/i,
+    title: 'Healthdirect: Concussion',
+    url: 'https://www.healthdirect.gov.au/concussion'
   },
   {
     match: /concussion in sport australia.*about concussion/i,
@@ -107,20 +118,46 @@ const CANONICAL = [
     match: /dementia australia.*traumatic brain injury/i,
     title: 'Dementia Australia: Traumatic Brain Injury and dementia',
     url: 'https://www.dementia.org.au/information/traumatic-brain-injury-dementia'
-  },
-  // add more trusted mappings here as needed
+  }
 ];
 
-/* Try to upgrade a source to a canonical trusted URL based on its title */
+/* Extra canonical rules for tricky cases (stable landing pages) */
+const EXTRA_CANONICAL = [
+  {
+    when: (src) =>
+      /dementia australia.*cte/i.test(src.title || '') ||
+      (/dementia\.org\.au/i.test(String(src.url)) && /cte/i.test(String(src.url))),
+    rewrite: (src) => ({
+      ...src,
+      title: 'Dementia Australia: CTE — overview & resources',
+      url: 'https://www.dementia.org.au/search?keys=CTE',
+      originFallback: true,
+      searchUrl: 'https://www.dementia.org.au/search?keys=CTE'
+    })
+  },
+  {
+    when: (src) => /fifthqtr/i.test(src.title || '') && !src.url,
+    rewrite: (src) => ({
+      ...src,
+      title: 'FifthQtr: Athlete care resources',
+      url: 'https://www.fifthqtr.org.au/'
+    })
+  }
+];
+
 function applyCanonical(source) {
   const t = (source.title || source.filename || '').trim();
   if (!t) return source;
   for (const c of CANONICAL) {
-    if (c.match.test(t)) {
-      return { ...source, title: c.title, url: c.url };
-    }
+    if (c.match.test(t)) return { ...source, title: c.title, url: c.url };
   }
   return source;
+}
+function applyExtraCanonical(src) {
+  for (const rule of EXTRA_CANONICAL) {
+    if (rule.when(src)) return rule.rewrite(src);
+  }
+  return src;
 }
 
 /* If a title contains a bare "www.example/..." and no url is set, set url from it */
@@ -128,9 +165,7 @@ function coerceUrlFromTitle(source) {
   if (source.url) return source;
   const t = source.title || source.filename || '';
   const m = t.match(/\b(www\.[\w.-]+(?:\/[^\s)]*)?)/i);
-  if (m) {
-    source = { ...source, url: m[1] };
-  }
+  if (m) source = { ...source, url: m[1] };
   return source;
 }
 
@@ -139,23 +174,15 @@ async function checkUrlOK(url) {
   const cached = cacheGet(url);
   if (typeof cached === 'boolean') return cached;
 
-  // 1) Original
   if (await tryOk(url)) { cacheSet(url, true); return true; }
-
-  // 2) Stripped tracking
   const stripped = stripTrackingParams(url);
   if (stripped !== url && await tryOk(stripped)) {
-    cacheSet(url, true); cacheSet(stripped, true);
-    return true;
+    cacheSet(url, true); cacheSet(stripped, true); return true;
   }
-
-  // 3) Site origin
   const origin = getOrigin(url);
   if (origin && await tryOk(origin)) {
-    cacheSet(url, true); cacheSet(origin, true);
-    return true;
+    cacheSet(url, true); cacheSet(origin, true); return true;
   }
-
   cacheSet(url, false);
   return false;
 
@@ -168,31 +195,30 @@ async function checkUrlOK(url) {
 async function validateSources(sources) {
   const out = [];
   for (let s of sources || []) {
-    // 1) clean placeholders in titles
     if (s && s.title) s.title = cleanTitle(s.title);
     if (s && s.filename) s.filename = cleanTitle(s.filename);
 
-    // 2) canonical rewrite if matches trusted patterns
+    // Canonical, coercion, extra canonical
     s = applyCanonical(s);
-
-    // 3) coerce URL from title if only "www..." is present
     s = coerceUrlFromTitle(s);
+    s = applyExtraCanonical(s);
 
     if (s.url) {
-      const normalized = ensureHttps(s.url);
+      // Ensure scheme and correct known hostnames
+      const corrected = correctHostname(s.url);
+      const normalized = ensureHttps(corrected);
 
       if (LIMIT_TO_AU_PUBLIC && !allowDomain(normalized)) {
         out.push({ title: (s.title || 'Source') + ' (link unavailable)' });
         continue;
       }
 
-      // original → stripped → origin (upgrade URL to first working)
+      // original → stripped → origin (upgrade to first working)
       if (await checkUrlOK(normalized)) { out.push({ ...s, url: normalized }); continue; }
 
       const stripped = stripTrackingParams(normalized);
       if (stripped !== normalized && await checkUrlOK(stripped)) {
-        out.push({ ...s, url: stripped });
-        continue;
+        out.push({ ...s, url: stripped }); continue;
       }
 
       const origin = getOrigin(normalized);
@@ -208,8 +234,7 @@ async function validateSources(sources) {
 
       out.push({ title: (s.title || normalized || 'Source') + ' (link unavailable)' });
     } else {
-      // file citations or items without URLs
-      out.push(s);
+      out.push(s); // file citations or items without URLs
     }
   }
   return out;
@@ -279,7 +304,7 @@ export default async function handler(req) {
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // Detect FIRST TURN to prevent accidental follow-up formatting
+    // Detect FIRST TURN (so we only apply FOLLOWUP_INSTRUCTIONS later)
     let isFirstTurn = true;
     try {
       const listResp = await fetch(
@@ -290,7 +315,7 @@ export default async function handler(req) {
       isFirstTurn = !(Array.isArray(listJson?.data) && listJson.data.length > 1);
     } catch { isFirstTurn = true; }
 
-    // 3) Create run (override instructions only for valid follow-ups)
+    // 3) Create run (override instructions for valid follow-ups)
     const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
     if (followup === true && !isFirstTurn) {
       runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
