@@ -132,12 +132,46 @@ async function mapSourcesToRegistry(extracted, req){
 /* Remove model-written Sources/References/etc blocks (we render our curated list only) */
 function stripModelReferencesSection(output) {
   if (!output) return output;
-  const heads = ['Sources','Source','References','Further reading','Citations'];
-  const re = new RegExp(
-    `(?:^|\\n)\\s{0,3}(?:#{1,3}\\s*)?(?:${heads.join('|')})\\s*(?:\\n|$)[\\s\\S]*$`,
-    'i'
-  );
-  return output.replace(re, '').trim();
+  const lines = output.split('\n');
+
+  const isRefHeader = (s) =>
+    /^\s{0,3}(?:#{1,6}\s*)?(sources?|references?|further\s+reading|citations)\s*:?$/i.test(
+      s.trim()
+    );
+  const isHeading = (s) => /^\s{0,3}#{1,6}\s+\S/.test(s);
+  const isBullet = (s) => /^\s*[-*+]\s+/.test(s);
+  const isBlank  = (s) => /^\s*$/.test(s);
+
+  let out = [];
+  let skipping = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const L = lines[i];
+
+    // Start skipping when we hit a references-type header
+    if (!skipping && isRefHeader(L)) {
+      skipping = true;
+      continue;
+    }
+
+    if (skipping) {
+      // Skip bullet lines and any immediate blank lines after them
+      if (isBullet(L) || isBlank(L)) {
+        // keep skipping
+        continue;
+      }
+      // Stop skipping when a new heading appears or non-bullet content resumes
+      if (isHeading(L) || (!isBullet(L) && !isBlank(L))) {
+        skipping = false; // fall through to push this line
+      } else {
+        continue;
+      }
+    }
+
+    out.push(L);
+  }
+
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /* Keep only links that appear in sources[]; downgrade all others to plain text */
