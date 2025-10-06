@@ -41,8 +41,10 @@
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
-    .msg.assistant{ align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
-
+    .msg.assistant{ display: flex; flex-direction: column; align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
+    .msg.assistant .sources { order: 2; }
+    .inline-controls{ order: 3; margin-top: 8px; align-self: flex-start; }
+    
     /* Instruction headings spacing + blue bar */
     .msg.assistant h2, .msg.assistant h3{
       margin-top: 26px;
@@ -140,6 +142,10 @@
     // Reset per-load
     sessionStorage.removeItem('fq_thread_id');
     sessionStorage.removeItem('fq_has_initial_answer');
+
+    function removeDeadLinkMarkers(text){
+    return (text || '').replace(/\s*\(link unavailable\)/gi, '');
+    }
 
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
@@ -274,6 +280,7 @@
         if (isFollowUp) cleaned = normalizeFollowupHeadings(cleaned);
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
+        cleaned = removeDeadLinkMarkers(cleaned);
         div.innerHTML = mdToHtml(cleaned);
 
         // Add Listen control
