@@ -1,7 +1,5 @@
-// /api/mascot.js
-export const config = { runtime: 'nodejs' };
-
-/* ---------------------- constants ---------------------- */
+// /api/mascot.js  (CommonJS version for Node runtime)
+module.exports.config = { runtime: 'nodejs' };
 
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
@@ -30,41 +28,52 @@ const CAT_SYNONYMS = {
   female: ["women","female","motherhood","menstrual","pregnancy","aflw"]
 };
 
-/* ---------------------- helpers ---------------------- */
-
+// ---------- small Node helpers ----------
 function headers() {
   return {
-    'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
+    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
     'Content-Type': 'application/json',
     'OpenAI-Beta': 'assistants=v2',
   };
 }
 
-function envHint(){
-  const missing = [];
-  if (!process.env.OPENAI_API_KEY) missing.push('OPENAI_API_KEY');
-  if (!process.env.OPENAI_ASSISTANT_ID) missing.push('OPENAI_ASSISTANT_ID');
-  return missing.length ? `Missing env var(s): ${missing.join(', ')}.` : null;
+function baseUrlFromReq(req) {
+  const host = req.headers['x-forwarded-host'] || req.headers.host || process.env.VERCEL_URL;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  if (!host) return 'http://localhost:3000';
+  return `${proto}://${host}`;
 }
-
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 async function readJsonBody(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const raw = Buffer.concat(chunks).toString('utf8') || '{}';
-  try { return JSON.parse(raw); } catch { return {}; }
+  return new Promise((resolve, reject) => {
+    try {
+      if (req.body && typeof req.body === 'object') return resolve(req.body);
+      let data = '';
+      req.on('data', chunk => (data += chunk));
+      req.on('end', () => {
+        try { resolve(data ? JSON.parse(data) : {}); }
+        catch (e) { reject(new Error('Invalid JSON body')); }
+      });
+    } catch (e) { reject(e); }
+  });
 }
 
-function baseOrigin(req){
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  const host  = req.headers['x-forwarded-host'] || req.headers.host;
-  return `${proto}://${host}`;
+function sendJson(res, status, obj) {
+  res.status(status).setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(obj));
+}
+
+async function getJsonOrThrow(url, options) {
+  const r = await fetch(url, options);
+  const text = await r.text();
+  if (!r.ok) throw new Error(`Fetch ${url} failed: ${r.status} ${r.statusText} — ${text.slice(0,200)}`);
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error(`JSON parse error from ${url}: ${e.message}`); }
 }
 
 async function loadLinks(req) {
   try {
-    const res = await fetch(`${baseOrigin(req)}/links.json`, { cache: 'no-store' });
+    const res = await fetch(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -72,8 +81,9 @@ async function loadLinks(req) {
   }
 }
 
+// ---------- scoring ----------
 function inferCategoryFromText(text = "") {
-  const t = (text || '').toLowerCase();
+  const t = text.toLowerCase();
   if (/(knee|shoulder|ankle|hip|physio|physiotherapy|rehab|exercise|pain)\b/.test(t)) return 'physical';
   let best = null, bestHits = 0;
   for (const [cat, words] of Object.entries(CAT_SYNONYMS)) {
@@ -93,12 +103,10 @@ function scoreLink(link, prompt, cat) {
   else if (lcats.some(x => c && (c.includes(x) || x.includes(c)))) { score += 4; catScore = 4; }
 
   if (Array.isArray(link.keywords)) {
-    for (const k of link.keywords) {
-      if (k && p.includes((k||'').toLowerCase())) { score += 4; kwHits++; }
-    }
+    for (const k of link.keywords) if (k && p.includes((k||'').toLowerCase())) { score += 4; kwHits++; }
   }
   for (const s of (CAT_SYNONYMS[c] || [])) if (p.includes(s)) score += 2;
-  if (link.title  && p.includes(link.title.toLowerCase()))  score += 1;
+  if (link.title && p.includes(link.title.toLowerCase())) score += 1;
   if (link.domain && p.includes((link.domain||'').toLowerCase())) score += 1;
 
   return { score, catScore, kwHits };
@@ -115,9 +123,8 @@ function findBestLinks(links, category, prompt, max = 4) {
 
   const bestCat = Math.max(0, ...scored.map(s => s.catScore));
   let filtered = scored;
-  if (bestCat >= 4) {
-    filtered = scored.filter(s => s.catScore >= 4);
-  } else {
+  if (bestCat >= 4) filtered = scored.filter(s => s.catScore >= 4);
+  else {
     const hasKW = scored.some(s => s.kwHits > 0);
     if (hasKW) filtered = scored.filter(s => s.kwHits > 0);
   }
@@ -128,66 +135,21 @@ function findBestLinks(links, category, prompt, max = 4) {
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
 
-async function getJsonOrThrow(url, options, timeoutMs = 45000) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const r = await fetch(url, { ...options, signal: ctrl.signal });
-    const raw = await r.text();
-
-    if (!r.ok) {
-      let detail = 'unknown';
-      try { detail = JSON.parse(raw)?.error?.message || JSON.parse(raw)?.message || raw.slice(0,200); }
-      catch { detail = raw.slice(0,200); }
-      const env = envHint();
-      throw new Error(`HTTP ${r.status} from OpenAI: ${detail}${env ? ` — ${env}` : ''}`);
-    }
-
-    try { return JSON.parse(raw); }
-    catch (e) { throw new Error(`JSON parse error: ${e.message}`); }
-
-  } catch (e) {
-    if (e.name === 'AbortError') {
-      throw new Error('Timeout: OpenAI took too long to respond (over 45 s).');
-    }
-    throw e;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-function latestAssistantMessage(messages){
-  const all = Array.isArray(messages?.data) ? messages.data : [];
-  return all
-    .filter(m => m.role === 'assistant')
-    .sort((a,b) => (b.created_at||0) - (a.created_at||0))[0] || null;
-}
-
-/* ---------------------- handler ---------------------- */
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Use POST' });
-  }
-
-  const envMissing = envHint();
-  if (envMissing) {
-    return res.status(500).json({ error: envMissing });
-  }
+// ---------- main handler (CommonJS) ----------
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'Use POST' });
 
   try {
     const body = await readJsonBody(req);
     const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
 
-    if (peek && !clientThreadId) {
-      return res.status(400).json({ error: 'Missing thread_id for peek' });
-    }
+    if (peek && !clientThreadId) return sendJson(res, 400, { error: 'Missing thread_id for peek' });
 
     const links = await loadLinks(req);
     const inferredCategory =
       (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
 
-    // Create or reuse thread (unless we’re just peeking)
+    // Create or reuse thread (unless peeking)
     let thread_id = clientThreadId;
     const firstTurn = !thread_id && !peek;
     if (firstTurn) {
@@ -198,9 +160,9 @@ export default async function handler(req, res) {
       thread_id = thread.id;
     }
 
-    // Add user message (skip in peek)
+    // Add user message (skip for peek)
     if (!peek) {
-      if (!message) return res.status(400).json({ error: 'Missing message' });
+      if (!message) return sendJson(res, 400, { error: 'Missing message' });
       await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
         method: 'POST',
         headers: headers(),
@@ -208,7 +170,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create run (skip in peek)
+    // Create run only when not peeking
     let run_id = null;
     if (!peek) {
       const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
@@ -222,30 +184,25 @@ export default async function handler(req, res) {
       run_id = run.id;
     }
 
-    // Short server-side poll (~10s), then let client peek
+    // Poll
     const start = Date.now();
-    let delay = 600;
+    let delay = 700;
 
     while (true) {
-      if (Date.now() - start > 10000) {
-        return res.status(202).json({ pending: true, thread_id });
-      }
-      await sleep(delay);
-      delay = Math.min(1500, Math.floor(delay * 1.3));
+      if (Date.now() - start > 55000) return sendJson(res, 202, { pending: true, thread_id });
+      await new Promise(r => setTimeout(r, delay));
+      delay = Math.min(2200, Math.floor(delay * 1.3));
 
       if (peek) {
         const msgs = await getJsonOrThrow(
-          `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
+          `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
           { headers: headers() }
         );
-        const msg = latestAssistantMessage(msgs);
-        if (msg) {
-          const part = msg?.content?.find?.(c => c.type === 'text');
-          const rawOutput = part?.text?.value || 'No response';
-          const curatedSources = message
-            ? findBestLinks(links, inferredCategory, message, 4)
-            : [];
-          return res.status(200).json({ output: rawOutput, sources: curatedSources, thread_id });
+        const msg = msgs.data?.[0];
+        if (msg?.role === 'assistant') {
+          const rawOutput = msg?.content?.[0]?.text?.value || 'No response';
+          const curatedSources = message ? findBestLinks(links, inferredCategory, message, 4) : [];
+          return sendJson(res, 200, { output: rawOutput, sources: curatedSources, thread_id });
         }
         continue;
       }
@@ -257,32 +214,24 @@ export default async function handler(req, res) {
       const status = run2.status;
 
       if (status === 'completed') break;
-      if (status === 'failed')  return res.status(502).json({ error: `OpenAI run failed: ${run2.last_error?.message || 'unknown'}` });
-      if (status === 'expired' || status === 'cancelled') return res.status(504).json({ error: `OpenAI run ${status}` });
-      if (status === 'requires_action') return res.status(501).json({ error: 'OpenAI run requires action (tools not handled).' });
+      if (status === 'failed')  return sendJson(res, 502, { error: run2.last_error?.message || 'Assistant run failed' });
+      if (status === 'expired' || status === 'cancelled') return sendJson(res, 504, { error: `Run ${status}` });
+      if (status === 'requires_action') return sendJson(res, 501, { error: 'Run requires action (tools not handled).' });
+      // else queued/in_progress -> keep looping
     }
 
-     // Completed: fetch messages and return the first assistant message only
-      const msgs = await getJsonOrThrow(
-      `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
+    // Completed: fetch last assistant message
+    const msgs = await getJsonOrThrow(
+      `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
       { headers: headers() }
     );
-
-    // find the most recent assistant message
-    const firstAssistant = (msgs.data || []).find(m => m.role === 'assistant');
-    if (!firstAssistant) {
-    // run says completed but the message hasn't landed yet (race) → tell client to poll
-    return json({ pending: true, thread_id }, 202);
-    }
-
-    // extract text safely
-    const textBlock = (firstAssistant.content || []).find(c => c.type === 'text');
-    const rawOutput = textBlock?.text?.value?.trim() || '(empty)';
-
-    // curate links based on the user’s prompt/category
+    const msg = msgs.data?.[0];
+    const rawOutput = msg?.content?.[0]?.text?.value || 'No response';
     const curatedSources = findBestLinks(links, inferredCategory, message, 4);
+    return sendJson(res, 200, { output: rawOutput, sources: curatedSources, thread_id });
 
-    return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
- 
+  } catch (e) {
+    console.error('mascot error:', e);
+    return sendJson(res, 500, { error: e?.message || 'Server error' });
   }
-}
+};
