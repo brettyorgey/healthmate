@@ -1,7 +1,6 @@
 // /api/mascot.js
-// Remove or change this if your platform needs explicit runtime.
-// On Vercel: leaving config out defaults to Node/Serverless (recommended for Assistants).
-// export const config = { runtime: 'nodejs' };
+// Force Node runtime on Vercel so long runs don’t hit Edge limits.
+export const config = { runtime: 'nodejs' };
 
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
@@ -37,7 +36,6 @@ function headers() {
     'OpenAI-Beta': 'assistants=v2',
   };
 }
-
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 function json(obj, status=200){
   return new Response(JSON.stringify(obj), {
@@ -115,10 +113,8 @@ function findBestLinks(links, category, prompt, max = 4) {
 
 async function getJsonOrThrow(url, options) {
   const r = await fetch(url, options);
-  const text = await r.text(); // keep raw in case parsing fails
-  if (!r.ok) {
-    throw new Error(`Fetch ${url} failed: ${r.status} ${r.statusText} — ${text.slice(0,200)}`);
-  }
+  const text = await r.text();
+  if (!r.ok) throw new Error(`Fetch ${url} failed: ${r.status} ${r.statusText} — ${text.slice(0,200)}`);
   try { return JSON.parse(text); }
   catch (e) { throw new Error(`JSON parse error from ${url}: ${e.message}`); }
 }
@@ -128,16 +124,18 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const { message, followup, thread_id: clientThreadId, categoryLabel } = body || {};
-    if (!message) return json({ error: 'Missing message' }, 400);
+    const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
+
+    // For peek polling, thread_id is required
+    if (peek && !clientThreadId) return json({ error: 'Missing thread_id for peek' }, 400);
 
     const links = await loadLinks(req);
     const inferredCategory =
-      (categoryLabel || '').trim().toLowerCase() || inferCategoryFromText(message);
+      (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
 
-    // Create or reuse thread
+    // Create or reuse thread (unless we're just peeking)
     let thread_id = clientThreadId;
-    const firstTurn = !thread_id;
+    const firstTurn = !thread_id && !peek;
     if (firstTurn) {
       const thread = await getJsonOrThrow('https://api.openai.com/v1/threads', {
         method: 'POST',
@@ -146,55 +144,73 @@ export default async function handler(req) {
       thread_id = thread.id;
     }
 
-    // Add user message
-    await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ role: 'user', content: message }),
-    });
+    // Add user message (skip if peek mode)
+    if (!peek) {
+      if (!message) return json({ error: 'Missing message' }, 400);
+      await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ role: 'user', content: message }),
+      });
+    }
 
-    // Create run (only apply FOLLOWUP rules after first turn)
-    const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
-    if (!firstTurn && followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+    // Create a run only when we're NOT peeking
+    let run_id = null;
+    if (!peek) {
+      const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
+      if (!firstTurn && followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
 
-    const run = await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify(runCreateBody),
-    });
+      const run = await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(runCreateBody),
+      });
+      run_id = run.id;
+    }
 
-    // Poll with gentle backoff, 28s ceiling (avoid platform timeout)
-    let status = run.status;
-    const run_id = run.id;
+    // Poll the run / or just poll thread status in peek mode
     const start = Date.now();
     let delay = 700;
 
-    while (status === 'in_progress' || status === 'queued') {
-      if (Date.now() - start > 28000) {
-        // Tell the client it's still working instead of timing out
+    while (true) {
+      if (Date.now() - start > 55000) {
         return json({ pending: true, thread_id }, 202);
       }
       await sleep(delay);
-      delay = Math.min(2000, Math.floor(delay * 1.3));
+      delay = Math.min(2200, Math.floor(delay * 1.3));
+
+      // When peeking, get last message; if assistant replied, return it
+      if (peek) {
+        const msgs = await getJsonOrThrow(
+          `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
+          { headers: headers() }
+        );
+        const msg = msgs.data?.[0];
+        if (msg?.role === 'assistant') {
+          const rawOutput = msg?.content?.[0]?.text?.value || 'No response';
+          const curatedSources = message
+            ? findBestLinks(links, inferredCategory, message, 4)
+            : [];
+          return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
+        }
+        continue; // keep waiting
+      }
+
+      // Normal (non-peek) run polling
       const run2 = await getJsonOrThrow(
         `https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`,
         { headers: headers() }
       );
-      status = run2.status;
-      if (status === 'failed') {
-        const detail = run2.last_error?.message || 'Assistant run failed';
-        return json({ error: detail }, 502);
-      }
-      if (status === 'expired' || status === 'cancelled') {
-        return json({ error: `Run ${status}` }, 504);
-      }
-      if (status === 'requires_action') {
-        // If you add tool outputs later, handle them here.
-        return json({ error: 'Run requires action (tools not handled in this endpoint).' }, 501);
-      }
+      const status = run2.status;
+
+      if (status === 'completed') break;
+      if (status === 'failed')  return json({ error: run2.last_error?.message || 'Assistant run failed' }, 502);
+      if (status === 'expired' || status === 'cancelled') return json({ error: `Run ${status}` }, 504);
+      if (status === 'requires_action') return json({ error: 'Run requires action (tools not handled).' }, 501);
+      // else queued/in_progress → loop
     }
 
-    // Get the latest assistant message
+    // Completed: latest assistant message
     const msgs = await getJsonOrThrow(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
       { headers: headers() }
@@ -202,12 +218,9 @@ export default async function handler(req) {
     const msg = msgs.data?.[0];
     const rawOutput = msg?.content?.[0]?.text?.value || 'No response';
 
-    // Curate sources
     const curatedSources = findBestLinks(links, inferredCategory, message, 4);
-
     return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
   } catch (e) {
-    // This will show the real reason in your logs and a clearer message to clients
     console.error('mascot error:', e);
     return json({ error: e?.message || 'Server error' }, 500);
   }
