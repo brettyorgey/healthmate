@@ -161,13 +161,12 @@
     // Remove model "## Sources" so we only show curated links
     function stripSourcesSection(md){
       if (!md) return md;
+      // remove from "## Sources" to next H2 or end
       return md.replace(/(^|\n)##\s*Sources[\s\S]*?(?=\n##\s|\n?$)/i, '$1');
     }
 
     // Escape HTML then do light markdown transforms
-    function esc(s){
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function mdToHtml(md){
       if(!md) return '';
       let s=esc(md);
@@ -181,6 +180,10 @@
     // Sources box (ONLY from data.sources)
     function renderSourcesBox(parent, sources){
       if(!Array.isArray(sources) || !sources.length) return;
+
+      // prevent duplicates if re-rendering on follow-ups
+      parent.querySelectorAll('.sources, .inline-controls').forEach(n => n.remove());
+
       const box = document.createElement('div');
       box.className = 'sources';
       const h = document.createElement('strong');
@@ -291,6 +294,13 @@
     }
     function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(_){} } }
 
+    // Client-side fetch with timeout
+    async function fetchWithTimeout(url, options={}, ms=30000){
+      const ctl = new AbortController(); const t = setTimeout(()=>ctl.abort(), ms);
+      try { return await fetch(url, { ...options, signal: ctl.signal }); }
+      finally { clearTimeout(t); }
+    }
+
     function addMsg(role,text,sources){
       const entry = {role, text: text || ''};
       TRANSCRIPT.push(entry);
@@ -322,7 +332,7 @@
     function showThinking(){
       const d = addMsg('assistant','');
       d.innerHTML = `
-        <span class="thinking">
+        <span class="thinking" role="status" aria-live="polite">
           Thinking…
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
         </span>`;
@@ -332,11 +342,11 @@
     async function pollUntilReady(threadId, originalUserText, thinkingEl, tries=12){
       for (let i=0; i<tries; i++){
         await new Promise(r=>setTimeout(r, 2500));
-        const r = await fetch('/api/mascot', {
+        const r = await fetchWithTimeout('/api/mascot', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ peek:true, thread_id: threadId, message: originalUserText })
-        });
+        }, 15000);
         const data = await r.json().catch(()=> ({}));
         if (r.ok && !data.pending && (data.output || data.error)){
           thinkingEl?.remove();
@@ -364,7 +374,7 @@
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
 
-        const r = await fetch('/api/mascot',{
+        const r = await fetchWithTimeout('/api/mascot',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -373,7 +383,7 @@
             thread_id: threadId,
             categoryLabel: promptTitle.textContent || ''
           })
-        });
+        }, 30000);
         const data = await r.json().catch(()=> ({}));
 
         // still working? switch to polling
