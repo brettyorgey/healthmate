@@ -1,3 +1,22 @@
+const LINKS_CACHE = { data: null, ts: 0 };
+
+async function loadLinks(req) {
+  const now = Date.now();
+  // cache for 2 minutes
+  if (LINKS_CACHE.data && (now - LINKS_CACHE.ts) < 120000) return LINKS_CACHE.data;
+  try {
+    const res = await fetchWithTimeout(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' }, 4000);
+    if (!res.ok) return LINKS_CACHE.data || [];
+    const data = await res.json();
+    LINKS_CACHE.data = Array.isArray(data) ? data : [];
+    LINKS_CACHE.ts = now;
+    return LINKS_CACHE.data;
+  } catch {
+    // fail-open: don’t block the response if links.json is slow
+    return LINKS_CACHE.data || [];
+  }
+}
+
 [
   {
     "id": "healthdirect-concussion",
