@@ -62,19 +62,31 @@ async function fetchWithTimeout(url, opts = {}, ms = 15000) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
-    const res = await fetch(url, { ...opts, signal: ctl.signal });
-    return res;
+    return await fetch(url, { ...opts, signal: ctl.signal });
   } finally {
     clearTimeout(t);
   }
 }
 
-async function getJsonOrThrow(url, options, timeoutMs = 15000) {
-  const r = await fetchWithTimeout(url, options, timeoutMs);
-  const text = await r.text(); // keep body for error detail
-  if (!r.ok) throw new Error(`Fetch ${url} failed: ${r.status} ${r.statusText} — ${text.slice(0,200)}`);
-  try { return JSON.parse(text); }
-  catch (e) { throw new Error(`JSON parse error from ${url}: ${e.message}`); }
+async function getJsonOrThrow(url, options, timeoutMs = 15000, retries = 1) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetchWithTimeout(url, options, timeoutMs);
+      const text = await r.text();
+      if (!r.ok) throw new Error(`Fetch ${url} failed: ${r.status} ${r.statusText} — ${text.slice(0,200)}`);
+      try { return JSON.parse(text); }
+      catch (e) { throw new Error(`JSON parse error from ${url}: ${e.message}`); }
+    } catch (e) {
+      lastErr = e;
+      // retry only on abort/timeout once
+      const msg = String(e?.message || e);
+      const isAbort = msg.includes('aborted') || msg.includes('AbortError') || msg.includes('The user aborted a request');
+      if (attempt < retries && isAbort) continue;
+      break;
+    }
+  }
+  throw lastErr;
 }
 
 function baseUrlFromReq(req) {
@@ -171,11 +183,8 @@ module.exports = async function handler(req, res) {
     const firstTurn = !thread_id && !peek;
     if (firstTurn) {
       const thread = await getJsonOrThrow('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers: apiHeaders()
-      }, 8000);
-      thread_id = thread.id;
-    }
+      method: 'POST', headers: apiHeaders()
+      }, /*timeout*/ 25000, /*retries*/ 1);
 
     // Add user message (skip when peeking)
     if (!peek) {
@@ -191,21 +200,20 @@ module.exports = async function handler(req, res) {
       if (!firstTurn && followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
 
       await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify(runCreateBody),
-      }, 12000);
+      method: 'POST', headers: apiHeaders(),
+      body: JSON.stringify({ assistant_id: process.env.OPENAI_ASSISTANT_ID, ...( !firstTurn && followup === true ? { instructions: FOLLOWUP_INSTRUCTIONS } : {} ) }),
+      }, 25000, 1);
 
       // IMPORTANT: return immediately so we never hit 60s Vercel timeout
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
     // Peek mode: check if the assistant has replied yet
-    const msgs = await getJsonOrThrow(
+      const msgs = await getJsonOrThrow(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
       { headers: apiHeaders() },
-      8000
-    );
+      15000, 0 // reads can be a bit shorter; usually fast
+      );
 
     const msg = msgs.data?.[0];
     if (!msg || msg.role !== 'assistant') {
