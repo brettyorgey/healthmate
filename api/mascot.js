@@ -163,6 +163,41 @@ function findBestLinks(links, category, prompt, max = 4) {
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
 
+function baseUrlFromReq(req) {
+  const host = req.headers['x-forwarded-host'] || req.headers.host || process.env.VERCEL_URL;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  if (!host) return 'http://localhost:3000';
+  return `${proto}://${host}`;
+}
+
+// ✅ Add this caching block here
+const LINKS_CACHE = { data: null, ts: 0 };
+
+async function loadLinks(req) {
+  const now = Date.now();
+  // cache for 2 minutes
+  if (LINKS_CACHE.data && (now - LINKS_CACHE.ts) < 120000) return LINKS_CACHE.data;
+  try {
+    const res = await fetchWithTimeout(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' }, 4000);
+    if (!res.ok) return LINKS_CACHE.data || [];
+    const data = await res.json();
+    LINKS_CACHE.data = Array.isArray(data) ? data : [];
+    LINKS_CACHE.ts = now;
+    return LINKS_CACHE.data;
+  } catch {
+    // fail-open: don’t block the response if links.json is slow
+    return LINKS_CACHE.data || [];
+  }
+}
+
+// then continue with your other functions below:
+function scoreLink(...) { … }
+function findBestLinks(...) { … }
+
+module.exports = async function handler(req, res) {
+  …
+};
+
 /* -------------------- main handler -------------------- */
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Use POST' });
