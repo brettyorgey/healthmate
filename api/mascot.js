@@ -40,7 +40,7 @@ async function loadLinks(req) {
   }
 }
 
-function inferCategoryFromText(text="") {
+function inferCategoryFromText(text = "") {
   const t = text.toLowerCase();
 
   // Hard triggers for Physical (knee/shoulder/etc)
@@ -66,14 +66,14 @@ function scoreLink(link, prompt, cat) {
   let kwHits = 0;
 
   // Category scoring
-  const lcats = (link.category || []).map(x => (x||'').toLowerCase());
+  const lcats = (link.category || []).map(x => (x || '').toLowerCase());
   if (lcats.includes(c)) { score += 6; catScore = 6; }
   else if (lcats.some(x => c && (c.includes(x) || x.includes(c)))) { score += 4; catScore = 4; }
 
   // Keyword scoring
   if (Array.isArray(link.keywords)) {
     for (const k of link.keywords) {
-      if (k && p.includes((k||'').toLowerCase())) { score += 4; kwHits++; }
+      if (k && p.includes((k || '').toLowerCase())) { score += 4; kwHits++; }
     }
   }
 
@@ -84,12 +84,12 @@ function scoreLink(link, prompt, cat) {
 
   // Title/domain hints
   if (link.title && p.includes(link.title.toLowerCase())) score += 1;
-  if (link.domain && p.includes((link.domain||'').toLowerCase())) score += 1;
+  if (link.domain && p.includes((link.domain || '').toLowerCase())) score += 1;
 
   return { score, catScore, kwHits };
 }
 
-function findBestLinks(links, category, prompt, max=4) {
+function findBestLinks(links, category, prompt, max = 4) {
   const c = (category || '').toLowerCase();
   const scored = [];
 
@@ -103,7 +103,7 @@ function findBestLinks(links, category, prompt, max=4) {
   const bestCat = Math.max(0, ...scored.map(s => s.catScore));
   let filtered = scored;
 
-  if (bestCat >= 4) {                      // strong category match exists
+  if (bestCat >= 4) {
     filtered = scored.filter(s => s.catScore >= 4);
   } else {
     // If no category match, but we have keyword matches, keep keyword hits
@@ -112,7 +112,7 @@ function findBestLinks(links, category, prompt, max=4) {
   }
 
   return filtered
-    .sort((a,b) => b.score - a.score)
+    .sort((a, b) => b.score - a.score)
     .slice(0, max)
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
@@ -143,12 +143,17 @@ export default async function handler(req) {
     const links = await loadLinks(req);
 
     // Prefer UI category; otherwise infer from text
-    const inferredCategory = (categoryLabel || '').trim().toLowerCase() || inferCategoryFromText(message);
+    const inferredCategory =
+      (categoryLabel || '').trim().toLowerCase() || inferCategoryFromText(message);
 
     // Create or reuse thread
     let thread_id = clientThreadId;
-    if (!thread_id) {
-      const threadResp = await fetch('https://api.openai.com/v1/threads', { method: 'POST', headers: headers() });
+    const firstTurn = !thread_id; // ← ensure we don't apply FOLLOWUP on turn 1
+    if (firstTurn) {
+      const threadResp = await fetch('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: headers()
+      });
       const thread = await threadResp.json();
       thread_id = thread.id;
     }
@@ -160,9 +165,11 @@ export default async function handler(req) {
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // Run with optional follow-up instructions
+    // Run with optional follow-up instructions (only after first turn)
     const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
-    if (followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+    if (!firstTurn && followup === true) {
+      runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+    }
 
     const runResp = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
       method: 'POST',
