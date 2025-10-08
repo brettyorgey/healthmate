@@ -128,12 +128,13 @@ function findBestLinks(links, category, prompt, max = 4) {
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
 
-async function getJsonOrThrow(url, options, timeoutMs=15000) {
+async function getJsonOrThrow(url, options, timeoutMs = 45000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try{
+  try {
     const r = await fetch(url, { ...options, signal: ctrl.signal });
     const raw = await r.text();
+
     if (!r.ok) {
       let detail = 'unknown';
       try { detail = JSON.parse(raw)?.error?.message || JSON.parse(raw)?.message || raw.slice(0,200); }
@@ -141,8 +142,15 @@ async function getJsonOrThrow(url, options, timeoutMs=15000) {
       const env = envHint();
       throw new Error(`HTTP ${r.status} from OpenAI: ${detail}${env ? ` — ${env}` : ''}`);
     }
+
     try { return JSON.parse(raw); }
     catch (e) { throw new Error(`JSON parse error: ${e.message}`); }
+
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error('Timeout: OpenAI took too long to respond (over 45 s).');
+    }
+    throw e;
   } finally {
     clearTimeout(t);
   }
