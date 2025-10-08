@@ -144,7 +144,7 @@
     sessionStorage.removeItem('fq_has_initial_answer');
 
     function removeDeadLinkMarkers(text){
-    return (text || '').replace(/\s*\(link unavailable\)/gi, '');
+      return (text || '').replace(/\s*\(link unavailable\)/gi, '');
     }
 
     // State
@@ -169,6 +169,15 @@
       // deliberately DO NOT convert [text](url) into <a> here
       s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
       return '<p>'+s+'</p>';
+    }
+
+    // Remove inline 'Sources' block when we show curated sources
+    function stripModelSourcesSection(text){
+      if(!text) return text;
+      // remove "## Sources" (or "Sources") to end OR next H2
+      let out = text.replace(/\n?^##?\s*Sources[\s\S]*$/gmi, '');
+      out = out.replace(/\n?^##?\s*Sources[\s\S]*?(?=^##\s|\Z)/gmi, '');
+      return out;
     }
 
     // Sources box (ONLY from data.sources)
@@ -281,9 +290,20 @@
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
         cleaned = removeDeadLinkMarkers(cleaned);
+
+        // If curated sources present, remove the model's inline "Sources" block
+        if (Array.isArray(sources) && sources.length) {
+          cleaned = stripModelSourcesSection(cleaned);
+        }
+
         div.innerHTML = mdToHtml(cleaned);
 
-        // Add Listen control
+        // Curated sources first (above Listen)
+        if (Array.isArray(sources) && sources.length) {
+          renderSourcesBox(div, sources);
+        }
+
+        // Listen control
         const controls = document.createElement('div');
         controls.className = 'inline-controls';
         const listenBtn = document.createElement('button');
@@ -292,11 +312,6 @@
         listenBtn.addEventListener('click', ()=> speakText(cleaned));
         controls.appendChild(listenBtn);
         div.appendChild(controls);
-
-        // Render curated sources under the answer
-        if (Array.isArray(sources) && sources.length) {
-          renderSourcesBox(div, sources);
-        }
 
         if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
       } else {
@@ -331,10 +346,20 @@
       try{
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
+
+        // NEW: send selected category label to server for scoring
+        const categoryLabel =
+          (document.getElementById('promptTitle')?.textContent || '').trim();
+
         const r=await fetch('/api/mascot',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ message:content, followup:isFollowUp, thread_id:threadId })
+          body:JSON.stringify({
+            message: content,
+            followup: isFollowUp,
+            thread_id: threadId,
+            categoryLabel       // ← added
+          })
         });
         const data=await r.json().catch(()=>({}));
         thinkingEl.remove();
