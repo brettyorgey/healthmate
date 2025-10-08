@@ -1,9 +1,6 @@
 // /api/mascot.js
 export const config = { runtime: 'edge' };
 
-/* ------------------------------
-   Follow-up minimal format
------------------------------- */
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
 Return ONLY these two sections using markdown headings:
@@ -18,28 +15,22 @@ Return ONLY these two sections using markdown headings:
 End with: "Information only — not a medical diagnosis. In an emergency call 000."
 `;
 
-/* ------------------------------
-   Category synonyms (broad cues)
------------------------------- */
+// Broad cues per category (lowercase)
 const CAT_SYNONYMS = {
-  physical: ["injury", "rehab", "rehabilitation", "fitness", "exercise", "pain", "knee", "shoulder", "mobility"],
-  psychological: ["mental", "mood", "anxiety", "depression", "stress", "memory", "thinking", "brain"],
-  "brain-health": ["concussion", "head knock", "cte", "post-concussion", "headache", "light sensitivity"],
-  career: ["work", "job", "resume", "cv", "learning", "course", "study", "scholarship", "networking"],
-  family: ["partner", "carer", "caregiver", "family", "community", "alumni", "regional"],
-  cultural: ["indigenous", "aboriginal", "torres strait", "culturally", "spiritual", "faith"],
-  identity: ["identity", "foreclosure", "retirement", "lgbtqi", "gender", "sexuality", "inclusion"],
-  financial: ["money", "budget", "grant", "superannuation", "financial", "cost"],
-  environmental: ["alcohol", "drugs", "gambling", "dependency", "addiction"],
-  female: ["women", "female", "motherhood", "menstrual", "pregnancy", "aflw"]
+  physical: ["injury","rehab","rehabilitation","fitness","exercise","pain","knee","shoulder","hip","ankle","physio","physiotherapy","mobility","strength"],
+  psychological: ["mental","mood","anxiety","depression","stress","relationship","support"],
+  "brain-health": ["concussion","cte","head knock","post-concussion","headache","light sensitivity","memory","thinking","cognition"],
+  career: ["work","job","resume","cv","learning","course","study","scholarship","networking","mentoring"],
+  family: ["partner","carer","caregiver","family","community","alumni","regional"],
+  cultural: ["indigenous","aboriginal","torres strait","culturally","spiritual","faith"],
+  identity: ["identity","foreclosure","retirement","lgbtqi","gender","sexuality","inclusion"],
+  financial: ["money","budget","grant","superannuation","financial","cost"],
+  environmental: ["alcohol","drugs","gambling","dependency","addiction"],
+  female: ["women","female","motherhood","menstrual","pregnancy","aflw"]
 };
 
-/* ------------------------------
-   Helpers: links loader & scoring
------------------------------- */
 async function loadLinks(req) {
   try {
-    // Public assets are available via absolute URL from the request
     const url = new URL('/links.json', req.url);
     const res = await fetch(url.toString(), { cache: 'force-cache' });
     if (!res.ok) return [];
@@ -49,11 +40,16 @@ async function loadLinks(req) {
   }
 }
 
-function inferCategoryFromText(text = "") {
+function inferCategoryFromText(text="") {
   const t = text.toLowerCase();
-  // simple heuristic: pick the first category that has ≥1 synonym present
-  let best = null;
-  let bestHits = 0;
+
+  // Hard triggers for Physical (knee/shoulder/etc)
+  if (/(knee|shoulder|ankle|hip|physio|physiotherapy|rehab|exercise|pain)\b/.test(t)) {
+    return 'physical';
+  }
+
+  // Otherwise, pick the category with most synonym hits
+  let best = null, bestHits = 0;
   for (const [cat, words] of Object.entries(CAT_SYNONYMS)) {
     let hits = 0;
     for (const w of words) if (t.includes(w)) hits++;
@@ -62,48 +58,65 @@ function inferCategoryFromText(text = "") {
   return best; // may be null
 }
 
-function findBestLinks(links, category, prompt, max = 4) {
-  const p = (prompt || "").toLowerCase();
-  const cat = (category || "").toLowerCase();
+function scoreLink(link, prompt, cat) {
+  const p = (prompt || '').toLowerCase();
+  const c = (cat || '').toLowerCase();
+  let score = 0;
+  let catScore = 0;
+  let kwHits = 0;
 
-  const synonyms = CAT_SYNONYMS[cat] || [];
+  // Category scoring
+  const lcats = (link.category || []).map(x => (x||'').toLowerCase());
+  if (lcats.includes(c)) { score += 6; catScore = 6; }
+  else if (lcats.some(x => c && (c.includes(x) || x.includes(c)))) { score += 4; catScore = 4; }
 
-  const scored = links.map(l => {
-    let score = 0;
-
-    // Category weight
-    if (l.category?.some(c => (c || '').toLowerCase() === cat)) score += 5;
-    else if (l.category?.some(c => cat && cat.includes((c || '').toLowerCase()))) score += 3;
-
-    // Keyword matches
-    if (Array.isArray(l.keywords)) {
-      for (const k of l.keywords) {
-        if (p.includes((k || '').toLowerCase())) score += 4;
-      }
+  // Keyword scoring
+  if (Array.isArray(link.keywords)) {
+    for (const k of link.keywords) {
+      if (k && p.includes((k||'').toLowerCase())) { score += 4; kwHits++; }
     }
+  }
 
-    // Synonym hints for the category
-    for (const s of synonyms) {
-      if (p.includes(s)) score += 2;
-    }
+  // Synonym nudge
+  for (const s of (CAT_SYNONYMS[c] || [])) {
+    if (p.includes(s)) score += 2;
+  }
 
-    // Title / domain soft hints
-    if (l.title && p.includes(l.title.toLowerCase())) score += 1;
-    if (l.domain && p.includes(l.domain.toLowerCase())) score += 1;
+  // Title/domain hints
+  if (link.title && p.includes(link.title.toLowerCase())) score += 1;
+  if (link.domain && p.includes((link.domain||'').toLowerCase())) score += 1;
 
-    return { ...l, score };
-  });
+  return { score, catScore, kwHits };
+}
 
-  return scored
-    .filter(s => s.score > 0 && s.url)     // must have a resolvable url
-    .sort((a, b) => b.score - a.score)
+function findBestLinks(links, category, prompt, max=4) {
+  const c = (category || '').toLowerCase();
+  const scored = [];
+
+  for (const l of links) {
+    if (!l?.url) continue;
+    const s = scoreLink(l, prompt, c);
+    scored.push({ ...l, ...s });
+  }
+
+  // Category gate: if we have any strong category matches, keep only those
+  const bestCat = Math.max(0, ...scored.map(s => s.catScore));
+  let filtered = scored;
+
+  if (bestCat >= 4) {                      // strong category match exists
+    filtered = scored.filter(s => s.catScore >= 4);
+  } else {
+    // If no category match, but we have keyword matches, keep keyword hits
+    const hasKW = scored.some(s => s.kwHits > 0);
+    if (hasKW) filtered = scored.filter(s => s.kwHits > 0);
+  }
+
+  return filtered
+    .sort((a,b) => b.score - a.score)
     .slice(0, max)
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
 
-/* ------------------------------
-   OpenAI helpers
------------------------------- */
 function headers() {
   return {
     'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -111,9 +124,7 @@ function headers() {
     'OpenAI-Beta': 'assistants=v2',
   };
 }
-
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-
 function json(obj, status=200){
   return new Response(JSON.stringify(obj), {
     status,
@@ -121,48 +132,35 @@ function json(obj, status=200){
   });
 }
 
-/* ------------------------------
-   Request handler
------------------------------- */
 export default async function handler(req) {
   if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
 
   try {
     const body = await req.json();
-    const {
-      message,
-      followup,
-      thread_id: clientThreadId,
-      categoryLabel // optional: if you send selected category from UI
-    } = body || {};
-
+    const { message, followup, thread_id: clientThreadId, categoryLabel } = body || {};
     if (!message) return json({ error: 'Missing message' }, 400);
 
-    // Load curated links once per request (edge cache will keep this fast)
     const links = await loadLinks(req);
 
-    // Choose category for link matching
-    const inferredCategory = (categoryLabel || '').trim() || inferCategoryFromText(message);
+    // Prefer UI category; otherwise infer from text
+    const inferredCategory = (categoryLabel || '').trim().toLowerCase() || inferCategoryFromText(message);
 
-    // 1) Reuse or create thread
+    // Create or reuse thread
     let thread_id = clientThreadId;
     if (!thread_id) {
-      const threadResp = await fetch('https://api.openai.com/v1/threads', {
-        method: 'POST',
-        headers: headers(),
-      });
+      const threadResp = await fetch('https://api.openai.com/v1/threads', { method: 'POST', headers: headers() });
       const thread = await threadResp.json();
       thread_id = thread.id;
     }
 
-    // 2) Add user message to thread
+    // Add user message
     await fetch(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ role: 'user', content: message }),
     });
 
-    // 3) Create run (override instructions only for follow-ups)
+    // Run with optional follow-up instructions
     const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
     if (followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
 
@@ -173,21 +171,19 @@ export default async function handler(req) {
     });
     const run = await runResp.json();
 
-    // 4) Poll until completion (with guard)
+    // Poll
     let status = run.status;
     const run_id = run.id;
     const started = Date.now();
     while (status === 'in_progress' || status === 'queued') {
-      if (Date.now() - started > 60000) break; // 60s guard
+      if (Date.now() - started > 60000) break;
       await sleep(800);
-      const r2 = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`, {
-        headers: headers(),
-      });
+      const r2 = await fetch(`https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`, { headers: headers() });
       const run2 = await r2.json();
       status = run2.status;
     }
 
-    // 5) Retrieve last assistant message
+    // Fetch last assistant message
     const msgsResp = await fetch(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
       { headers: headers() }
@@ -196,7 +192,7 @@ export default async function handler(req) {
     const msg = msgs.data?.[0];
     const rawOutput = msg?.content?.[0]?.text?.value || 'No response';
 
-    // 6) Curate sources from our verified list
+    // Curate sources using the selected/inferred category
     const curatedSources = findBestLinks(links, inferredCategory, message, 4);
 
     return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
