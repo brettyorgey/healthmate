@@ -1,6 +1,8 @@
 // /api/mascot.js
 export const config = { runtime: 'nodejs' };
 
+/* ---------------------- constants ---------------------- */
+
 const FOLLOWUP_INSTRUCTIONS = `
 FOLLOW-UP MODE:
 Return ONLY these two sections using markdown headings:
@@ -28,20 +30,14 @@ const CAT_SYNONYMS = {
   female: ["women","female","motherhood","menstrual","pregnancy","aflw"]
 };
 
+/* ---------------------- helpers ---------------------- */
+
 function headers() {
   return {
     'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
     'Content-Type': 'application/json',
     'OpenAI-Beta': 'assistants=v2',
   };
-}
-
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-function json(obj, status=200){
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
-  });
 }
 
 function envHint(){
@@ -51,10 +47,24 @@ function envHint(){
   return missing.length ? `Missing env var(s): ${missing.join(', ')}.` : null;
 }
 
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const raw = Buffer.concat(chunks).toString('utf8') || '{}';
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function baseOrigin(req){
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const host  = req.headers['x-forwarded-host'] || req.headers.host;
+  return `${proto}://${host}`;
+}
+
 async function loadLinks(req) {
   try {
-    const url = new URL('/links.json', req.url);
-    const res = await fetch(url.toString(), { cache: 'force-cache' });
+    const res = await fetch(`${baseOrigin(req)}/links.json`, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -88,7 +98,7 @@ function scoreLink(link, prompt, cat) {
     }
   }
   for (const s of (CAT_SYNONYMS[c] || [])) if (p.includes(s)) score += 2;
-  if (link.title && p.includes(link.title.toLowerCase())) score += 1;
+  if (link.title  && p.includes(link.title.toLowerCase()))  score += 1;
   if (link.domain && p.includes((link.domain||'').toLowerCase())) score += 1;
 
   return { score, catScore, kwHits };
@@ -126,10 +136,8 @@ async function getJsonOrThrow(url, options, timeoutMs=15000) {
     const raw = await r.text();
     if (!r.ok) {
       let detail = 'unknown';
-      try {
-        const j = JSON.parse(raw);
-        detail = j?.error?.message || j?.message || raw.slice(0,200);
-      } catch { detail = raw.slice(0,200); }
+      try { detail = JSON.parse(raw)?.error?.message || JSON.parse(raw)?.message || raw.slice(0,200); }
+      catch { detail = raw.slice(0,200); }
       const env = envHint();
       throw new Error(`HTTP ${r.status} from OpenAI: ${detail}${env ? ` — ${env}` : ''}`);
     }
@@ -141,35 +149,37 @@ async function getJsonOrThrow(url, options, timeoutMs=15000) {
 }
 
 function latestAssistantMessage(messages){
-  // messages.data is newest-first or oldest-first depending on query; we’ll search
   const all = Array.isArray(messages?.data) ? messages.data : [];
-  // find the most recent assistant message by created_at desc
   return all
     .filter(m => m.role === 'assistant')
     .sort((a,b) => (b.created_at||0) - (a.created_at||0))[0] || null;
 }
 
-export default async function handler(req) {
-  if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
+/* ---------------------- handler ---------------------- */
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Use POST' });
+  }
 
   const envMissing = envHint();
   if (envMissing) {
-    // Surface this clearly to the client
-    return json({ error: envMissing }, 500);
+    return res.status(500).json({ error: envMissing });
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
 
-    // For peek polling, thread_id is required
-    if (peek && !clientThreadId) return json({ error: 'Missing thread_id for peek' }, 400);
+    if (peek && !clientThreadId) {
+      return res.status(400).json({ error: 'Missing thread_id for peek' });
+    }
 
     const links = await loadLinks(req);
     const inferredCategory =
       (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
 
-    // Create or reuse thread (unless we're just peeking)
+    // Create or reuse thread (unless we’re just peeking)
     let thread_id = clientThreadId;
     const firstTurn = !thread_id && !peek;
     if (firstTurn) {
@@ -180,9 +190,9 @@ export default async function handler(req) {
       thread_id = thread.id;
     }
 
-    // Add user message (skip if peek mode)
+    // Add user message (skip in peek)
     if (!peek) {
-      if (!message) return json({ error: 'Missing message' }, 400);
+      if (!message) return res.status(400).json({ error: 'Missing message' });
       await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
         method: 'POST',
         headers: headers(),
@@ -190,7 +200,7 @@ export default async function handler(req) {
       });
     }
 
-    // Create a run only when we're NOT peeking
+    // Create run (skip in peek)
     let run_id = null;
     if (!peek) {
       const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
@@ -204,20 +214,18 @@ export default async function handler(req) {
       run_id = run.id;
     }
 
-    // Poll (server side) only briefly; then hand off to the client to keep peeking
+    // Short server-side poll (~10s), then let client peek
     const start = Date.now();
     let delay = 600;
 
     while (true) {
-      // After ~10s, return pending so the browser takes over polling
       if (Date.now() - start > 10000) {
-        return json({ pending: true, thread_id }, 202);
+        return res.status(202).json({ pending: true, thread_id });
       }
       await sleep(delay);
       delay = Math.min(1500, Math.floor(delay * 1.3));
 
       if (peek) {
-        // Peek mode: if assistant has replied, return it
         const msgs = await getJsonOrThrow(
           `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
           { headers: headers() }
@@ -229,12 +237,11 @@ export default async function handler(req) {
           const curatedSources = message
             ? findBestLinks(links, inferredCategory, message, 4)
             : [];
-          return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
+          return res.status(200).json({ output: rawOutput, sources: curatedSources, thread_id });
         }
         continue;
       }
 
-      // Normal run polling (non-peek)
       const run2 = await getJsonOrThrow(
         `https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`,
         { headers: headers() }
@@ -242,13 +249,12 @@ export default async function handler(req) {
       const status = run2.status;
 
       if (status === 'completed') break;
-      if (status === 'failed')  return json({ error: `OpenAI run failed: ${run2.last_error?.message || 'unknown'}` }, 502);
-      if (status === 'expired' || status === 'cancelled') return json({ error: `OpenAI run ${status}` }, 504);
-      if (status === 'requires_action') return json({ error: 'OpenAI run requires action (tools not handled).' }, 501);
-      // else queued/in_progress → loop
+      if (status === 'failed')  return res.status(502).json({ error: `OpenAI run failed: ${run2.last_error?.message || 'unknown'}` });
+      if (status === 'expired' || status === 'cancelled') return res.status(504).json({ error: `OpenAI run ${status}` });
+      if (status === 'requires_action') return res.status(501).json({ error: 'OpenAI run requires action (tools not handled).' });
     }
 
-    // Completed: latest assistant message
+    // Completed: fetch latest assistant message
     const msgs = await getJsonOrThrow(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
       { headers: headers() }
@@ -258,9 +264,9 @@ export default async function handler(req) {
     const rawOutput = part?.text?.value || 'No response';
 
     const curatedSources = findBestLinks(links, inferredCategory, message, 4);
-    return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
+    return res.status(200).json({ output: rawOutput, sources: curatedSources, thread_id });
   } catch (e) {
     console.error('mascot error:', e);
-    return json({ error: e?.message || 'Server error' }, 500);
+    return res.status(500).json({ error: e?.message || 'Server error' });
   }
 }
