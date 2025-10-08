@@ -1,5 +1,4 @@
 // /api/mascot.js
-// Force Node runtime on Vercel so long runs don’t hit Edge limits.
 export const config = { runtime: 'nodejs' };
 
 const FOLLOWUP_INSTRUCTIONS = `
@@ -31,17 +30,25 @@ const CAT_SYNONYMS = {
 
 function headers() {
   return {
-    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`,
     'Content-Type': 'application/json',
     'OpenAI-Beta': 'assistants=v2',
   };
 }
+
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 function json(obj, status=200){
   return new Response(JSON.stringify(obj), {
     status,
     headers: { 'Content-Type': 'application/json' }
   });
+}
+
+function envHint(){
+  const missing = [];
+  if (!process.env.OPENAI_API_KEY) missing.push('OPENAI_API_KEY');
+  if (!process.env.OPENAI_ASSISTANT_ID) missing.push('OPENAI_ASSISTANT_ID');
+  return missing.length ? `Missing env var(s): ${missing.join(', ')}.` : null;
 }
 
 async function loadLinks(req) {
@@ -56,7 +63,7 @@ async function loadLinks(req) {
 }
 
 function inferCategoryFromText(text = "") {
-  const t = (text || "").toLowerCase();
+  const t = (text || '').toLowerCase();
   if (/(knee|shoulder|ankle|hip|physio|physiotherapy|rehab|exercise|pain)\b/.test(t)) return 'physical';
   let best = null, bestHits = 0;
   for (const [cat, words] of Object.entries(CAT_SYNONYMS)) {
@@ -111,36 +118,58 @@ function findBestLinks(links, category, prompt, max = 4) {
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
 
-// --- NEW: safe extractor for assistant text content ---
-function extractAssistantText(msg){
-  if (!msg || !Array.isArray(msg.content)) return null;
-  for (const part of msg.content) {
-    if (part?.type === 'text' && part.text?.value) return part.text.value;
+async function getJsonOrThrow(url, options, timeoutMs=15000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try{
+    const r = await fetch(url, { ...options, signal: ctrl.signal });
+    const raw = await r.text();
+    if (!r.ok) {
+      let detail = 'unknown';
+      try {
+        const j = JSON.parse(raw);
+        detail = j?.error?.message || j?.message || raw.slice(0,200);
+      } catch { detail = raw.slice(0,200); }
+      const env = envHint();
+      throw new Error(`HTTP ${r.status} from OpenAI: ${detail}${env ? ` — ${env}` : ''}`);
+    }
+    try { return JSON.parse(raw); }
+    catch (e) { throw new Error(`JSON parse error: ${e.message}`); }
+  } finally {
+    clearTimeout(t);
   }
-  return null;
 }
 
-async function getJsonOrThrow(url, options) {
-  const r = await fetch(url, options);
-  const text = await r.text();
-  if (!r.ok) throw new Error(`Fetch ${url} failed: ${r.status} ${r.statusText} — ${text.slice(0,200)}`);
-  try { return JSON.parse(text); }
-  catch (e) { throw new Error(`JSON parse error from ${url}: ${e.message}`); }
+function latestAssistantMessage(messages){
+  // messages.data is newest-first or oldest-first depending on query; we’ll search
+  const all = Array.isArray(messages?.data) ? messages.data : [];
+  // find the most recent assistant message by created_at desc
+  return all
+    .filter(m => m.role === 'assistant')
+    .sort((a,b) => (b.created_at||0) - (a.created_at||0))[0] || null;
 }
 
 export default async function handler(req) {
   if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
 
+  const envMissing = envHint();
+  if (envMissing) {
+    // Surface this clearly to the client
+    return json({ error: envMissing }, 500);
+  }
+
   try {
     const body = await req.json();
     const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
-    if (!peek && !message) return json({ error: 'Missing message' }, 400);
+
+    // For peek polling, thread_id is required
+    if (peek && !clientThreadId) return json({ error: 'Missing thread_id for peek' }, 400);
 
     const links = await loadLinks(req);
     const inferredCategory =
       (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
 
-    // Create or reuse thread (unless peeking)
+    // Create or reuse thread (unless we're just peeking)
     let thread_id = clientThreadId;
     const firstTurn = !thread_id && !peek;
     if (firstTurn) {
@@ -151,8 +180,9 @@ export default async function handler(req) {
       thread_id = thread.id;
     }
 
-    // Add user message (skip in peek)
+    // Add user message (skip if peek mode)
     if (!peek) {
+      if (!message) return json({ error: 'Missing message' }, 400);
       await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
         method: 'POST',
         headers: headers(),
@@ -160,7 +190,7 @@ export default async function handler(req) {
       });
     }
 
-    // Create run (skip in peek)
+    // Create a run only when we're NOT peeking
     let run_id = null;
     if (!peek) {
       const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
@@ -174,34 +204,37 @@ export default async function handler(req) {
       run_id = run.id;
     }
 
-    // Poll (or just check latest in peek)
+    // Poll (server side) only briefly; then hand off to the client to keep peeking
     const start = Date.now();
-    let delay = 700;
+    let delay = 600;
 
     while (true) {
-      if (Date.now() - start > 55000) {
-        // Let the client poll later
+      // After ~10s, return pending so the browser takes over polling
+      if (Date.now() - start > 10000) {
         return json({ pending: true, thread_id }, 202);
       }
       await sleep(delay);
-      delay = Math.min(2200, Math.floor(delay * 1.3));
+      delay = Math.min(1500, Math.floor(delay * 1.3));
 
       if (peek) {
+        // Peek mode: if assistant has replied, return it
         const msgs = await getJsonOrThrow(
-          `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
+          `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
           { headers: headers() }
         );
-        const msg = msgs.data?.[0];
-        if (msg?.role === 'assistant') {
-          const text = extractAssistantText(msg) || 'No response';
+        const msg = latestAssistantMessage(msgs);
+        if (msg) {
+          const part = msg?.content?.find?.(c => c.type === 'text');
+          const rawOutput = part?.text?.value || 'No response';
           const curatedSources = message
             ? findBestLinks(links, inferredCategory, message, 4)
             : [];
-          return json({ output: text, sources: curatedSources, thread_id }, 200);
+          return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
         }
         continue;
       }
 
+      // Normal run polling (non-peek)
       const run2 = await getJsonOrThrow(
         `https://api.openai.com/v1/threads/${thread_id}/runs/${run_id}`,
         { headers: headers() }
@@ -209,17 +242,20 @@ export default async function handler(req) {
       const status = run2.status;
 
       if (status === 'completed') break;
-      if (status === 'failed')  return json({ error: run2.last_error?.message || 'Assistant run failed' }, 502);
-      if (status === 'expired' || status === 'cancelled') return json({ error: `Run ${status}` }, 504);
-      if (status === 'requires_action') return json({ error: 'Run requires action (tools not handled).' }, 501);
+      if (status === 'failed')  return json({ error: `OpenAI run failed: ${run2.last_error?.message || 'unknown'}` }, 502);
+      if (status === 'expired' || status === 'cancelled') return json({ error: `OpenAI run ${status}` }, 504);
+      if (status === 'requires_action') return json({ error: 'OpenAI run requires action (tools not handled).' }, 501);
+      // else queued/in_progress → loop
     }
 
+    // Completed: latest assistant message
     const msgs = await getJsonOrThrow(
-      `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
+      `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
       { headers: headers() }
     );
-    const msg = msgs.data?.[0];
-    const rawOutput = extractAssistantText(msg) || 'No response';
+    const msg = latestAssistantMessage(msgs);
+    const part = msg?.content?.find?.(c => c.type === 'text');
+    const rawOutput = part?.text?.value || 'No response';
 
     const curatedSources = findBestLinks(links, inferredCategory, message, 4);
     return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
