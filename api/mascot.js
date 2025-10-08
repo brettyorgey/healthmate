@@ -1,4 +1,4 @@
-// /api/mascot.js  — CommonJS + fire-and-poll, safe for Node serverless on Vercel
+// /api/mascot.js — CommonJS + fire-and-poll; safe for Vercel Node runtime
 module.exports.config = { runtime: 'nodejs' };
 
 /* -------------------- constants -------------------- */
@@ -79,7 +79,6 @@ async function getJsonOrThrow(url, options, timeoutMs = 15000, retries = 1) {
       catch (e) { throw new Error(`JSON parse error from ${url}: ${e.message}`); }
     } catch (e) {
       lastErr = e;
-      // retry only on abort/timeout once
       const msg = String(e?.message || e);
       const isAbort = msg.includes('aborted') || msg.includes('AbortError') || msg.includes('The user aborted a request');
       if (attempt < retries && isAbort) continue;
@@ -96,13 +95,23 @@ function baseUrlFromReq(req) {
   return `${proto}://${host}`;
 }
 
+/* -------------------- links.json loader (cached) -------------------- */
+const LINKS_CACHE = { data: null, ts: 0 };
+
 async function loadLinks(req) {
+  const now = Date.now();
+  // cache for 2 minutes
+  if (LINKS_CACHE.data && (now - LINKS_CACHE.ts) < 120000) return LINKS_CACHE.data;
   try {
-    const res = await fetchWithTimeout(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' }, 6000);
-    if (!res.ok) return [];
-    return await res.json();
+    const res = await fetchWithTimeout(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' }, 4000);
+    if (!res.ok) return LINKS_CACHE.data || [];
+    const data = await res.json();
+    LINKS_CACHE.data = Array.isArray(data) ? data : [];
+    LINKS_CACHE.ts = now;
+    return LINKS_CACHE.data;
   } catch {
-    return [];
+    // fail-open: don’t block the response if links.json is slow
+    return LINKS_CACHE.data || [];
   }
 }
 
@@ -163,41 +172,6 @@ function findBestLinks(links, category, prompt, max = 4) {
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
 }
 
-function baseUrlFromReq(req) {
-  const host = req.headers['x-forwarded-host'] || req.headers.host || process.env.VERCEL_URL;
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  if (!host) return 'http://localhost:3000';
-  return `${proto}://${host}`;
-}
-
-// ✅ Add this caching block here
-const LINKS_CACHE = { data: null, ts: 0 };
-
-async function loadLinks(req) {
-  const now = Date.now();
-  // cache for 2 minutes
-  if (LINKS_CACHE.data && (now - LINKS_CACHE.ts) < 120000) return LINKS_CACHE.data;
-  try {
-    const res = await fetchWithTimeout(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' }, 4000);
-    if (!res.ok) return LINKS_CACHE.data || [];
-    const data = await res.json();
-    LINKS_CACHE.data = Array.isArray(data) ? data : [];
-    LINKS_CACHE.ts = now;
-    return LINKS_CACHE.data;
-  } catch {
-    // fail-open: don’t block the response if links.json is slow
-    return LINKS_CACHE.data || [];
-  }
-}
-
-// then continue with your other functions below:
-function scoreLink(...) { … }
-function findBestLinks(...) { … }
-
-module.exports = async function handler(req, res) {
-  …
-};
-
 /* -------------------- main handler -------------------- */
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Use POST' });
@@ -206,49 +180,55 @@ module.exports = async function handler(req, res) {
     const body = await readJsonBody(req);
     const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
 
-    // Simple validation for peek
+    // For peek polling, thread_id is required
     if (peek && !clientThreadId) return sendJson(res, 400, { error: 'Missing thread_id for peek' });
 
     const links = await loadLinks(req);
     const inferredCategory =
       (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
 
-    // Create/reuse thread unless we are peeking
+    // Create or reuse thread (unless we're just peeking)
     let thread_id = clientThreadId;
     const firstTurn = !thread_id && !peek;
     if (firstTurn) {
-      const thread = await getJsonOrThrow('https://api.openai.com/v1/threads', {
-      method: 'POST', headers: apiHeaders()
-      }, /*timeout*/ 25000, /*retries*/ 1);
+      const thread = await getJsonOrThrow(
+        'https://api.openai.com/v1/threads',
+        { method: 'POST', headers: apiHeaders() },
+        8000, 1
+      );
+      thread_id = thread.id;
+    }
 
-    // Add user message (skip when peeking)
+    // Add user message (skip if peek mode)
     if (!peek) {
       if (!message) return sendJson(res, 400, { error: 'Missing message' });
-      await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
-        method: 'POST',
-        headers: apiHeaders(),
-        body: JSON.stringify({ role: 'user', content: message }),
-      }, 12000);
 
-      // Start a run (apply follow-up formatting only after first turn)
+      await getJsonOrThrow(
+        `https://api.openai.com/v1/threads/${thread_id}/messages`,
+        { method: 'POST', headers: apiHeaders(), body: JSON.stringify({ role: 'user', content: message }) },
+        12000, 1
+      );
+
+      // Create a run (apply FOLLOWUP rules only after first turn)
       const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
       if (!firstTurn && followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
 
-      await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
-      method: 'POST', headers: apiHeaders(),
-      body: JSON.stringify({ assistant_id: process.env.OPENAI_ASSISTANT_ID, ...( !firstTurn && followup === true ? { instructions: FOLLOWUP_INSTRUCTIONS } : {} ) }),
-      }, 25000, 1);
+      await getJsonOrThrow(
+        `https://api.openai.com/v1/threads/${thread_id}/runs`,
+        { method: 'POST', headers: apiHeaders(), body: JSON.stringify(runCreateBody) },
+        20000, 1
+      );
 
-      // IMPORTANT: return immediately so we never hit 60s Vercel timeout
+      // Return immediately so we never hit the 60s Vercel timeout
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
     // Peek mode: check if the assistant has replied yet
-      const msgs = await getJsonOrThrow(
+    const msgs = await getJsonOrThrow(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
       { headers: apiHeaders() },
-      15000, 0 // reads can be a bit shorter; usually fast
-      );
+      8000, 0
+    );
 
     const msg = msgs.data?.[0];
     if (!msg || msg.role !== 'assistant') {
