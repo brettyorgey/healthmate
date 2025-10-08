@@ -122,16 +122,16 @@
       </div>
 
       <div class="inputRow">
-        <button class="btn-icon" id="micBtn" title="Speak your question">🎤</button>
+        <button class="btn-icon" id="micBtn" title="Speak your question" type="button">🎤</button>
         <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
-        <button class="send" id="sendBtn" onclick="sendMsg()">Send</button>
+        <button class="send" id="sendBtn" type="button" onclick="sendMsg()">Send</button>
       </div>
 
       <div class="chat-footer">
         <div>Information only — not a medical diagnosis. In an emergency call 000.</div>
         <div class="chat-controls">
-          <button class="btn-sm" id="copyBtn">Copy conversation</button>
-          <button class="btn-sm" id="resetBtn">Reset chat</button>
+          <button class="btn-sm" id="copyBtn" type="button">Copy conversation</button>
+          <button class="btn-sm" id="resetBtn" type="button">Reset chat</button>
         </div>
       </div>
     </div>
@@ -158,21 +158,22 @@
     const activeCategoryEl=document.getElementById('activeCategory');
     const activeCategoryTextEl=document.getElementById('activeCategoryText');
 
-    // Remove any model-provided "## Sources" section so we only show curated links
+    // Remove model "## Sources" so we only show curated links
     function stripSourcesSection(md){
       if (!md) return md;
-      // Remove from "## Sources" to the end
-      return md.replace(/(^|\n)##\s*Sources[\s\S]*$/i, '');
+      return md.replace(/(^|\n)##\s*Sources[\s\S]*?(?=\n##\s|\n?$)/i, '$1');
     }
 
-    // Markdown (NO inline links)
+    // Escape HTML then do light markdown transforms
+    function esc(s){
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
     function mdToHtml(md){
       if(!md) return '';
-      let s=md;
+      let s=esc(md);
       s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
       s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
       s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-      // do NOT convert [text](url) into <a> here
       s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
       return '<p>'+s+'</p>';
     }
@@ -193,14 +194,14 @@
           const a = document.createElement('a');
           a.href = s.url;
           a.target = '_blank';
-          a.rel = 'noopener';
+          a.rel = 'noopener noreferrer';
           a.textContent = s.title || s.url;
           li.appendChild(a);
         } else if (s.file_id){
           const a = document.createElement('a');
           a.href = `/api/file?file_id=${encodeURIComponent(s.file_id)}`;
           a.target = '_blank';
-          a.rel = 'noopener';
+          a.rel = 'noopener noreferrer';
           a.textContent = s.filename || 'Document';
           li.appendChild(a);
         } else {
@@ -215,6 +216,7 @@
       const controls = document.createElement('div');
       controls.className = 'inline-controls';
       const listenBtn = document.createElement('button');
+      listenBtn.type = 'button';
       listenBtn.className = 'btn-sm';
       listenBtn.textContent = '🔊 Listen';
       listenBtn.addEventListener('click', ()=> {
@@ -301,13 +303,9 @@
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
         cleaned = removeDeadLinkMarkers(cleaned);
-
-        // remove the model's own "## Sources" section (we render curated box)
-        cleaned = stripSourcesSection(cleaned);
-
+        cleaned = stripSourcesSection(cleaned); // keep only curated sources
         div.innerHTML = mdToHtml(cleaned);
 
-        // Sources under the answer
         if (Array.isArray(sources) && sources.length) {
           renderSourcesBox(div, sources);
         }
@@ -378,6 +376,7 @@
         });
         const data = await r.json().catch(()=> ({}));
 
+        // still working? switch to polling
         if (r.status === 202 && data.pending && data.thread_id){
           sessionStorage.setItem('fq_thread_id', data.thread_id);
           await pollUntilReady(data.thread_id, content, thinkingEl);
@@ -385,12 +384,24 @@
         }
 
         thinkingEl.remove();
+
         if(!r.ok){
           addMsg('assistant','Sorry — server error' + (data?.error ? ` (${data.error})` : ''));
-        }else{
-          addMsg('assistant', data.output || 'No response', data.sources || []);
-          if(data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
+          return;
         }
+
+        // race guard: got thread but not the content yet
+        if (data.thread_id && (data.output || '').trim().toLowerCase() === 'no response') {
+          sessionStorage.setItem('fq_thread_id', data.thread_id);
+          const thinkingAgain = showThinking();
+          await pollUntilReady(data.thread_id, content, thinkingAgain);
+          return;
+        }
+
+        // success
+        addMsg('assistant', data.output || 'No response', data.sources || []);
+        if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
+
       }catch(e){
         thinkingEl.remove();
         addMsg('assistant','Sorry — network error.');
@@ -463,6 +474,7 @@
       (PROMPTS[label]||[]).forEach(p=>{
         const btn=document.createElement('button');
         btn.className='prompt-btn';
+        btn.type='button';
         btn.textContent=p;
         btn.addEventListener('click',()=>sendMsg(p));
         promptList.appendChild(btn);
