@@ -262,19 +262,27 @@ export default async function handler(req, res) {
       if (status === 'requires_action') return res.status(501).json({ error: 'OpenAI run requires action (tools not handled).' });
     }
 
-    // Completed: fetch latest assistant message
-    const msgs = await getJsonOrThrow(
+     // Completed: fetch messages and return the first assistant message only
+      const msgs = await getJsonOrThrow(
       `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
       { headers: headers() }
     );
-    const msg = latestAssistantMessage(msgs);
-    const part = msg?.content?.find?.(c => c.type === 'text');
-    const rawOutput = part?.text?.value || 'No response';
 
+    // find the most recent assistant message
+    const firstAssistant = (msgs.data || []).find(m => m.role === 'assistant');
+    if (!firstAssistant) {
+    // run says completed but the message hasn't landed yet (race) → tell client to poll
+    return json({ pending: true, thread_id }, 202);
+    }
+
+    // extract text safely
+    const textBlock = (firstAssistant.content || []).find(c => c.type === 'text');
+    const rawOutput = textBlock?.text?.value?.trim() || '(empty)';
+
+    // curate links based on the user’s prompt/category
     const curatedSources = findBestLinks(links, inferredCategory, message, 4);
-    return res.status(200).json({ output: rawOutput, sources: curatedSources, thread_id });
-  } catch (e) {
-    console.error('mascot error:', e);
-    return res.status(500).json({ error: e?.message || 'Server error' });
+
+    return json({ output: rawOutput, sources: curatedSources, thread_id }, 200);
+ 
   }
 }
