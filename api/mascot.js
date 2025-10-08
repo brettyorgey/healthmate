@@ -1,4 +1,4 @@
-// /api/mascot.js — CommonJS + fire-and-poll; safe for Vercel Node runtime
+// /api/mascot.js — CommonJS, safe for Vercel Node serverless (no long polling)
 module.exports.config = { runtime: 'nodejs' };
 
 /* -------------------- constants -------------------- */
@@ -29,7 +29,7 @@ const CAT_SYNONYMS = {
   female: ["women","female","motherhood","menstrual","pregnancy","aflw"]
 };
 
-/* -------------------- helpers -------------------- */
+/* -------------------- small helpers -------------------- */
 function apiHeaders() {
   return {
     'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -37,12 +37,10 @@ function apiHeaders() {
     'OpenAI-Beta': 'assistants=v2',
   };
 }
-
 function sendJson(res, status, obj) {
   res.status(status).setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(obj));
 }
-
 async function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     try {
@@ -56,8 +54,6 @@ async function readJsonBody(req) {
     } catch (e) { reject(e); }
   });
 }
-
-// Abortable fetch with a hard timeout (ms)
 async function fetchWithTimeout(url, opts = {}, ms = 15000) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
@@ -67,7 +63,6 @@ async function fetchWithTimeout(url, opts = {}, ms = 15000) {
     clearTimeout(t);
   }
 }
-
 async function getJsonOrThrow(url, options, timeoutMs = 15000, retries = 1) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -80,14 +75,13 @@ async function getJsonOrThrow(url, options, timeoutMs = 15000, retries = 1) {
     } catch (e) {
       lastErr = e;
       const msg = String(e?.message || e);
-      const isAbort = msg.includes('aborted') || msg.includes('AbortError') || msg.includes('The user aborted a request');
+      const isAbort = msg.includes('Abort') || msg.includes('aborted');
       if (attempt < retries && isAbort) continue;
       break;
     }
   }
   throw lastErr;
 }
-
 function baseUrlFromReq(req) {
   const host = req.headers['x-forwarded-host'] || req.headers.host || process.env.VERCEL_URL;
   const proto = req.headers['x-forwarded-proto'] || 'https';
@@ -95,12 +89,10 @@ function baseUrlFromReq(req) {
   return `${proto}://${host}`;
 }
 
-/* -------------------- links.json loader (cached) -------------------- */
+/* -------------------- links.json (cached) -------------------- */
 const LINKS_CACHE = { data: null, ts: 0 };
-
 async function loadLinks(req) {
   const now = Date.now();
-  // cache for 2 minutes
   if (LINKS_CACHE.data && (now - LINKS_CACHE.ts) < 120000) return LINKS_CACHE.data;
   try {
     const res = await fetchWithTimeout(`${baseUrlFromReq(req)}/links.json`, { cache: 'no-store' }, 4000);
@@ -110,7 +102,6 @@ async function loadLinks(req) {
     LINKS_CACHE.ts = now;
     return LINKS_CACHE.data;
   } catch {
-    // fail-open: don’t block the response if links.json is slow
     return LINKS_CACHE.data || [];
   }
 }
@@ -126,7 +117,6 @@ function inferCategoryFromText(text = "") {
   }
   return best;
 }
-
 function scoreLink(link, prompt, cat) {
   const p = (prompt || '').toLowerCase();
   const c = (cat || '').toLowerCase();
@@ -142,12 +132,11 @@ function scoreLink(link, prompt, cat) {
     }
   }
   for (const s of (CAT_SYNONYMS[c] || [])) if (p.includes(s)) score += 2;
-  if (link.title && p.includes(link.title.toLowerCase())) score += 1;
+  if (link.title && p.includes((link.title||'').toLowerCase())) score += 1;
   if (link.domain && p.includes((link.domain||'').toLowerCase())) score += 1;
 
   return { score, catScore, kwHits };
 }
-
 function findBestLinks(links, category, prompt, max = 4) {
   const c = (category || '').toLowerCase();
   const scored = [];
@@ -156,20 +145,30 @@ function findBestLinks(links, category, prompt, max = 4) {
     const s = scoreLink(l, prompt, c);
     scored.push({ ...l, ...s });
   }
-
   const bestCat = Math.max(0, ...scored.map(s => s.catScore));
   let filtered = scored;
-  if (bestCat >= 4) {
-    filtered = scored.filter(s => s.catScore >= 4);
-  } else {
+  if (bestCat >= 4) filtered = scored.filter(s => s.catScore >= 4);
+  else {
     const hasKW = scored.some(s => s.kwHits > 0);
     if (hasKW) filtered = scored.filter(s => s.kwHits > 0);
   }
-
   return filtered
     .sort((a,b) => b.score - a.score)
     .slice(0, max)
     .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
+}
+
+/* -------------------- OpenAI helpers -------------------- */
+async function getLatestAssistantText(thread_id) {
+  const msgs = await getJsonOrThrow(
+    `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=10`,
+    { headers: apiHeaders() },
+    12000, 0
+  );
+  const m = (msgs.data || []).find(x => x.role === 'assistant');
+  if (!m) return null;
+  const item = (m.content || []).find(c => c.type === 'text');
+  return item?.text?.value || null;
 }
 
 /* -------------------- main handler -------------------- */
@@ -180,65 +179,55 @@ module.exports = async function handler(req, res) {
     const body = await readJsonBody(req);
     const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
 
-    // For peek polling, thread_id is required
+    // Peek requires a thread id
     if (peek && !clientThreadId) return sendJson(res, 400, { error: 'Missing thread_id for peek' });
 
     const links = await loadLinks(req);
-    const inferredCategory =
-      (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
+    const inferredCategory = (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
 
-    // Create or reuse thread (unless we're just peeking)
+    // Create or reuse thread (unless peeking)
     let thread_id = clientThreadId;
     const firstTurn = !thread_id && !peek;
     if (firstTurn) {
-      const thread = await getJsonOrThrow(
-        'https://api.openai.com/v1/threads',
-        { method: 'POST', headers: apiHeaders() },
-        8000, 1
-      );
+      const thread = await getJsonOrThrow('https://api.openai.com/v1/threads', {
+        method: 'POST',
+        headers: apiHeaders()
+      }, 20000, 1);
       thread_id = thread.id;
     }
 
-    // Add user message (skip if peek mode)
+    // Add user message & start a run (non-peek)
     if (!peek) {
       if (!message) return sendJson(res, 400, { error: 'Missing message' });
 
-      await getJsonOrThrow(
-        `https://api.openai.com/v1/threads/${thread_id}/messages`,
-        { method: 'POST', headers: apiHeaders(), body: JSON.stringify({ role: 'user', content: message }) },
-        12000, 1
-      );
+      await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/messages`, {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify({ role: 'user', content: message }),
+      }, 12000, 0);
 
-      // Create a run (apply FOLLOWUP rules only after first turn)
-      const runCreateBody = { assistant_id: process.env.OPENAI_ASSISTANT_ID };
-      if (!firstTurn && followup === true) runCreateBody.instructions = FOLLOWUP_INSTRUCTIONS;
+      const runCreateBody = {
+        assistant_id: process.env.OPENAI_ASSISTANT_ID,
+        ...( !firstTurn && followup === true ? { instructions: FOLLOWUP_INSTRUCTIONS } : {} )
+      };
+      await getJsonOrThrow(`https://api.openai.com/v1/threads/${thread_id}/runs`, {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify(runCreateBody),
+      }, 20000, 1);
 
-      await getJsonOrThrow(
-        `https://api.openai.com/v1/threads/${thread_id}/runs`,
-        { method: 'POST', headers: apiHeaders(), body: JSON.stringify(runCreateBody) },
-        20000, 1
-      );
-
-      // Return immediately so we never hit the 60s Vercel timeout
+      // Important: never wait here — return 202 so the client polls
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
-    // Peek mode: check if the assistant has replied yet
-    const msgs = await getJsonOrThrow(
-      `https://api.openai.com/v1/threads/${thread_id}/messages?order=desc&limit=1`,
-      { headers: apiHeaders() },
-      8000, 0
-    );
-
-    const msg = msgs.data?.[0];
-    if (!msg || msg.role !== 'assistant') {
-      // still working
+    // Peek mode: only return 200 when we truly have an assistant message
+    const text = await getLatestAssistantText(thread_id);
+    if (!text) {
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
-    const rawOutput = msg?.content?.[0]?.text?.value || 'No response';
     const curatedSources = message ? findBestLinks(links, inferredCategory, message, 4) : [];
-    return sendJson(res, 200, { output: rawOutput, sources: curatedSources, thread_id });
+    return sendJson(res, 200, { output: text, sources: curatedSources, thread_id });
 
   } catch (e) {
     console.error('mascot error:', e);
