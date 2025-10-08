@@ -158,6 +158,13 @@
     const activeCategoryEl=document.getElementById('activeCategory');
     const activeCategoryTextEl=document.getElementById('activeCategoryText');
 
+    // Remove any model-provided "## Sources" section so we only show curated links
+    function stripSourcesSection(md){
+      if (!md) return md;
+      // Remove from "## Sources" to the end
+      return md.replace(/(^|\n)##\s*Sources[\s\S]*$/i, '');
+    }
+
     // Markdown (NO inline links)
     function mdToHtml(md){
       if(!md) return '';
@@ -294,6 +301,10 @@
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
         cleaned = removeDeadLinkMarkers(cleaned);
+
+        // remove the model's own "## Sources" section (we render curated box)
+        cleaned = stripSourcesSection(cleaned);
+
         div.innerHTML = mdToHtml(cleaned);
 
         // Sources under the answer
