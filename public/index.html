@@ -41,10 +41,10 @@
     .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
     .msg{ max-width:80%; white-space:pre-wrap; }
     .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
-    .msg.assistant{ display: flex; flex-direction: column; align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
+    .msg.assistant{ display:flex; flex-direction:column; align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
     .msg.assistant .sources { order: 2; }
     .inline-controls{ order: 3; margin-top: 8px; align-self: flex-start; }
-    
+
     /* Instruction headings spacing + blue bar */
     .msg.assistant h2, .msg.assistant h3{
       margin-top: 26px;
@@ -55,7 +55,6 @@
     }
     .msg.assistant h2:first-of-type,
     .msg.assistant h3:first-of-type { margin-top: 12px; }
-
     .msg.assistant p { margin: 8px 0 12px; }
 
     /* Sources box */
@@ -166,18 +165,9 @@
       s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
       s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
       s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-      // deliberately DO NOT convert [text](url) into <a> here
+      // do NOT convert [text](url) into <a> here
       s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
       return '<p>'+s+'</p>';
-    }
-
-    // Remove inline 'Sources' block when we show curated sources
-    function stripModelSourcesSection(text){
-      if(!text) return text;
-      // remove "## Sources" (or "Sources") to end OR next H2
-      let out = text.replace(/\n?^##?\s*Sources[\s\S]*$/gmi, '');
-      out = out.replace(/\n?^##?\s*Sources[\s\S]*?(?=^##\s|\Z)/gmi, '');
-      return out;
     }
 
     // Sources box (ONLY from data.sources)
@@ -213,6 +203,19 @@
       }
       box.appendChild(ul);
       parent.appendChild(box);
+
+      // Listen under sources
+      const controls = document.createElement('div');
+      controls.className = 'inline-controls';
+      const listenBtn = document.createElement('button');
+      listenBtn.className = 'btn-sm';
+      listenBtn.textContent = '🔊 Listen';
+      listenBtn.addEventListener('click', ()=> {
+        const text = parent.textContent || '';
+        speakText(text);
+      });
+      controls.appendChild(listenBtn);
+      parent.appendChild(controls);
     }
 
     function normalizeFollowupHeadings(text){
@@ -280,7 +283,8 @@
     function stopListening(){ if(recognition && listening){ try{ recognition.stop(); }catch(_){} } }
 
     function addMsg(role,text,sources){
-      TRANSCRIPT.push({role, text: text || ''});
+      const entry = {role, text: text || ''};
+      TRANSCRIPT.push(entry);
       const div=document.createElement('div'); div.className='msg '+role;
 
       if(role==='assistant'){
@@ -290,28 +294,12 @@
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
         cleaned = removeDeadLinkMarkers(cleaned);
-
-        // If curated sources present, remove the model's inline "Sources" block
-        if (Array.isArray(sources) && sources.length) {
-          cleaned = stripModelSourcesSection(cleaned);
-        }
-
         div.innerHTML = mdToHtml(cleaned);
 
-        // Curated sources first (above Listen)
+        // Sources under the answer
         if (Array.isArray(sources) && sources.length) {
           renderSourcesBox(div, sources);
         }
-
-        // Listen control
-        const controls = document.createElement('div');
-        controls.className = 'inline-controls';
-        const listenBtn = document.createElement('button');
-        listenBtn.className = 'btn-sm';
-        listenBtn.textContent = '🔊 Listen';
-        listenBtn.addEventListener('click', ()=> speakText(cleaned));
-        controls.appendChild(listenBtn);
-        div.appendChild(controls);
 
         if(!sessionStorage.getItem('fq_has_initial_answer')) sessionStorage.setItem('fq_has_initial_answer','1');
       } else {
@@ -332,6 +320,26 @@
       return d;
     }
 
+    async function pollUntilReady(threadId, originalUserText, thinkingEl, tries=12){
+      for (let i=0; i<tries; i++){
+        await new Promise(r=>setTimeout(r, 2500));
+        const r = await fetch('/api/mascot', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ peek:true, thread_id: threadId, message: originalUserText })
+        });
+        const data = await r.json().catch(()=> ({}));
+        if (r.ok && !data.pending && (data.output || data.error)){
+          thinkingEl?.remove();
+          if (data.error) addMsg('assistant', 'Sorry — server error ('+data.error+')');
+          else addMsg('assistant', data.output || 'No response', data.sources || []);
+          return;
+        }
+      }
+      thinkingEl?.remove();
+      addMsg('assistant', 'Still working — please press “Send” again to retry.');
+    }
+
     async function sendMsg(txt){
       categoryView.classList.remove('active');
       promptView.classList.add('active');
@@ -347,26 +355,30 @@
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
 
-        // NEW: send selected category label to server for scoring
-        const categoryLabel =
-          (document.getElementById('promptTitle')?.textContent || '').trim();
-
-        const r=await fetch('/api/mascot',{
+        const r = await fetch('/api/mascot',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
+          body: JSON.stringify({
             message: content,
             followup: isFollowUp,
             thread_id: threadId,
-            categoryLabel       // ← added
+            categoryLabel: promptTitle.textContent || ''
           })
         });
-        const data=await r.json().catch(()=>({}));
+        const data = await r.json().catch(()=> ({}));
+
+        if (r.status === 202 && data.pending && data.thread_id){
+          sessionStorage.setItem('fq_thread_id', data.thread_id);
+          await pollUntilReady(data.thread_id, content, thinkingEl);
+          return;
+        }
+
         thinkingEl.remove();
-        if(!r.ok){ addMsg('assistant','Sorry — server error.'); }
-        else{
+        if(!r.ok){
+          addMsg('assistant','Sorry — server error' + (data?.error ? ` (${data.error})` : ''));
+        }else{
           addMsg('assistant', data.output || 'No response', data.sources || []);
-          if(data.thread_id) sessionStorage.setItem('fq_thread_id',data.thread_id);
+          if(data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
         }
       }catch(e){
         thinkingEl.remove();
