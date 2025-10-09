@@ -36,7 +36,7 @@
     "domain": "healthdirect.gov.au",
     "category": ["Physical","Health and Fitness"],
     "audience": ["player","partner","carer","official"],
-    "region": "AU"
+    "region": "AU",
     "keywords": ["health","fitness","activity","community"]
   },
   {
@@ -46,7 +46,7 @@
     "domain": "healthdirect.gov.au",
     "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
-    "region": "AU"
+    "region": "AU",
     "keywords": ["knee injury","knee pain"]
   },
   {
@@ -56,7 +56,7 @@
     "domain": "healthdirect.gov.au",
     "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
-    "region": "AU"
+    "region": "AU",
     "keywords": ["shoulder injury","shoulder pain"]
   },
   {
@@ -66,7 +66,7 @@
     "domain": "painaustralia.org.au",
     "category": ["Physical","Injury Rehab","Health and Fitness"],
     "audience": ["player","partner","carer","official"],
-    "region": "AU"
+    "region": "AU",
     "keywords": ["injury","pain relief","injury rehab"]
   },
   {
@@ -76,7 +76,7 @@
     "domain": "healthdirect.gov.au",
     "category": ["Psychological","Mental Health","Brain Health"],
     "audience": ["player","partner","carer","official"],
-    "region": "AU"
+    "region": "AU",
     "keywords": ["loneliness","isolation","community","connection"]
   },
   {
@@ -116,7 +116,7 @@
     "domain": "beyondblue.org.au",
     "category": ["Psychological","Mental Health"],
     "audience": ["player","partner","carer","official"],
-    "region": "AU"
+    "region": "AU",
     "keywords": ["connection","community","suicide"] 
   },
   {
@@ -135,7 +135,7 @@
     "url": "https://www.dementia.org.au/",
     "domain": "dementia.org.au",
     "category": ["Psychological","Brain-Health"],
-    "audience": ["All"],
+    "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["CTE","traumatic brain injury","chronic traumatic encephalopathy"]
   },
