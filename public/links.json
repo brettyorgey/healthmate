@@ -14,7 +14,7 @@
     "title": "Healthdirect: Memory Loss",
     "url": "https://www.healthdirect.gov.au/memory-disorders",
     "domain": "healthdirect.gov.au",
-    "category": ["Psychological","Brain-Health","Mental Health","Wellbeing"],
+    "category": ["Psychological","Brain-Health"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["memory loss","forgetting","memory problems"]
@@ -24,31 +24,73 @@
     "title": "Healthdirect: Headaches",
     "url": "https://www.healthdirect.gov.au/headaches",
     "domain": "healthdirect.gov.au",
-    "category": ["Psychological","Brain-Health","Wellbeing"],
+    "category": ["Psychological","Brain-Health"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["headache","migraine","concussion"]
+  },
+  {
+    "id": "healthdirect-physical-activity",
+    "title": "Healthdirect: Physical Activity Guidelines",
+    "url": "https://www.healthdirect.gov.au/physical-activity-guidelines-for-older-adults",
+    "domain": "healthdirect.gov.au",
+    "category": ["Physical","Health and Fitness"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+    "keywords": ["health","fitness","activity","community"]
   },
   {
     "id": "healthdirect-knee-pain",
     "title": "Healthdirect: Knee pain",
     "url": "https://www.healthdirect.gov.au/knee-pain",
     "domain": "healthdirect.gov.au",
-    "category": ["Physical","Wellbeing"],
+    "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
     "region": "AU"
+    "keywords": ["knee injury","knee pain"]
+  },
+  {
+    "id": "healthdirect-shoulder-pain",
+    "title": "Healthdirect: Shoulder pain",
+    "url": "https://www.healthdirect.gov.au/shoulder-pain",
+    "domain": "healthdirect.gov.au",
+    "category": ["Physical","Injury Rehab"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+    "keywords": ["shoulder injury","shoulder pain"]
+  },
+  {
+    "id": "painaustralia-relief",
+    "title": "painaustralia: Affordable pain treatments",
+    "url": "https://www.painaustralia.org.au/",
+    "domain": "painaustralia.org.au",
+    "category": ["Physical","Injury Rehab","Health and Fitness"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU"
+    "keywords": ["injury","pain relief","injury rehab"]
   },
   {
     "id": "healthdirect-loneliness-isolation",
     "title": "Healthdirect: Loneliness and isolation",
     "url": "https://www.healthdirect.gov.au/loneliness-isolation-mental-health",
     "domain": "healthdirect.gov.au",
-    "category": ["Psychological","Mental Health","Wellbeing"],
+    "category": ["Psychological","Mental Health","Brain Health"],
     "audience": ["player","partner","carer","official"],
     "region": "AU"
+    "keywords": ["loneliness","isolation","community","connection"]
   },
   {
     "id": "healthdirect-atsi-wellbeing",
+    "title": "Healthdirect: Aboriginal and Torres Strait Islander health services",
+    "url": "https://www.healthdirect.gov.au/aboriginal-and-torres-strait-islander-health-services",
+    "domain": "healthdirect.gov.au",
+    "category": ["Psychological","Mental Health","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["First Nations","Indigenous","ATSI","SEWB"]
+  },
+  {
+    "id": "healthdirect-indigenous-exercise-wellbeing",
     "title": "Healthdirect: Aboriginal and Torres Strait Islander health services",
     "url": "https://www.healthdirect.gov.au/aboriginal-and-torres-strait-islander-health-services",
     "domain": "healthdirect.gov.au",
@@ -65,16 +107,17 @@
     "category": ["Psychological","Community","Wellbeing"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["connection","community","men's shed"]
+    "keywords": ["connection","community","inclusive","activity"]
   },
   {
     "id": "beyondblue-home",
     "title": "Beyond Blue",
     "url": "https://www.beyondblue.org.au/",
     "domain": "beyondblue.org.au",
-    "category": ["Psychological","Mental Health","Wellbeing"],
+    "category": ["Psychological","Mental Health"],
     "audience": ["player","partner","carer","official"],
     "region": "AU"
+    "keywords": ["connection","community","suicide"] 
   },
   {
     "id": "cisa-about-concussion",
@@ -84,12 +127,12 @@
     "category": ["Psychological","Brain-Health"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["sport concussion","CISA","return to play"]
+    "keywords": ["sport concussion","concussion","CISA","return to play","CTE"]
   },
   {
     "id": "dementia-cte-overview",
     "title": "Dementia Australia: CTE — overview & resources",
-    "url": "https://www.dementia.org.au/search?keys=CTE",
+    "url": "https://www.dementia.org.au/",
     "domain": "dementia.org.au",
     "category": ["Psychological","Brain-Health"],
     "audience": ["All"],
@@ -111,16 +154,56 @@
     "title": "NACCHO: Aboriginal Community Controlled Health Organisations",
     "url": "https://www.naccho.org.au/aboriginal-community-controlled-health/",
     "domain": "naccho.org.au",
-    "category": ["Community","Health Services"],
+    "category": ["Cultural / Spiritual","Community","Health Services"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["ACCHO","First Nations","Indigenous"]
+    "keywords": ["ACCHO","First Nations","Indigenous","13YARN"]
+  },
+  {
+    "id": "13yarn-indigenous",
+    "title": "13YARN: We're hear to yarn",
+    "url": "https://www.13yarn.org.au/",
+    "domain": "13yarn.org.au",
+    "category": ["Cultural / Spiritual","Community","Health Services"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["ACCHO","First Nations","Indigenous","13YARN"]
+  },
+  {
+    "id": "healthinfonet-indigenous",
+    "title": "Australian Indigenous: HealthInfoNet",
+    "url": "https://healthinfonet.ecu.edu.au/",
+    "domain": "healthinfonet.ecu.edu.au",
+    "category": ["Cultural / Spiritual","Community","Health Services"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["ACCHO","First Nations","Indigenous","13YARN"]
   },
     {
     "id": "prideinsport-lgbtq+",
     "title": "Pridein Sport: Explore LGBTQ+ sports clubs across Australia",
     "url": "https://prideinsport.com.au/resources-and-initiatives/lgbtq-sports-club-directory/",
     "domain": "prideinsport.com.au",
+    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
+  },
+    {
+    "id": "proud2play-lgbtq+",
+    "title": "Proud2Play: YOU.ME.US",
+    "url": "https://www.proud2play.org.au/",
+    "domain": "proud2play.org.au",
+    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
+  },
+    {
+    "id": "QLIVES-lgbtq+",
+    "title": "QLIVES: LGBTIQA+SB Communities",
+    "url": "https://www.qlife.org.au/resources/",
+    "domain": "qlife.org.au",
     "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
