@@ -219,12 +219,32 @@
     "region": "AU",
     "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
     },
+    {
+    "id": "aureus-financial",
+    "title": "Aureus Financial: Financial Advisory",
+    "url": "https://www.aureusfinancial.com.au/financial-advisors/athletes/",
+    "domain": "aureusfinancial.com.au",
+    "category": ["Financial","Money Transitions","Grants"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
+    },
+  {
+    "id": "athletes-journey",
+    "title": "Athletes Journey: Built by Athletes for Athletes",
+    "url": "https://athletesjourney.com.au/",
+    "domain": "athletesjourney.com.au",
+    "category": ["Financial","Money Transitions","Grants"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
+    },
   {
     "id": "mum-space-pdce",
     "title": "Mum Space: Parent-Infant Research Institute",
     "url": "https://www.mumspace.com.au/",
     "domain": "mumspace.com.au",
-    "category": ["Female", "Players Transition"],
+    "category": ["Female Players Transition"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["female", "motherhood", "postnatal", "new mum"]
@@ -234,7 +254,7 @@
     "title": "Emerging Minds: Working together towards better infant and child mental health",
     "url": "https://emergingminds.com.au/",
     "domain": "emergingminds.com.au",
-    "category": ["Female", "Players Transition", "Motherhood"],
+    "category": ["Female Players Transition", "Motherhood"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["female", "motherhood", "postnatal", "new mum"]
@@ -244,7 +264,7 @@
     "title": "Village for Mama: Australian Postpartum Directory",
     "url": "https://villageformama.com/postpartum-directory/",
     "domain": "villageformama.com",
-    "category": ["Female", "Players Transition", "Motherhood"],
+    "category": ["Female Players Transition", "Motherhood"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["female", "motherhood", "postnatal", "postpartum", "new mum"]
@@ -254,7 +274,7 @@
     "title": "Good Sports: Community sport mental health",
     "url": "https://goodsports.com.au/",
     "domain": "goodsports.com.au",
-    "category": ["Environmental", "Risk Factors"],
+    "category": ["Environmental Risk Factors"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
@@ -264,7 +284,7 @@
     "title": "The First Stop: A guide for families affected by alcohol and other drugs",
     "url": "https://thefirststop.org.au/",
     "domain": "thefirststop.org.au",
-    "category": ["Environmental", "Risk Factors"],
+    "category": ["Environmental Risk Factors"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
