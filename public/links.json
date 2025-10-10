@@ -209,14 +209,14 @@
     "region": "AU",
     "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
   },
-    {
-    "id": "galaxy-sport-finance",
-    "title": "Galaxy Sport: Guiding elite athletes to financial victory",
-    "url": "https://galaxysport.com.au/",
-    "domain": "galaxysport.com.au",
-    "category": ["Financial","Money Transitions","Grants"],
-    "audience": ["player","partner","carer","official"],
-    "region": "AU",
-    "keywords": ["finance","money","grants"]
-    },
+    {
+    "id": "galaxy-sport-finance",
+    "title": "Galaxy Sport: Guiding elite athletes to financial victory",
+    "url": "https://galaxysport.com.au/",
+    "domain": "galaxysport.com.au",
+    "category": ["Financial","Money Transitions","Grants"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["finance","money","grants"]
+    }
 ]
