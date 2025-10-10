@@ -227,7 +227,7 @@
     "category": ["Female Players Transition"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["Female", "Motherhood","Postnatal","New Mum"]
+    "keywords": ["Female","Motherhood","Postnatal","New Mum"]
     },
     {
     "id": "emerging-minds",
@@ -237,7 +237,7 @@
     "category": ["Female Players Transition","Motherhood"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["Female", "Motherhood","Postnatal","New Mum"]
+    "keywords": ["Female","Motherhood","Postnatal","New Mum"]
     },
     {
     "id": "village-for-mama",
@@ -247,7 +247,7 @@
     "category": ["Female Players Transition","Motherhood"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["Female", "Motherhood","Postnatal","Postpartum","New Mum"]
+    "keywords": ["Female","Motherhood","Postnatal","Postpartum","New Mum"]
     },
     {
     "id": "good-sports-community",
@@ -257,7 +257,7 @@
     "category": ["Environmental Risk Factors"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["Alcohol", "drugs","gambling","prescription drugs","addiction","family violence"]
+    "keywords": ["Alcohol","drugs","gambling","prescription drugs","addiction","family violence"]
     },
     {
     "id": "the-first-stop",
@@ -267,7 +267,7 @@
     "category": ["Environmental Risk Factors"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["Alcohol", "drugs","gambling","prescription drugs","addiction","family violence"]
+    "keywords": ["Alcohol","drugs","gambling","prescription drugs","addiction","family violence"]
     },
     {
     "id": "the-first-stop",
@@ -277,7 +277,7 @@
     "category": ["Environmental Risk Factors"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["Alcohol", "drugs","gambling","prescription drugs","addiction","family violence"]
+    "keywords": ["Alcohol","drugs","gambling","prescription drugs","addiction","family violence"]
     }
 
 ]
