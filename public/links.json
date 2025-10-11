@@ -294,9 +294,9 @@
     "title": "Sane: We're people like you",
     "url": "https://www.sane.org/",
     "domain": "sane.org",
-    "category": ["Psychological","Community","Wellbeing"],
-    "audience": ["player","partner","carer","official"],
+    "category": ["Psychological", "Community", "Wellbeing"],
+    "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
-    "keywords": ["connection","community","inclusive","activity"]
+    "keywords": ["connection", "community", "inclusive", "activity"]
   }
 ]
