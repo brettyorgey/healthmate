@@ -37,7 +37,7 @@
     "category": ["Physical","Health and Fitness"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["health","fitness","activity","community"]
+    "keywords": ["health","fitness","activity","community","injury rehab"]
   },
   {
     "id": "healthdirect-knee-pain",
@@ -47,7 +47,7 @@
     "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["knee injury","knee pain"]
+    "keywords": ["knee injury","knee pain","injury rehab"]
   },
   {
     "id": "healthdirect-shoulder-pain",
@@ -57,7 +57,7 @@
     "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["shoulder injury","shoulder pain"]
+    "keywords": ["shoulder injury","shoulder pain","injury rehab"]
   },
   {
     "id": "painaustralia-relief",
@@ -288,5 +288,15 @@
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
-  }
+  },
+    {
+    "id": "sane-wellbeing",
+    "title": "Sane: We're people like you",
+    "url": "https://www.sane.org/",
+    "domain": "sane.org",
+    "category": ["Psychological","Community","Wellbeing"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["connection","community","inclusive","activity"]
+  }
 ]
