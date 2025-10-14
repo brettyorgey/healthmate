@@ -358,5 +358,55 @@
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
   "keywords": ["roles", "connection", "transition", "career", "business development", "funding", "referral", "strategy", "counselling", "learning"]
+  },
+  {
+  "id": "ais-retired-athlete-peer-network",
+  "title": "Australian Sports Commission: Retired Athlete Peer Support Network",
+  "url": "https://www.ausport.gov.au/ais/career-and-education/retired-athlete-peer-support-program",
+  "domain": "ausport.gov.au",
+  "category": ["Family, Community and Social Connection"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience"]
+  },
+  {
+  "id": "fifthqtr-peer-networks",
+  "title": "FifthQtr Foundation: Family & Community Networks",
+  "url": "https://fifthqtr.org.au/info-pack/past-players/",
+  "domain": "fifthqtr.org.au",
+  "category": ["Family, Community and Social Connection"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  },
+  {
+  "id": "uq-sign-networks",
+  "title": "The University of Queensland: Social Identity and Groups Network (SIGN)",
+  "url": "https://sign.centre.uq.edu.au/products-services/products/social-connection-for-sport-retirement",
+  "domain": "uq.edu.au",
+  "category": ["Family, Community and Social Connection"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  },
+  {
+  "id": "invictus-sport-connection",
+  "title": "Invictus: Strengthen Veteran Wellbeing through Sport",
+  "url": "https://invictusaustralia.org/",
+  "domain": "invictusaustralia.org",
+  "category": ["Family, Community and Social Connection"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["veteran", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  },
+  {
+  "id": "snow-australia-engagement",
+  "title": "Snow Australia: Wellbeing and Engagement",
+  "url": "https://www.snow.org.au/pathways/we",
+  "domain": "snow.org.au",
+  "category": ["Family, Community and Social Connection"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
   }
 ]
