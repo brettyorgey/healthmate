@@ -367,7 +367,7 @@
   "category": ["Family, Community and Social Connection"],
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
-  "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience"]
+  "keywords": ["family", "connection", "transition", "peer networks", "strategy", "community", "share experience"]
   },
   {
   "id": "fifthqtr-peer-networks",
@@ -377,7 +377,7 @@
   "category": ["Family, Community and Social Connection"],
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
-  "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  "keywords": ["family", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
   },
   {
   "id": "uq-sign-networks",
@@ -397,7 +397,7 @@
   "category": ["Family, Community and Social Connection"],
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
-  "keywords": ["veteran", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  "keywords": ["family", "veteran", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
   },
   {
   "id": "snow-australia-engagement",
