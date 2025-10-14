@@ -300,14 +300,13 @@
   "keywords": ["connection", "community", "inclusive", "activity"]
   },
   {
-  "id": "athlete-2-business",
-  "title": "Athlete2Business: Sales is a Sport",
-  "url": "https://www.athlete2business.com.au/",
-  "domain": "athlete2business.com.au",
-  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
-  "audience": ["player", "partner", "carer", "official"],
-  "region": "AU",
-  "keywords": ["connection", "transition", "career", "business development", "learning"]
-  }
-
+  "id": "athlete-2-business",
+  "title": "Athlete2Business: Sales is a Sport",
+  "url": "https://www.athlete2business.com.au/",
+  "domain": "athlete2business.com.au",
+  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "career", "business development", "learning"]
+  }
 ]
