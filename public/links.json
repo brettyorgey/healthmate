@@ -300,13 +300,63 @@
   "keywords": ["connection", "community", "inclusive", "activity"]
   },
   {
-  "id": "athlete-2-business",
+  "id": "athlete-2-business-transition",
   "title": "Athlete2Business: Sales is a Sport",
   "url": "https://www.athlete2business.com.au/",
   "domain": "athlete2business.com.au",
   "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
-  "keywords": ["connection", "transition", "career", "business development", "learning"]
+  "keywords": ["connection", "transition", "career", "business development", "funding", "learning"]
+  },
+  {
+  "id": "clearing-house-for-sport-transition",
+  "title": "Clearing House for Sport: Athlete Transitions in Sport",
+  "url": "https://www.ausport.gov.au/clearinghouse/evidence/athlete-transition-in-sport",
+  "domain": "ausport.gov.au",
+  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "career", "business development", "funding", "learning"]
+  },
+  {
+  "id": "australia-sports-commission-transition",
+  "title": "Australian Sports Commission: Transitions in Sport",
+  "url": "https://www.ausport.gov.au/clearinghouse/evidence/athlete-transition-in-sport",
+  "domain": "ausport.gov.au",
+  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "career", "business development", "funding", "referral", "strategy", "learning"]
+  },
+  {
+  "id": "australian-athletics-transition",
+  "title": "Australia Athletics: Pathway Transition Program",
+  "url": "https://www.athletics.com.au/participant-hub/pathways/",
+  "domain": "athletics.com.au",
+  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "career", "business development", "funding", "referral", "strategy", "learning"]
+  },
+  {
+  "id": "career-practitioner-referral-network",
+  "title": "Australian Sports Commission: Career Practitioner Referral Network",
+  "url": "https://www.ausport.gov.au/ais/career-and-education/cprn",
+  "domain": "ausport.gov.au",
+  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "career", "business development", "funding", "referral", "strategy", "learning"]
+  },
+  {
+  "id": "anytime-mate-counselling",
+  "title": "Anytime Mate: Post-Game Strategy",
+  "url": "https://anytimecounselling.com.au/counselling-for-ex-athletes/",
+  "domain": "anytimecounselling.com.au",
+  "category": ["Career / Professional Development", "Career Transition", "Lifelong Learning"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["connection", "transition", "career", "business development", "funding", "referral", "strategy", "counselling", "learning"]
   }
 ]
