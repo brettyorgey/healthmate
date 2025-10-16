@@ -280,6 +280,16 @@
     "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
   },
   {
+    "id": "healthdirect-drug-alcohol-abuse",
+    "title": "Healthdirect: How to help someone who is misusing drugs or alcohol",
+    "url": "https://www.healthdirect.gov.au/help-someone-who-is-misusing-drugs-or-alcohol",
+    "domain": "healthdirect.gov.au",
+    "category": ["Environmental Risk Factors"],
+    "audience": ["player", "partner", "carer", "official"],
+    "region": "AU",
+    "keywords": ["abuse", "alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
+  },
+  {
     "id": "the-first-stop",
     "title": "The First Stop: A guide for families affected by alcohol and other drugs",
     "url": "https://thefirststop.org.au/",
