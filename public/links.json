@@ -290,10 +290,30 @@
     "keywords": ["drinking", "abuse", "alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
   },
   {
+    "id": "OTLR-drug-alcohol-abuse",
+    "title": "OTLR: Drugs & Alcohol in Sport",
+    "url": "https://otlr.org.au/drugs-alcohol/",
+    "domain": "otlr.org.au",
+    "category": ["Environmental Risk Factors"],
+    "audience": ["player", "partner", "carer", "official"],
+    "region": "AU",
+    "keywords": ["drinking", "abuse", "alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
+  },
+  {
     "id": "the-first-stop",
     "title": "The First Stop: A guide for families affected by alcohol and other drugs",
     "url": "https://thefirststop.org.au/",
     "domain": "thefirststop.org.au",
+    "category": ["Environmental Risk Factors"],
+    "audience": ["player", "partner", "carer", "official"],
+    "region": "AU",
+    "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
+  },
+  {
+    "id": "better-health-drug-alcohol",
+    "title": "Better Health: Alcohol and other drug (AOD) treatments and programs",
+    "url": "https://www.betterhealth.vic.gov.au/health/servicesandsupport/alcohol-and-drug-treatments-and-programs",
+    "domain": "betterhealth.vic.gov.au",
     "category": ["Environmental Risk Factors"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
