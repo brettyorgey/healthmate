@@ -468,5 +468,15 @@
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
   "keywords": ["connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  },
+  {
+  "id": "aged-care-guidance",
+  "title": "Care Guidance: We care as you do",
+  "url": "https://careguidance.com.au/",
+  "domain": "careguidance.com.au",
+  "category": ["Family, Community and Social Connection"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["aged care", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
   }
 ]
