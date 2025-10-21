@@ -74,7 +74,7 @@
     "title": "Healthdirect: Loneliness and isolation",
     "url": "https://www.healthdirect.gov.au/loneliness-isolation-mental-health",
     "domain": "healthdirect.gov.au",
-    "category": ["Psychological","Mental Health","Brain Health"],
+    "category": ["Family, Community and Social Connection"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["loneliness","isolation","community","connection"]
@@ -84,20 +84,10 @@
     "title": "Healthdirect: Aboriginal and Torres Strait Islander health services",
     "url": "https://www.healthdirect.gov.au/aboriginal-and-torres-strait-islander-health-services",
     "domain": "healthdirect.gov.au",
-    "category": ["Psychological","Mental Health","Wellbeing"],
+    "category": ["Cultural / Spiritual","Community","Health Services"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["First Nations","Indigenous","ATSI","SEWB"]
-  },
-  {
-    "id": "healthdirect-indigenous-exercise-wellbeing",
-    "title": "Healthdirect: Aboriginal and Torres Strait Islander health services",
-    "url": "https://www.healthdirect.gov.au/aboriginal-and-torres-strait-islander-health-services",
-    "domain": "healthdirect.gov.au",
-    "category": ["Psychological","Mental Health","Wellbeing"],
-    "audience": ["player","partner","carer","official"],
-    "region": "AU",
-    "keywords": ["First Nations","Indigenous","ATSI","SEWB"]
+    "keywords": ["First Nations","Indigenous","ATSI","SEWB", "Culture", "Connection"]
   },
   {
     "id": "mensshed-home",
@@ -107,7 +97,7 @@
     "category": ["Psychological","Community","Wellbeing"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["connection","community","inclusive","activity"]
+    "keywords": ["connection","community","inclusive","activity", "social"]
   },
   {
     "id": "beyondblue-home",
@@ -244,7 +234,7 @@
     "title": "Mum Space: Parent-Infant Research Institute",
     "url": "https://www.mumspace.com.au/",
     "domain": "mumspace.com.au",
-    "category": ["Female Players Transition"],
+    "category": ["Female Players Transition", "Motherhood"],
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["female", "motherhood", "postnatal", "new mum"]
@@ -268,6 +258,26 @@
     "audience": ["player", "partner", "carer", "official"],
     "region": "AU",
     "keywords": ["female", "motherhood", "postnatal", "postpartum", "new mum"]
+  },
+  {
+    "id": "minerva-network-work-transition",
+    "title": "Minerva Network: Empowering female athletes to soar",
+    "url": "https://www.minervanetwork.com.au/",
+    "domain": "minervanetwork.com.au",
+    "category": ["Female Players Transition", "Motherhood"],
+    "audience": ["player", "partner", "carer", "official"],
+    "region": "AU",
+    "keywords": ["female", "motherhood", "postnatal", "postpartum", "new mum", "assistance"]
+  },
+  {
+    "id": "ais-preconception-to-parenthood",
+    "title": "AIS: Supporting athletes from preconception through to parenthood",
+    "url": "https://www.ausport.gov.au/ais/fphi/parenthood-recommendations",
+    "domain": "ausport.gov.au",
+    "category": ["Female Players Transition", "Motherhood"],
+    "audience": ["player", "partner", "carer", "official"],
+    "region": "AU",
+    "keywords": ["female", "motherhood", "postnatal", "postpartum", "new mum", "assistance"]
   },
   {
     "id": "good-sports-community",
@@ -320,14 +330,24 @@
     "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
   },
   {
+    "id": "good-sport-reducing-harm",
+    "title": "Good Sports: Supporting Australian community sports clubs to reduce harm",
+    "url": "https://goodsports.com.au/",
+    "domain": "goodsports.com.au",
+    "category": ["Environmental Risk Factors"],
+    "audience": ["player", "partner", "carer", "official"],
+    "region": "AU",
+    "keywords": ["alcohol", "drugs", "gambling", "prescription drugs", "addiction", "family violence"]
+  },
+  {
   "id": "sane-wellbeing",
   "title": "Sane: We're people like you",
   "url": "https://www.sane.org/",
   "domain": "sane.org",
-  "category": ["Psychological", "Community", "Wellbeing"],
+  "category": ["Cultural / Spiritual","Community","Health Services"],
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
-  "keywords": ["connection", "community", "inclusive", "activity"]
+  "keywords": ["connection", "community", "inclusive", "activity", "guidance", "support"]
   },
   {
   "id": "athlete-2-business-transition",
