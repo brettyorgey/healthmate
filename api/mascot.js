@@ -79,7 +79,7 @@ async function getJsonOrThrow(url, options, timeoutMs = 15000, retries = 1) {
     } catch (e) {
       lastErr = e;
       const msg = String(e?.message || e);
-      const isAbort = msg.includes('Abort') || msg.includes('aborted');
+      const isAbort = msg.includes('Abort') || msg.includes('aborted') || msg.includes('AbortError');
       if (attempt < retries && isAbort) continue;
       break;
     }
@@ -108,6 +108,31 @@ async function loadLinks(req) {
   } catch {
     return LINKS_CACHE.data || [];
   }
+}
+
+/* -------------------- category normalisation -------------------- */
+function normalizeCategoryKey(input) {
+  if (!input) return null;
+  const s = String(input).trim().toLowerCase();
+  // accept either canonical key or a display label head (e.g. "Brain Health")
+  const map = {
+    'physical': 'physical',
+    'psychological': 'psychological',
+    'brain health': 'brain-health',
+    'brain-health': 'brain-health',
+    'career': 'career',
+    'family': 'family',
+    'cultural': 'cultural',
+    'identity': 'identity',
+    'financial': 'financial',
+    'environmental': 'environmental',
+    'female': 'female'
+  };
+  return map[s] || null;
+}
+function canonicalFromLabel(label='') {
+  const head = (label.split('–')[0] || label).trim().toLowerCase();
+  return normalizeCategoryKey(head);
 }
 
 /* -------------------- link scoring -------------------- */
@@ -181,13 +206,25 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = await readJsonBody(req);
-    const { message, followup, thread_id: clientThreadId, categoryLabel, peek } = body || {};
+    const {
+      message,
+      followup,
+      thread_id: clientThreadId,
+      categoryLabel,
+      categoryKey,   // <-- NEW: canonical key from client when available
+      peek
+    } = body || {};
 
     // Peek requires a thread id
     if (peek && !clientThreadId) return sendJson(res, 400, { error: 'Missing thread_id for peek' });
 
     const links = await loadLinks(req);
-    const inferredCategory = (categoryLabel || '').trim().toLowerCase() || (message ? inferCategoryFromText(message) : null);
+
+    // Resolve effective category: categoryKey -> label -> inference
+    const effectiveCategory =
+      normalizeCategoryKey(categoryKey) ||
+      canonicalFromLabel(categoryLabel || '') ||
+      (message ? inferCategoryFromText(message) : null);
 
     // Create or reuse thread (unless peeking)
     let thread_id = clientThreadId;
@@ -230,7 +267,8 @@ module.exports = async function handler(req, res) {
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
-    const curatedSources = message ? findBestLinks(links, inferredCategory, message, 4) : [];
+    // Curate sources using the *current* user message and resolved category
+    const curatedSources = message ? findBestLinks(links, effectiveCategory, message, 4) : [];
     return sendJson(res, 200, { output: text, sources: curatedSources, thread_id });
 
   } catch (e) {
