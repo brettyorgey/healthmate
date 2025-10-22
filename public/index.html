@@ -146,6 +146,25 @@
       return (text || '').replace(/\s*\(link unavailable\)/gi, '');
     }
 
+    // Canonical category key for the server
+    function canonicalCategoryKey(label='') {
+      const head = (label.split('–')[0] || label).trim().toLowerCase();
+      const map = {
+        'physical': 'physical',
+        'psychological': 'psychological',
+        'brain health': 'brain-health',
+        'brain-health': 'brain-health',
+        'career': 'career',
+        'family': 'family',
+        'cultural': 'cultural',
+        'identity': 'identity',
+        'financial': 'financial',
+        'environmental': 'environmental',
+        'female': 'female'
+      };
+      return map[head] || null;
+    }
+
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
 
@@ -161,7 +180,6 @@
     // Remove model "## Sources" so we only show curated links
     function stripSourcesSection(md){
       if (!md) return md;
-      // remove from "## Sources" to next H2 or end
       return md.replace(/(^|\n)##\s*Sources[\s\S]*?(?=\n##\s|\n?$)/i, '$1');
     }
 
@@ -180,8 +198,6 @@
     // Sources box (ONLY from data.sources)
     function renderSourcesBox(parent, sources){
       if(!Array.isArray(sources) || !sources.length) return;
-
-      // prevent duplicates if re-rendering on follow-ups
       parent.querySelectorAll('.sources, .inline-controls').forEach(n => n.remove());
 
       const box = document.createElement('div');
@@ -215,7 +231,6 @@
       box.appendChild(ul);
       parent.appendChild(box);
 
-      // Listen under sources
       const controls = document.createElement('div');
       controls.className = 'inline-controls';
       const listenBtn = document.createElement('button');
@@ -345,7 +360,13 @@
         const r = await fetchWithTimeout('/api/mascot', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ peek:true, thread_id: threadId, message: originalUserText })
+          body: JSON.stringify({
+            peek:true,
+            thread_id: threadId,
+            message: originalUserText,
+            categoryLabel: promptTitle.textContent || '',
+            categoryKey: canonicalCategoryKey(promptTitle.textContent || '')
+          })
         }, 15000);
         const data = await r.json().catch(()=> ({}));
         if (r.ok && !data.pending && (data.output || data.error)){
@@ -373,6 +394,7 @@
       try{
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
+        const catKey     = canonicalCategoryKey(promptTitle.textContent || '');
 
         const r = await fetchWithTimeout('/api/mascot',{
           method:'POST',
@@ -381,7 +403,8 @@
             message: content,
             followup: isFollowUp,
             thread_id: threadId,
-            categoryLabel: promptTitle.textContent || ''
+            categoryLabel: promptTitle.textContent || '',
+            categoryKey: catKey
           })
         }, 30000);
         const data = await r.json().catch(()=> ({}));
