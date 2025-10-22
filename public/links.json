@@ -37,7 +37,7 @@
     "category": ["Physical","Health and Fitness"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["health","fitness","activity","community","injury rehab"]
+    "keywords": ["exercise","physiotherapy","rehabilitation","therapy","health","fitness","activity","community","injury rehab"]
   },
   {
     "id": "healthdirect-knee-pain",
@@ -47,7 +47,7 @@
     "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["knee injury","knee pain","injury rehab"]
+    "keywords": ["exercise","physiotherapy","rehabilitation","therapy","health","fitness","activity","community","injury rehab"]
   },
   {
     "id": "healthdirect-shoulder-pain",
@@ -57,7 +57,7 @@
     "category": ["Physical","Injury Rehab"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["shoulder injury","shoulder pain","injury rehab"]
+    "keywords": ["exercise","physiotherapy","rehabilitation","therapy","health","fitness","activity","community","injury rehab"]
   },
   {
     "id": "painaustralia-relief",
@@ -67,7 +67,17 @@
     "category": ["Physical","Injury Rehab","Health and Fitness"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["injury","pain relief","injury rehab"]
+    "keywords": ["exercise","physiotherapy","rehabilitation","therapy","health","fitness","activity","community","injury rehab"]
+  },
+   {
+    "id": "sportsmed-biologic",
+    "title": "Sportsmed Biologic: Your injury rehabilitation",
+    "url": "https://www.sportsmedbiologic.com.au/",
+    "domain": "sportsmedbiologic.com.au",
+    "category": ["Physical","Injury Rehab","Health and Fitness"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["exercise","physiotherapy","rehabilitation","therapy","health","fitness","activity","community","injury rehab"]
   },
   {
     "id": "healthdirect-loneliness-isolation",
