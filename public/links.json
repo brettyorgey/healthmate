@@ -188,8 +188,8 @@
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
-  },
-    {
+   },
+   {
     "id": "QLIVES-lgbtq+",
     "title": "QLIVES: LGBTIQA+SB Communities",
     "url": "https://www.qlife.org.au/resources/",
@@ -198,8 +198,28 @@
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
-  },
+   },
     {
+    "id": "usc-retirement-identity",
+    "title": "USC: Changes in Athletic Identity and Life Satisfaction",
+    "url": "https://research.usc.edu.au/esploro/outputs/journalArticle/Changes-in-Athletic-Identity-and-Life/99448830502621",
+    "domain": "usc.edu.au",
+    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["after sport", "identity","transition","retirement","Diversity"]
+   },
+   {
+    "id": "uq-retirement-identity",
+    "title": "UQ: Social Identity after Sport",
+    "url": "https://sign.centre.uq.edu.au/products-services/products/social-connection-for-sport-retirement",
+    "domain": "uq.edu.au",
+    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["after sport", "identity","transition","retirement","Diversity"]
+   },
+   {
     "id": "galaxy-sport-finance",
     "title": "Galaxy Sport: Guiding elite athletes to financial victory",
     "url": "https://galaxysport.com.au/",
@@ -219,7 +239,7 @@
     "region": "AU",
     "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
     },
-  {
+    {
     "id": "athletes-journey",
     "title": "Athletes Journey: Built by Athletes for Athletes",
     "url": "https://athletesjourney.com.au/",
@@ -229,7 +249,27 @@
     "region": "AU",
     "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
     },
-  {
+    {
+    "id": "athletics-grants-funding",
+    "title": "Australian Athletics: Scholarships and Grants",
+    "url": "https://www.athletics.com.au/info-hub/awards-scholarships-grants/",
+    "domain": "athletics.com.au",
+    "category": ["Financial","Money Transitions","Grants"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
+    },
+    {
+    "id": "boccia-grants-funding",
+    "title": "Boccia: Scholarships and Grants",
+    "url": "https://www.boccia.com.au/",
+    "domain": "boccia.com.au",
+    "category": ["Financial","Money Transitions","Grants"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["finance","money","grants","budget","saving","plan","financial","superannuation"]
+    },
+    {
     "id": "mum-space-pdce",
     "title": "Mum Space: Parent-Infant Research Institute",
     "url": "https://www.mumspace.com.au/",
