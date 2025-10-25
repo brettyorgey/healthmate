@@ -1,0 +1,43 @@
+[
+  {
+    "id": "headache_memory_story",
+    "when": {
+      "categories": ["Psychological – Mental Health, Concussion & Brain Health", "Brain health"],
+      "anyKeywords": ["headache","migrain","memory","forget","confus","dizzy","cognitive"]
+    },
+    "action": {
+      "type": "showStoryCTA",
+      "priority": 80,
+      "label": "Headaches or memory concerns? Share your story",
+      "utm": {"source":"healthmate","campaign":"triage_headache_memory"},
+      "includeTranscript": true
+    }
+  },
+  {
+    "id": "carer_support_story",
+    "when": {
+      "categories": ["Family"],
+      "anyKeywords": ["carer","partner","support","burnout","overwhelmed"]
+    },
+    "action": {
+      "type": "showStoryCTA",
+      "priority": 60,
+      "label": "Are you a partner or carer? Tell us what’s happening",
+      "utm": {"source":"healthmate","campaign":"triage_carer_support"},
+      "includeTranscript": true
+    }
+  },
+  {
+    "id": "red_flag_vomiting",
+    "when": {
+      "anyKeywords": ["vomit","vomiting","throwing up","projectile"]
+    },
+    "action": {
+      "type": "showStoryCTA",
+      "priority": 100,
+      "label": "Ongoing vomiting? Share your story so we can guide next steps",
+      "utm": {"source":"healthmate","campaign":"triage_redflag"},
+      "includeTranscript": true
+    }
+  }
+]
