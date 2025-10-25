@@ -90,6 +90,20 @@
 
     #categoryView, #promptView { display:none; }
     #categoryView.active, #promptView.active { display:block; }
+
+    /* ---------- Triage CTA card ---------- */
+    .triage-cta { margin: 12px 0; }
+    .triage-cta__inner {
+      border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px;
+      background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,.04);
+    }
+    .triage-cta__inner h3 { margin:0 0 6px; font-size:16px; }
+    .triage-cta__inner p { margin:0 0 8px; color:#475569; }
+    .triage-cta__btn {
+      display:inline-block; padding:8px 12px; border-radius:10px;
+      border:1px solid #111827; text-decoration:none; font-weight:600;
+    }
+    .triage-cta__btn:focus { outline:2px solid #000; outline-offset:2px; }
   </style>
 </head>
 <body>
@@ -137,6 +151,77 @@
     </div>
   </div>
 
+  <!-- TRIAGE HELPERS -->
+  <script>
+    /* ---------- TRIAGE HELPERS (client-side) ---------- */
+    async function triageLoadRules(){
+      try { const r = await fetch('/triage.json', {cache:'no-store'}); return r.ok ? r.json() : []; }
+      catch { return []; }
+    }
+    function triageTextHasAny(text, list){
+      if(!list || !list.length) return true;
+      const t = (text||'').toLowerCase();
+      return list.some(k => t.includes(k.toLowerCase()));
+    }
+    function triageMatches(rule, ctx){
+      const w = rule.when || {};
+      if (w.categories && w.categories.length && !w.categories.includes(ctx.category)) return false;
+      if (w.anyKeywords && w.anyKeywords.length && !triageTextHasAny(ctx.userText, w.anyKeywords)) return false;
+      if (w.allKeywords && w.allKeywords.length && !w.allKeywords.every(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
+      if (w.excludeKeywords && w.excludeKeywords.length && w.excludeKeywords.some(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
+      return true;
+    }
+    function triageBuildUrl(action, ctx){
+      const base = 'https://fifthqtr.org.au/story-form/';
+      const q = new URLSearchParams();
+      q.set('cat', ctx.category || '');
+      q.set('prompt', ctx.promptId || '');
+      q.set('from','healthmate');
+      if (action.utm){ for (const [k,v] of Object.entries(action.utm)) q.set(`utm_${k}`, v); }
+      if (action.includeTranscript){
+        const payload = {
+          category: ctx.category,
+          promptId: ctx.promptId,
+          lastUserMessage: (ctx.userText || '').slice(0, 1200)
+        };
+        const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+        q.set('context_b64', b64);
+      }
+      return `${base}?${q.toString()}`;
+    }
+    function triageRenderCTA(container, action, url){
+      container.querySelectorAll('.triage-cta').forEach(n=>n.remove());
+      const wrapper = document.createElement('div');
+      wrapper.className = 'triage-cta';
+      wrapper.innerHTML = `
+        <div class="triage-cta__inner">
+          <h3>${action.label || 'Share your story'}</h3>
+          <p>Tell us what’s happening so we can connect you to the right support.</p>
+          <a class="triage-cta__btn" href="${url}" target="_blank" rel="noopener">Share your story</a>
+        </div>`;
+      const sources = container.querySelector('.sources');
+      if (sources && sources.parentElement === container) {
+        container.insertBefore(wrapper, sources);
+      } else {
+        container.appendChild(wrapper);
+      }
+    }
+    /**
+     * Evaluate rules and render CTA inside the last assistant message element.
+     * ctx = { category, promptId, userText, assistantEl }
+     */
+    async function triageEvaluateAndRender(ctx){
+      const rules = await triageLoadRules();
+      const matches = rules.filter(r => triageMatches(r, ctx))
+                           .sort((a,b) => (b.action?.priority||0) - (a.action?.priority||0));
+      if (!matches.length || !ctx.assistantEl) return;
+      const chosen = matches[0];
+      if (chosen.action?.type !== 'showStoryCTA') return;
+      const url = triageBuildUrl(chosen.action, ctx);
+      triageRenderCTA(ctx.assistantEl, chosen.action, url);
+    }
+  </script>
+
   <script>
     // Reset per-load
     sessionStorage.removeItem('fq_thread_id');
@@ -167,6 +252,7 @@
 
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
+    let CURRENT_PROMPT_ID = ''; // 🔹 track last clicked prompt (slug)
 
     // DOM
     const categoryView=document.getElementById('categoryView');
@@ -371,8 +457,18 @@
         const data = await r.json().catch(()=> ({}));
         if (r.ok && !data.pending && (data.output || data.error)){
           thinkingEl?.remove();
-          if (data.error) addMsg('assistant', 'Sorry — server error ('+data.error+')');
-          else addMsg('assistant', data.output || 'No response', data.sources || []);
+          if (data.error) {
+            addMsg('assistant', 'Sorry — server error ('+data.error+')');
+          } else {
+            const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
+            // 🔹 Triage after assistant reply (polling path)
+            triageEvaluateAndRender({
+              category: promptTitle.textContent || '',
+              promptId: CURRENT_PROMPT_ID || '',
+              userText: originalUserText || '',
+              assistantEl
+            });
+          }
           return;
         }
       }
@@ -386,6 +482,9 @@
 
       const inp=document.getElementById('msg');
       const content=(txt||inp.value||'').trim(); if(!content) return;
+
+      // If message is typed (no prompt button), clear any old prompt id
+      if (typeof txt === 'undefined') CURRENT_PROMPT_ID = '';
 
       addMsg('user',content);
       inp.value=''; document.getElementById('sendBtn').disabled=true;
@@ -432,8 +531,16 @@
         }
 
         // success
-        addMsg('assistant', data.output || 'No response', data.sources || []);
+        const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
         if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
+
+        // 🔹 Triage after assistant reply (normal path)
+        triageEvaluateAndRender({
+          category: promptTitle.textContent || '',
+          promptId: CURRENT_PROMPT_ID || '',
+          userText: content || '',
+          assistantEl
+        });
 
       }catch(e){
         thinkingEl.remove();
@@ -497,6 +604,7 @@
       resetChat();
       document.getElementById('msg').value='';
       clearActiveCategory();
+      CURRENT_PROMPT_ID = ''; // clear any previous prompt selection on category list
     }
 
     function showPrompts(label){
@@ -509,7 +617,11 @@
         btn.className='prompt-btn';
         btn.type='button';
         btn.textContent=p;
-        btn.addEventListener('click',()=>sendMsg(p));
+        btn.addEventListener('click',()=>{
+          // set a simple slug for the clicked prompt id
+          CURRENT_PROMPT_ID = (p || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+          sendMsg(p);
+        });
         promptList.appendChild(btn);
       });
       categoryView.classList.remove('active');
