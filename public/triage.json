@@ -1,43 +1,85 @@
 [
   {
-    "id": "headache_memory_story",
+    "id": "headache_memory_story_or_forum",
     "when": {
       "categories": ["Psychological – Mental Health, Concussion & Brain Health", "Brain health"],
       "anyKeywords": ["headache","migrain","memory","forget","confus","dizzy","cognitive"]
     },
     "action": {
-      "type": "showStoryCTA",
-      "priority": 80,
-      "label": "Headaches or memory concerns? Share your story",
-      "utm": {"source":"healthmate","campaign":"triage_headache_memory"},
-      "includeTranscript": true
+      "type": "showOptions",
+      "priority": 90,
+      "title": "Need next steps?",
+      "body": "Choose what feels right for you:",
+      "buttons": [
+        {
+          "kind": "story",
+          "label": "Tell your story",
+          "href": "https://fifthqtr.org.au/story-form/",
+          "utm": { "source": "healthmate", "campaign": "triage_headache_memory" },
+          "includeTranscript": true
+        },
+        {
+          "kind": "external",
+          "label": "Join a forum",
+          "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
+          "target": "_blank"
+        }
+      ]
     }
   },
   {
-    "id": "carer_support_story",
+    "id": "carer_support_story_or_forum",
     "when": {
       "categories": ["Family"],
       "anyKeywords": ["carer","partner","support","burnout","overwhelmed"]
     },
     "action": {
-      "type": "showStoryCTA",
-      "priority": 60,
-      "label": "Are you a partner or carer? Tell us what’s happening",
-      "utm": {"source":"healthmate","campaign":"triage_carer_support"},
-      "includeTranscript": true
+      "type": "showOptions",
+      "priority": 70,
+      "title": "Support options",
+      "body": "Two ways to get help now:",
+      "buttons": [
+        {
+          "kind": "story",
+          "label": "Tell your story",
+          "href": "https://fifthqtr.org.au/story-form/",
+          "utm": { "source": "healthmate", "campaign": "triage_carer_support" },
+          "includeTranscript": true
+        },
+        {
+          "kind": "external",
+          "label": "Join a forum",
+          "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
+          "target": "_blank"
+        }
+      ]
     }
   },
   {
-    "id": "red_flag_vomiting",
+    "id": "red_flag_vomiting_story_or_forum",
     "when": {
       "anyKeywords": ["vomit","vomiting","throwing up","projectile"]
     },
     "action": {
-      "type": "showStoryCTA",
+      "type": "showOptions",
       "priority": 100,
-      "label": "Ongoing vomiting? Share your story so we can guide next steps",
-      "utm": {"source":"healthmate","campaign":"triage_redflag"},
-      "includeTranscript": true
+      "title": "Not feeling well?",
+      "body": "If symptoms persist or worsen, seek urgent care. Choose an option:",
+      "buttons": [
+        {
+          "kind": "story",
+          "label": "Tell your story",
+          "href": "https://fifthqtr.org.au/story-form/",
+          "utm": { "source": "healthmate", "campaign": "triage_redflag" },
+          "includeTranscript": true
+        },
+        {
+          "kind": "external",
+          "label": "Join a forum",
+          "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
+          "target": "_blank"
+        }
+      ]
     }
   }
 ]
