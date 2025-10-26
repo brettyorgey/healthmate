@@ -13,14 +13,14 @@
       "buttons": [
         {
           "kind": "story",
-          "label": "📝 Tell your story",
+          "label": "📝 Tell your story (FifthQtr)",
           "href": "https://fifthqtr.org.au/story-form/",
           "utm": { "source": "healthmate", "campaign": "triage_headache_memory" },
           "includeTranscript": true
         },
         {
           "kind": "external",
-          "label": "💬 Join a forum",
+          "label": "💬 Join a forum (SANE)",
           "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
           "target": "_blank",
           "style": "secondary-blue"
@@ -42,14 +42,14 @@
       "buttons": [
         {
           "kind": "story",
-          "label": "📝 Tell your story",
+          "label": "📝 Tell your story (FifthQtr)",
           "href": "https://fifthqtr.org.au/story-form/",
           "utm": { "source": "healthmate", "campaign": "triage_carer_support" },
           "includeTranscript": true
         },
         {
           "kind": "external",
-          "label": "💬 Join a forum",
+          "label": "💬 Join a forum (SANE)",
           "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
           "target": "_blank",
           "style": "secondary-blue"
@@ -70,14 +70,14 @@
       "buttons": [
         {
           "kind": "story",
-          "label": "📝 Tell your story",
+          "label": "📝 Tell your story (FifthQtr)",
           "href": "https://fifthqtr.org.au/story-form/",
           "utm": { "source": "healthmate", "campaign": "triage_redflag" },
           "includeTranscript": true
         },
         {
           "kind": "external",
-          "label": "💬 Join a forum",
+          "label": "💬 Join a forum (SANE)",
           "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
           "target": "_blank",
           "style": "secondary-blue"
