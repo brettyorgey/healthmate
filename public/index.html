@@ -296,20 +296,29 @@
         container.appendChild(wrapper);
       }
     }
-
+  
     /**
-     * Evaluate rules and render CTA inside the last assistant message element.
-     * ctx = { category, promptId, userText, assistantEl }
-     */
+   * Evaluate rules and render CTA inside the last assistant message element.
+   * ctx = { category, promptId, userText, assistantEl }
+   */
     async function triageEvaluateAndRender(ctx){
-      const rules = await triageLoadRules();
-      const matches = rules.filter(r => triageMatches(r, ctx))
-                           .sort((a,b) => (b.action?.priority||0) - (a.action?.priority||0));
-      if (!matches.length || !ctx.assistantEl) return;
-      const chosen = matches[0];
-      if (!chosen.action) return;
+    const rules = await triageLoadRules();
+    const matches = rules
+      .filter(r => triageMatches(r, ctx))
+      .sort((a,b) => (b.action?.priority || 0) - (a.action?.priority || 0));
+  
+    if (!matches.length || !ctx.assistantEl) return;
+  
+    const chosen = matches[0];
+    if (!chosen.action) return;
+    if (chosen.action.type !== 'showStoryCTA' && chosen.action.type !== 'showOptions') return;
+  
+    const delay = chosen.action.delayMs || 0;
+    setTimeout(() => {
       triageRenderCTA(ctx.assistantEl, chosen.action, ctx);
+    }, delay);
     }
+
   </script>
 
   <script>
