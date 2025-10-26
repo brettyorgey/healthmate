@@ -3,26 +3,27 @@
     "id": "headache_memory_story_or_forum",
     "when": {
       "categories": ["Psychological – Mental Health, Concussion & Brain Health", "Brain health"],
-      "anyKeywords": ["headache","migrain","memory","forget","confus","dizzy","cognitive"]
+      "anyKeywords": ["headache", "migrain", "memory", "forget", "confus", "dizzy", "cognitive"]
     },
     "action": {
       "type": "showOptions",
       "priority": 90,
-      "title": "Need next steps?",
+      "title": "You’re not alone — here are two ways to reach out",
       "body": "Choose what feels right for you:",
       "buttons": [
         {
           "kind": "story",
-          "label": "Tell your story",
+          "label": "📝 Tell your story",
           "href": "https://fifthqtr.org.au/story-form/",
           "utm": { "source": "healthmate", "campaign": "triage_headache_memory" },
           "includeTranscript": true
         },
         {
           "kind": "external",
-          "label": "Join a forum",
+          "label": "💬 Join a forum",
           "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
-          "target": "_blank"
+          "target": "_blank",
+          "style": "secondary-blue"
         }
       ]
     }
@@ -31,26 +32,27 @@
     "id": "carer_support_story_or_forum",
     "when": {
       "categories": ["Family"],
-      "anyKeywords": ["carer","partner","support","burnout","overwhelmed"]
+      "anyKeywords": ["carer", "partner", "support", "burnout", "overwhelmed"]
     },
     "action": {
       "type": "showOptions",
       "priority": 70,
-      "title": "Support options",
-      "body": "Two ways to get help now:",
+      "title": "You’re doing a lot — and support is available",
+      "body": "Choose one of these options to connect and share what’s happening:",
       "buttons": [
         {
           "kind": "story",
-          "label": "Tell your story",
+          "label": "📝 Tell your story",
           "href": "https://fifthqtr.org.au/story-form/",
           "utm": { "source": "healthmate", "campaign": "triage_carer_support" },
           "includeTranscript": true
         },
         {
           "kind": "external",
-          "label": "Join a forum",
+          "label": "💬 Join a forum",
           "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
-          "target": "_blank"
+          "target": "_blank",
+          "style": "secondary-blue"
         }
       ]
     }
@@ -58,26 +60,27 @@
   {
     "id": "red_flag_vomiting_story_or_forum",
     "when": {
-      "anyKeywords": ["vomit","vomiting","throwing up","projectile"]
+      "anyKeywords": ["vomit", "vomiting", "throwing up", "projectile"]
     },
     "action": {
       "type": "showOptions",
       "priority": 100,
-      "title": "Not feeling well?",
-      "body": "If symptoms persist or worsen, seek urgent care. Choose an option:",
+      "title": "It sounds like you’re not feeling well",
+      "body": "If symptoms persist or worsen, please see your GP or call 000. You can also reach out in these ways:",
       "buttons": [
         {
           "kind": "story",
-          "label": "Tell your story",
+          "label": "📝 Tell your story",
           "href": "https://fifthqtr.org.au/story-form/",
           "utm": { "source": "healthmate", "campaign": "triage_redflag" },
           "includeTranscript": true
         },
         {
           "kind": "external",
-          "label": "Join a forum",
+          "label": "💬 Join a forum",
           "href": "https://saneforums.org/?utm_source=healthmate&utm_medium=referral&utm_campaign=fifthqtr_triage",
-          "target": "_blank"
+          "target": "_blank",
+          "style": "secondary-blue"
         }
       ]
     }
