@@ -2,12 +2,24 @@
   {
     "id": "headache_memory_story_or_forum",
     "when": {
-      "categories": ["Psychological – Mental Health, Concussion & Brain Health", "Brain health"],
-      "anyKeywords": ["headache", "migrain", "memory", "forget", "confus", "dizzy", "cognitive"]
+      "categories": [
+        "Psychological – Mental Health, Concussion & Brain Health",
+        "Brain health"
+      ],
+      "anyKeywords": [
+        "headache",
+        "migrain",
+        "memory",
+        "forget",
+        "confus",
+        "dizzy",
+        "cognitive"
+      ]
     },
     "action": {
       "type": "showOptions",
       "priority": 90,
+      "delayMs": 1200,
       "title": "You’re not alone — here are two ways to reach out",
       "body": "Choose what feels right for you:",
       "buttons": [
@@ -15,7 +27,10 @@
           "kind": "story",
           "label": "📝 Tell your story (FifthQtr)",
           "href": "https://fifthqtr.org.au/story-form/",
-          "utm": { "source": "healthmate", "campaign": "triage_headache_memory" },
+          "utm": {
+            "source": "healthmate",
+            "campaign": "triage_headache_memory"
+          },
           "includeTranscript": true
         },
         {
@@ -32,11 +47,18 @@
     "id": "carer_support_story_or_forum",
     "when": {
       "categories": ["Family"],
-      "anyKeywords": ["carer", "partner", "support", "burnout", "overwhelmed"]
+      "anyKeywords": [
+        "carer",
+        "partner",
+        "support",
+        "burnout",
+        "overwhelmed"
+      ]
     },
     "action": {
       "type": "showOptions",
       "priority": 70,
+      "delayMs": 1200,
       "title": "You’re doing a lot — and support is available",
       "body": "Choose one of these options to connect and share what’s happening:",
       "buttons": [
@@ -44,7 +66,10 @@
           "kind": "story",
           "label": "📝 Tell your story (FifthQtr)",
           "href": "https://fifthqtr.org.au/story-form/",
-          "utm": { "source": "healthmate", "campaign": "triage_carer_support" },
+          "utm": {
+            "source": "healthmate",
+            "campaign": "triage_carer_support"
+          },
           "includeTranscript": true
         },
         {
@@ -65,6 +90,7 @@
     "action": {
       "type": "showOptions",
       "priority": 100,
+      "delayMs": 1200,
       "title": "It sounds like you’re not feeling well",
       "body": "If symptoms persist or worsen, please see your GP or call 000. You can also reach out in these ways:",
       "buttons": [
@@ -72,7 +98,10 @@
           "kind": "story",
           "label": "📝 Tell your story (FifthQtr)",
           "href": "https://fifthqtr.org.au/story-form/",
-          "utm": { "source": "healthmate", "campaign": "triage_redflag" },
+          "utm": {
+            "source": "healthmate",
+            "campaign": "triage_redflag"
+          },
           "includeTranscript": true
         },
         {
