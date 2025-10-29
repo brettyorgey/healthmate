@@ -57,6 +57,10 @@
     .msg.assistant h3:first-of-type { margin-top: 12px; }
     .msg.assistant p { margin: 8px 0 12px; }
 
+    /* Assistant list styling (for markdown lists) */
+    .msg.assistant ul { margin: 0.25rem 0 0.75rem 1.25rem; padding: 0; }
+    .msg.assistant li { margin: 0.25rem 0; }
+
     /* Sources box */
     .sources { margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; }
     .sources strong{ display:block; margin-bottom:6px; }
@@ -95,18 +99,15 @@
     .triage-cta {
       margin: 6px 0 4px !important;
       padding-top: 8px;
-      border-top: 1px solid #cbd5e1; /* slightly darker so it shows */
+      border-top: 1px solid #cbd5e1;
       animation: triageFadeIn 0.4s ease forwards;
     }
     .triage-cta__inner {
       border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px;
       background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,.04);
     }
-    /* override the global .msg.assistant p spacing inside the card */
     .triage-cta__inner h3 { margin:2px 0 4px !important; font-size:16px; border-left:3px solid #0ea5e9; padding-left:6px; }
     .triage-cta__inner p  { margin:0 0 6px !important; color:#475569; }
-    
-    /* Buttons */
     .triage-btns { display:flex; gap:6px; flex-wrap:wrap; }
     .triage-cta__btn {
       display:inline-flex; align-items:center; gap:6px; justify-content:center; line-height:1.2;
@@ -117,19 +118,12 @@
     .triage-cta__btn:hover { background:#0284c7; border-color:#0284c7; opacity:1; }
     .triage-cta__btn.secondary-blue { background:#fff; color:#0ea5e9; border:1px solid #0ea5e9; }
     .triage-cta__btn.secondary-blue:hover { background:#e0f2fe; }
-    
-    /* Reassurance note */
     .triage-note { margin:6px 0 0; font-size:12px; color:#64748b; opacity:0; animation: triageFadeIn .4s ease forwards; }
-    
-    /* Fade-in */
     @keyframes triageFadeIn { from {opacity:0; transform:translateY(2px);} to {opacity:1; transform:translateY(0);} }
-    
-    /* Mobile */
     @media (max-width: 480px){
       .triage-btns { flex-direction:column; align-items:stretch; }
       .triage-cta__btn { width:100%; justify-content:center; font-size:15px; padding:12px 14px; }
     }
-
   </style>
 </head>
 <body>
@@ -177,145 +171,127 @@
     </div>
   </div>
 
-      <script>
-      /* ---------- TRIAGE HELPERS (client-side) ---------- */
-      async function triageLoadRules(){
-        try { const r = await fetch('/triage.json', {cache:'no-store'}); return r.ok ? r.json() : []; }
-        catch { return []; }
-      }
-      function triageTextHasAny(text, list){
-        if(!list || !list.length) return true;
-        const t = (text||'').toLowerCase();
-        return list.some(k => t.includes(k.toLowerCase()));
-      }
-      function triageMatches(rule, ctx){
-        const w = rule.when || {};
-        if (w.categories && w.categories.length && !w.categories.includes(ctx.category)) return false;
-        if (w.anyKeywords && w.anyKeywords.length && !triageTextHasAny(ctx.userText, w.anyKeywords)) return false;
-        if (w.allKeywords && w.allKeywords.length && !w.allKeywords.every(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
-        if (w.excludeKeywords && w.excludeKeywords.length && w.excludeKeywords.some(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
-        return true;
-      }
-    
-      /* ---- URL builders ---- */
-      function triageBuildStoryUrl(btnOrAction, ctx){
-        const explicit = btnOrAction.href;
-        if (explicit) {
-          try {
-            const u = new URL(explicit, location.origin);
-            if (btnOrAction.utm) { for (const [k,v] of Object.entries(btnOrAction.utm)) u.searchParams.set('utm_'+k, v); }
-            if (btnOrAction.includeTranscript) {
-              const payload = { category: ctx.category, promptId: ctx.promptId, lastUserMessage: (ctx.userText||'').slice(0,1200) };
-              const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-              u.searchParams.set('context_b64', b64);
-              u.searchParams.set('cat', ctx.category || '');
-              u.searchParams.set('prompt', ctx.promptId || '');
-              u.searchParams.set('from', 'healthmate');
-            }
-            return u.toString();
-          } catch { /* fall back */ }
-        }
-        const base = 'https://fifthqtr.org.au/story-form/';
-        const q = new URLSearchParams();
-        q.set('cat', ctx.category || '');
-        q.set('prompt', ctx.promptId || '');
-        q.set('from','healthmate');
-        if (btnOrAction.utm){ for (const [k,v] of Object.entries(btnOrAction.utm)) q.set(`utm_${k}`, v); }
-        if (btnOrAction.includeTranscript){
-          const payload = { category: ctx.category, promptId: ctx.promptId, lastUserMessage: (ctx.userText||'').slice(0,1200) };
-          const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-          q.set('context_b64', b64);
-        }
-        return `${base}?${q.toString()}`;
-      }
-      function triageBuildExternalUrl(btn){ return btn.href || '#'; }
-    
-      /* ---- Renderer ---- */
-      function triageRenderCTA(container, action, ctx){
-        container.querySelectorAll('.triage-cta').forEach(n=>n.remove());
-    
-        const wrapper = document.createElement('div');
-        wrapper.className = 'triage-cta';
-    
-        // Single-CTA (back-compat)
-        if (action.type === 'showStoryCTA'){
-          const url = triageBuildStoryUrl(action, ctx);
-          wrapper.innerHTML = `
-            <div class="triage-cta__inner">
-              <h3>${action.label || 'Share your story'}</h3>
-              <p>Tell us what’s happening so we can connect you to the right support.</p>
-              <div class="triage-btns">
-                <a class="triage-cta__btn" href="${url}" target="_blank" rel="noopener">📝 Tell your story (FifthQtr)</a>
-              </div>
-            </div>`;
-        } else {
-          // Multi-option
-          const title = action.title || action.label || 'Next options';
-          const body  = action.body  || 'Choose what feels right for you:';
-          wrapper.innerHTML = `
-            <div class="triage-cta__inner">
-              <h3>${title}</h3>
-              <p>${body}</p>
-              <div class="triage-btns"></div>
-            </div>`;
-          const btnWrap = wrapper.querySelector('.triage-btns');
-    
-          if (Array.isArray(action.buttons)){
-            action.buttons.forEach(btn=>{
-              const a = document.createElement('a');
-              const styleClass = btn.style ? ` ${btn.style}` : (btn.kind === 'external' ? ' secondary-blue' : '');
-              a.className = 'triage-cta__btn' + styleClass;
-              a.textContent = btn.label || (btn.kind === 'story' ? '📝 Tell your story (FifthQtr)' : '💬 Join a forum (SANE)');
-              if (btn.kind === 'story'){
-                a.href = triageBuildStoryUrl(btn, ctx);
-                a.target = '_blank'; a.rel='noopener';
-              } else {
-                a.href = triageBuildExternalUrl(btn);
-                a.target = (btn.target || '_blank'); a.rel='noopener';
-              }
-              a.setAttribute('aria-label', a.textContent + ' (opens in new tab)');
-              btnWrap.appendChild(a);
-            });
+  <script>
+    /* ---------- TRIAGE HELPERS (client-side) ---------- */
+    async function triageLoadRules(){
+      try { const r = await fetch('/triage.json', {cache:'no-store'}); return r.ok ? r.json() : []; }
+      catch { return []; }
+    }
+    function triageTextHasAny(text, list){
+      if(!list || !list.length) return true;
+      const t = (text||'').toLowerCase();
+      return list.some(k => t.includes(k.toLowerCase()));
+    }
+    function triageMatches(rule, ctx){
+      const w = rule.when || {};
+      if (w.categories && w.categories.length && !w.categories.includes(ctx.category)) return false;
+      if (w.anyKeywords && w.anyKeywords.length && !triageTextHasAny(ctx.userText, w.anyKeywords)) return false;
+      if (w.allKeywords && w.allKeywords.length && !w.allKeywords.every(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
+      if (w.excludeKeywords && w.excludeKeywords.length && w.excludeKeywords.some(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
+      return true;
+    }
+    function triageBuildStoryUrl(btnOrAction, ctx){
+      const explicit = btnOrAction.href;
+      if (explicit) {
+        try {
+          const u = new URL(explicit, location.origin);
+          if (btnOrAction.utm) { for (const [k,v] of Object.entries(btnOrAction.utm)) u.searchParams.set('utm_'+k, v); }
+          if (btnOrAction.includeTranscript) {
+            const payload = { category: ctx.category, promptId: ctx.promptId, lastUserMessage: (ctx.userText||'').slice(0,1200) };
+            const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+            u.searchParams.set('context_b64', b64);
+            u.searchParams.set('cat', ctx.category || '');
+            u.searchParams.set('prompt', ctx.promptId || '');
+            u.searchParams.set('from', 'healthmate');
           }
-    
-          // Reassurance note (only when multiple options)
-          if (Array.isArray(action.buttons) && action.buttons.length > 1) {
-            const note = document.createElement('p');
-            note.className = 'triage-note';
-            note.textContent = 'Links open in a new tab. You can keep chatting here anytime.';
-            wrapper.querySelector('.triage-cta__inner').appendChild(note);
-          }
-        }
-    
-        const sources = container.querySelector('.sources');
-        if (sources && sources.parentElement === container) container.insertBefore(wrapper, sources);
-        else container.appendChild(wrapper);
+          return u.toString();
+        } catch { /* fall back */ }
       }
-    
-      /**
-       * Evaluate rules and render CTA inside the last assistant message element.
-       * ctx = { category, promptId, userText, assistantEl }
-       */
-      async function triageEvaluateAndRender(ctx){
-        const rules = await triageLoadRules();
-        const matches = rules
-          .filter(r => triageMatches(r, ctx))
-          .sort((a,b) => (b.action?.priority || 0) - (a.action?.priority || 0));
-    
-        if (!matches.length || !ctx.assistantEl) return;
-    
-        const chosen = matches[0];
-        if (!chosen.action) return;
-        if (chosen.action.type !== 'showStoryCTA' && chosen.action.type !== 'showOptions') return;
-    
-        const delay = chosen.action.delayMs || 0;
-        setTimeout(() => {
-          triageRenderCTA(ctx.assistantEl, chosen.action, ctx);
-        }, delay);
+      const base = 'https://fifthqtr.org.au/story-form/';
+      const q = new URLSearchParams();
+      q.set('cat', ctx.category || '');
+      q.set('prompt', ctx.promptId || '');
+      q.set('from','healthmate');
+      if (btnOrAction.utm){ for (const [k,v] of Object.entries(btnOrAction.utm)) q.set(`utm_${k}`, v); }
+      if (btnOrAction.includeTranscript){
+        const payload = { category: ctx.category, promptId: ctx.promptId, lastUserMessage: (ctx.userText||'').slice(0,1200) };
+        const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+        q.set('context_b64', b64);
       }
-    </script>
+      return `${base}?${q.toString()}`;
+    }
+    function triageBuildExternalUrl(btn){ return btn.href || '#'; }
+    function triageRenderCTA(container, action, ctx){
+      container.querySelectorAll('.triage-cta').forEach(n=>n.remove());
+      const wrapper = document.createElement('div');
+      wrapper.className = 'triage-cta';
 
-    <script>
+      if (action.type === 'showStoryCTA'){
+        const url = triageBuildStoryUrl(action, ctx);
+        wrapper.innerHTML = `
+          <div class="triage-cta__inner">
+            <h3>${action.label || 'Share your story'}</h3>
+            <p>Tell us what’s happening so we can connect you to the right support.</p>
+            <div class="triage-btns">
+              <a class="triage-cta__btn" href="${url}" target="_blank" rel="noopener">📝 Tell your story (FifthQtr)</a>
+            </div>
+          </div>`;
+      } else {
+        const title = action.title || action.label || 'Next options';
+        const body  = action.body  || 'Choose what feels right for you:';
+        wrapper.innerHTML = `
+          <div class="triage-cta__inner">
+            <h3>${title}</h3>
+            <p>${body}</p>
+            <div class="triage-btns"></div>
+          </div>`;
+        const btnWrap = wrapper.querySelector('.triage-btns');
+        if (Array.isArray(action.buttons)){
+          action.buttons.forEach(btn=>{
+            const a = document.createElement('a');
+            const styleClass = btn.style ? ` ${btn.style}` : (btn.kind === 'external' ? ' secondary-blue' : '');
+            a.className = 'triage-cta__btn' + styleClass;
+            a.textContent = btn.label || (btn.kind === 'story' ? '📝 Tell your story (FifthQtr)' : '💬 Join a forum (SANE)');
+            if (btn.kind === 'story'){
+              a.href = triageBuildStoryUrl(btn, ctx);
+              a.target = '_blank'; a.rel='noopener';
+            } else {
+              a.href = triageBuildExternalUrl(btn);
+              a.target = (btn.target || '_blank'); a.rel='noopener';
+            }
+            a.setAttribute('aria-label', a.textContent + ' (opens in new tab)');
+            btnWrap.appendChild(a);
+          });
+        }
+        if (Array.isArray(action.buttons) && action.buttons.length > 1) {
+          const note = document.createElement('p');
+          note.className = 'triage-note';
+          note.textContent = 'Links open in a new tab. You can keep chatting here anytime.';
+          wrapper.querySelector('.triage-cta__inner').appendChild(note);
+        }
+      }
+      const sources = container.querySelector('.sources');
+      if (sources && sources.parentElement === container) container.insertBefore(wrapper, sources);
+      else container.appendChild(wrapper);
+    }
+    /**
+     * ctx = { category, promptId, userText, assistantEl }
+     */
+    async function triageEvaluateAndRender(ctx){
+      const rules = await triageLoadRules();
+      const matches = rules
+        .filter(r => triageMatches(r, ctx))
+        .sort((a,b) => (b.action?.priority || 0) - (a.action?.priority || 0));
+      if (!matches.length || !ctx.assistantEl) return;
+      const chosen = matches[0];
+      if (!chosen.action) return;
+      if (chosen.action.type !== 'showStoryCTA' && chosen.action.type !== 'showOptions') return;
+      const delay = chosen.action.delayMs || 0;
+      setTimeout(() => { triageRenderCTA(ctx.assistantEl, chosen.action, ctx); }, delay);
+    }
+  </script>
+
+  <script>
     // Reset per-load
     sessionStorage.removeItem('fq_thread_id');
     sessionStorage.removeItem('fq_has_initial_answer');
@@ -345,7 +321,7 @@
 
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
-    let CURRENT_PROMPT_ID = ''; // 🔹 track last clicked prompt (slug)
+    let CURRENT_PROMPT_ID = ''; // track last clicked prompt (slug)
 
     // DOM
     const categoryView=document.getElementById('categoryView');
@@ -362,16 +338,39 @@
       return md.replace(/(^|\n)##\s*Sources[\s\S]*?(?=\n##\s|\n?$)/i, '$1');
     }
 
-    // Escape HTML then do light markdown transforms
+    // Escape HTML
     function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Minimal Markdown → HTML (links, h2/h3, bold, bullet lists, paragraphs)
     function mdToHtml(md){
       if(!md) return '';
-      let s=esc(md);
-      s=s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
-      s=s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
-      s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-      s=s.replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br/>');
-      return '<p>'+s+'</p>';
+      let s = esc(md);
+
+      // clickable links: [label](https://...)
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        (_m,label,url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+
+      // headings (do h3 before h2)
+      s = s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
+      s = s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
+
+      // bold
+      s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+
+      // simple bullet lists (pure blocks of "- " lines)
+      s = s.replace(/(^|\n)(?:- .*(?:\n- .*)*)/g, (block) => {
+        const lines = block.trim().split('\n');
+        if (!lines.every(l => l.trim().startsWith('- '))) return block;
+        const items = lines.map(l => `<li>${l.trim().slice(2)}</li>`).join('');
+        return `\n<ul>${items}</ul>`;
+      });
+
+      // paragraphs / line breaks (avoid wrapping existing block elements)
+      const blocks = s.split(/\n{2,}/).map(chunk => {
+        if (/^\s*(<h2|<h3|<ul|<p|<blockquote|<pre|<table|<ol)/i.test(chunk)) return chunk;
+        return `<p>${chunk.replace(/\n/g,'<br/>')}</p>`;
+      });
+      return blocks.join('\n');
     }
 
     // Sources box (ONLY from data.sources)
@@ -507,7 +506,7 @@
         cleaned = stripInlineDisclaimer(cleaned);
         cleaned = cleanFooterHeading(cleaned);
         cleaned = removeDeadLinkMarkers(cleaned);
-        cleaned = stripSourcesSection(cleaned); // keep only curated sources
+        cleaned = stripSourcesSection(cleaned);
         div.innerHTML = mdToHtml(cleaned);
 
         if (Array.isArray(sources) && sources.length) {
@@ -554,7 +553,6 @@
             addMsg('assistant', 'Sorry — server error ('+data.error+')');
           } else {
             const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
-            // 🔹 Triage after assistant reply (polling path)
             triageEvaluateAndRender({
               category: promptTitle.textContent || '',
               promptId: CURRENT_PROMPT_ID || '',
@@ -627,7 +625,7 @@
         const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
         if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
 
-        // 🔹 Triage after assistant reply (normal path)
+        // Triage after assistant reply
         triageEvaluateAndRender({
           category: promptTitle.textContent || '',
           promptId: CURRENT_PROMPT_ID || '',
@@ -697,7 +695,7 @@
       resetChat();
       document.getElementById('msg').value='';
       clearActiveCategory();
-      CURRENT_PROMPT_ID = ''; // clear any previous prompt selection on category list
+      CURRENT_PROMPT_ID = '';
     }
 
     function showPrompts(label){
@@ -711,7 +709,6 @@
         btn.type='button';
         btn.textContent=p;
         btn.addEventListener('click',()=>{
-          // set a simple slug for the clicked prompt id
           CURRENT_PROMPT_ID = (p || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
           sendMsg(p);
         });
