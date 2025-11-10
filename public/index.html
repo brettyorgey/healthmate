@@ -300,9 +300,20 @@
       return (text || '').replace(/\s*\(link unavailable\)/gi, '');
     }
 
-    // Canonical category key for the server
+    /* ---------- Robust label parsing ---------- */
+    // Accepts "Head – Sub", "Head - Sub", "Head: Sub", with/without spaces.
+    function parseLabel(label=''){
+      const raw = String(label || '');
+      // Split on the first delimiter occurrence (en-dash, hyphen, colon) followed by spaces
+      const m = raw.match(/^\s*([^–\-:]+?)\s*[–\-:]\s+(.+)\s*$/);
+      if (!m) return { head: raw.trim(), sub: '' };
+      return { head: (m[1]||'').trim(), sub: (m[2]||'').trim() };
+    }
+
+    // Canonical category key for the server (use parsed head)
     function canonicalCategoryKey(label='') {
-      const head = (label.split('–')[0] || label).trim().toLowerCase();
+      const { head } = parseLabel(label);
+      const key = (head || label || '').trim().toLowerCase();
       const map = {
         'physical': 'physical',
         'psychological': 'psychological',
@@ -316,12 +327,12 @@
         'environmental': 'environmental',
         'female': 'female'
       };
-      return map[head] || null;
+      return map[key] || null;
     }
 
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
-    let CURRENT_PROMPT_ID = '';    // stable slug for selected prompt
+    let CURRENT_PROMPT_ID = '';     // stable slug for selected prompt
     let CURRENT_PROMPT_META = null; // holds full object ({ prompt, pillar, ... }) when available
 
     // DOM
@@ -536,6 +547,7 @@
     async function pollUntilReady(threadId, originalUserText, thinkingEl, tries=12){
       for (let i=0; i<tries; i++){
         await new Promise(r=>setTimeout(r, 2500));
+        const { head } = parseLabel(promptTitle.textContent || '');
         const r = await fetchWithTimeout('/api/mascot', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
@@ -544,7 +556,7 @@
             thread_id: threadId,
             message: originalUserText,
             categoryLabel: promptTitle.textContent || '',
-            categoryKey: canonicalCategoryKey(promptTitle.textContent || ''),
+            categoryKey: canonicalCategoryKey(head || ''),
             promptId: CURRENT_PROMPT_ID || '',
             promptMeta: CURRENT_PROMPT_META || null
           })
@@ -588,7 +600,8 @@
       try{
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
-        const catKey     = canonicalCategoryKey(promptTitle.textContent || '');
+        const { head }   = parseLabel(promptTitle.textContent || '');
+        const catKey     = canonicalCategoryKey(head || '');
 
         const r = await fetchWithTimeout('/api/mascot',{
           method:'POST',
@@ -650,7 +663,8 @@
     function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); }
 
     function setActiveCategory(label){
-      const short=(label||'').split(' – ')[0]||label||'General';
+      const { head } = parseLabel(label || '');
+      const short = head || label || 'General';
       activeCategoryTextEl.textContent=`You’re asking about: ${short}`;
       activeCategoryEl.style.display='inline-flex';
     }
@@ -660,7 +674,8 @@
     }
 
     function categoryEmoji(label){
-      if(!label) return '❖';
+      const { head } = parseLabel(label || '');
+      if(!head) return '❖';
       const map = [
         { key: 'Psychological',  emoji: '🧠' },
         { key: 'Physical',       emoji: '🏋️' },
@@ -672,8 +687,8 @@
         { key: 'Environmental',  emoji: '⚠️' },
         { key: 'Female',         emoji: '♀️' }
       ];
-      const hit = map.find(m => label.startsWith(m.key));
-      return hit ? m.emoji : '❖';
+      const hit = map.find(m => head.toLowerCase().startsWith(m.key.toLowerCase()));
+      return hit ? hit.emoji : '❖';
     }
 
     async function loadPrompts(){
@@ -686,12 +701,20 @@
     function renderCategories(){
       categoryView.innerHTML='';
       Object.keys(PROMPTS).forEach(label=>{
+        const { head, sub } = parseLabel(label);
+
         const card=document.createElement('div'); card.className='category-card';
-        const em=document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(label);
+        const em=document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(head || label);
+
         const textWrap=document.createElement('div');
-        const title=document.createElement('div'); title.className='category-title'; title.textContent = label.split(' – ')[0];
-        const sub=document.createElement('div'); sub.className='category-sub'; sub.textContent = label.split(' – ')[1] || '';
-        textWrap.appendChild(title); textWrap.appendChild(sub);
+        const title=document.createElement('div'); title.className='category-title'; title.textContent = head || label;
+
+        textWrap.appendChild(title);
+        if (sub) {
+          const subEl=document.createElement('div'); subEl.className='category-sub'; subEl.textContent = sub;
+          textWrap.appendChild(subEl);
+        }
+
         card.appendChild(em); card.appendChild(textWrap);
         card.addEventListener('click',()=>showPrompts(label));
         categoryView.appendChild(card);
@@ -714,7 +737,7 @@
 
     function showPrompts(label){
       sessionStorage.clear();
-      promptTitle.textContent = label;
+      promptTitle.textContent = label; // keep full label in header
       setActiveCategory(label);
       promptList.innerHTML = '';
 
