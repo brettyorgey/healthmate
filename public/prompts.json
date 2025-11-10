@@ -1,65 +1,301 @@
 {
   "Psychological – Mental Health, Concussion & Brain Health": [
-    "Having trouble with headaches and memory issues?",
-    "Having issues with anxiety and depression?",
-    "What’s the difference between post-concussion symptoms and CTE?",
-    "As a carer, how can I track memory and mood changes in someone with repeated head knocks?",
-    "Are there clinics in Australia that assess memory and brain health for past players?"
+    {
+      "prompt": "Where can I find mental health support for past players or partners in Australia?",
+      "pillar": "psychological",
+      "subpillar": "mental-health",
+      "audience": ["player", "partner", "carer"],
+      "keywords": ["mental health", "wellbeing", "support service", "counselling", "headspace", "lifeline"]
+    },
+    {
+      "prompt": "How can I tell if my mood changes after retiring are normal or need professional help?",
+      "pillar": "psychological",
+      "subpillar": "transition",
+      "audience": ["player"],
+      "keywords": ["depression", "stress", "adjustment", "transition", "mental health"]
+    },
+    {
+      "prompt": "What’s the difference between post-concussion symptoms and CTE — and who can assess this?",
+      "pillar": "brain-health",
+      "subpillar": "cte",
+      "audience": ["player", "partner"],
+      "keywords": ["concussion", "CTE", "neurology", "head injury", "brain health"]
+    },
+    {
+      "prompt": "How can carers track memory, behaviour, or mood changes after head knocks?",
+      "pillar": "brain-health",
+      "subpillar": "monitoring",
+      "audience": ["carer", "partner"],
+      "keywords": ["memory", "behaviour", "symptom diary", "carer", "monitoring"]
+    },
+    {
+      "prompt": "What brain health or concussion clinics specialise in former athletes?",
+      "pillar": "brain-health",
+      "subpillar": "clinics",
+      "audience": ["player"],
+      "keywords": ["concussion clinic", "neurology", "sports medicine", "brain health"]
+    }
   ],
+
   "Physical – Health and Fitness; Injury Rehab Management": [
-    "What rehabilitation or support services are available for chronic knee pain?",
-    "Where can I find safe exercise programs for older athletes who still want to stay active?",
-    "What organisations provide strategies to manage long-term mobility?",
-    "Are there Australian organisations that help with chronic injury rehab for former players?",
-    "What’s the best way to combine GP advice with exercise physiologists for safe rehab?"
+    {
+      "prompt": "What rehabilitation options exist for chronic knee or shoulder injuries after sport?",
+      "pillar": "physical",
+      "subpillar": "rehabilitation",
+      "audience": ["player"],
+      "keywords": ["rehab", "injury", "physiotherapy", "shoulder", "knee", "sports physio"]
+    },
+    {
+      "prompt": "Where can retired athletes find safe fitness or strength programs?",
+      "pillar": "physical",
+      "subpillar": "exercise",
+      "audience": ["player"],
+      "keywords": ["fitness", "exercise", "training", "recovery", "strength"]
+    },
+    {
+      "prompt": "What’s the best way to combine GP and exercise physiologist advice for ongoing rehab?",
+      "pillar": "physical",
+      "subpillar": "coordination",
+      "audience": ["player", "carer"],
+      "keywords": ["GP", "exercise physiologist", "rehab", "care team"]
+    },
+    {
+      "prompt": "Which Australian services focus on long-term musculoskeletal recovery?",
+      "pillar": "physical",
+      "subpillar": "musculoskeletal",
+      "audience": ["player"],
+      "keywords": ["chronic injury", "recovery", "pain", "musculoskeletal"]
+    }
   ],
-  "Career / Professional Development – Career Transition; Lifelong Learning": [
-    "I’m unsure how to start a new career after retiring from sport — what programs exist?",
-    "Are there courses or scholarships available for athletes looking to retrain in Australia?",
-    "I'm moving from professional sport into business and would like to know what roles would best suit my skills?",
-    "Where can I find mentoring or networking opportunities for life after sport?",
-    "How can I prepare a CV that translates sporting skills into the workplace?"
+
+  "Career – Professional Development; Study; Purpose": [
+    {
+      "prompt": "What career transition programs exist for retired athletes in Australia?",
+      "pillar": "career",
+      "subpillar": "transition",
+      "audience": ["player"],
+      "keywords": ["career transition", "employment", "AFLPA", "retraining", "jobs"]
+    },
+    {
+      "prompt": "Where can I access training or scholarships for athletes returning to study?",
+      "pillar": "career",
+      "subpillar": "education",
+      "audience": ["player", "partner"],
+      "keywords": ["education", "scholarship", "TAFE", "university", "AFL SportsReady"]
+    },
+    {
+      "prompt": "How can I translate sporting experience into a professional CV or LinkedIn profile?",
+      "pillar": "career",
+      "subpillar": "skills",
+      "audience": ["player"],
+      "keywords": ["resume", "leadership", "teamwork", "communication", "career planning"]
+    },
+    {
+      "prompt": "What mentoring or business networking opportunities exist for alumni?",
+      "pillar": "career",
+      "subpillar": "mentoring",
+      "audience": ["player", "official"],
+      "keywords": ["mentoring", "networking", "business", "alumni"]
+    }
   ],
-  "Family, Community and Social Connection": [
-    "How can our family remain involved in club life after a player retires?",
-    "I feel isolated since leaving sport — what community programs could help?",
-    "Where can carers and partners connect with others going through similar experiences?",
-    "How do alumni networks work, and how can I join?",
-    "What community support exists for players who have moved back to regional areas?"
+
+  "Family – Connection, Support & Community": [
+    {
+      "prompt": "How can families stay connected to clubs and alumni groups after retirement?",
+      "pillar": "family",
+      "subpillar": "community",
+      "audience": ["family", "partner", "official"],
+      "keywords": ["family", "community", "alumni", "connection", "support"]
+    },
+    {
+      "prompt": "Where can partners and carers connect with others in similar situations?",
+      "pillar": "family",
+      "subpillar": "carers",
+      "audience": ["partner", "carer"],
+      "keywords": ["support group", "peer network", "carers", "partner support"]
+    },
+    {
+      "prompt": "What community or regional programs help players stay connected?",
+      "pillar": "family",
+      "subpillar": "regional",
+      "audience": ["player", "family"],
+      "keywords": ["regional", "community program", "alumni", "clubs"]
+    },
+    {
+      "prompt": "What alumni or peer support networks exist for former players?",
+      "pillar": "family",
+      "subpillar": "peer-support",
+      "audience": ["player", "partner"],
+      "keywords": ["alumni network", "peer", "support", "community"]
+    }
   ],
-  "Cultural / Spiritual – Indigenous Players & Culturally Diverse Communities": [
-    "What culturally safe health services are available for Indigenous past players?",
-    "How can I connect with community programs that support cultural identity in sport?",
-    "Are there faith-based or spiritual support networks for retired players?",
-    "What services help culturally diverse families stay connected to the sporting community?",
-    "How can clubs better support Indigenous players during and after their careers?"
+
+  "Cultural – Indigenous & Culturally Diverse Communities": [
+    {
+      "prompt": "Where can Indigenous past players find culturally safe health services?",
+      "pillar": "cultural",
+      "subpillar": "indigenous-health",
+      "audience": ["player", "partner"],
+      "keywords": ["indigenous", "aboriginal", "torres strait", "health service", "cultural safety"]
+    },
+    {
+      "prompt": "What programs support connection to Country and culture after sport?",
+      "pillar": "cultural",
+      "subpillar": "connection",
+      "audience": ["player"],
+      "keywords": ["country", "culture", "community", "identity", "spiritual"]
+    },
+    {
+      "prompt": "Are there community leaders or Elders supporting cultural wellbeing in football?",
+      "pillar": "cultural",
+      "subpillar": "elders",
+      "audience": ["player", "official"],
+      "keywords": ["elders", "community leader", "cultural wellbeing"]
+    },
+    {
+      "prompt": "How can clubs ensure cultural safety during and after players’ careers?",
+      "pillar": "cultural",
+      "subpillar": "club-practice",
+      "audience": ["official"],
+      "keywords": ["cultural safety", "inclusive", "training", "policy"]
+    }
   ],
-  "Identity – Athlete Identity & Foreclosure; Sexuality, Gender & Inclusion in Sport": [
-    "I’m struggling with my identity now that I’ve retired — what support is available?",
-    "How do I explain to my kids that I used to be defined by football but now I’m not?",
-    "What safe spaces exist for LGBTQI+ players in sport?",
-    "How can clubs and teammates support diverse sexual and gender identities?",
-    "What resources are there on athlete identity foreclosure and how to navigate it?"
+
+  "Identity – Transition, Inclusion & Belonging": [
+    {
+      "prompt": "I’m struggling with my identity after sport — what support is available?",
+      "pillar": "identity",
+      "subpillar": "transition",
+      "audience": ["player"],
+      "keywords": ["identity", "transition", "retirement", "psychology", "support"]
+    },
+    {
+      "prompt": "What resources help athletes manage identity loss and transition?",
+      "pillar": "identity",
+      "subpillar": "adaptation",
+      "audience": ["player", "carer"],
+      "keywords": ["identity", "adaptation", "career end", "resilience"]
+    },
+    {
+      "prompt": "Where can LGBTQIA+ players find safe, inclusive networks?",
+      "pillar": "identity",
+      "subpillar": "inclusion",
+      "audience": ["player"],
+      "keywords": ["LGBTQIA+", "inclusion", "diversity", "support group"]
+    },
+    {
+      "prompt": "How can clubs and teammates support diverse identities and inclusion?",
+      "pillar": "identity",
+      "subpillar": "diversity",
+      "audience": ["official"],
+      "keywords": ["diversity", "inclusion", "team", "club culture"]
+    }
   ],
+
   "Financial – Money Transitions; Grants & Support": [
-    "I went from earning well to struggling financially — what support services are available?",
-    "What resources are there for learning how to budget after leaving sport?",
-    "How do I apply for sports alumni grants and who is eligible?",
-    "Where can I find advice about managing superannuation after retiring?",
-    "What support is there for players who face financial issues after retirement?"
+    {
+      "prompt": "What financial counselling or support exists for players after sport?",
+      "pillar": "financial",
+      "subpillar": "counselling",
+      "audience": ["player", "partner"],
+      "keywords": ["financial counselling", "budget", "AFLPA", "support"]
+    },
+    {
+      "prompt": "Where can I find budgeting tools or programs for life after professional sport?",
+      "pillar": "financial",
+      "subpillar": "budgeting",
+      "audience": ["player"],
+      "keywords": ["budgeting", "moneysmart", "financial planning", "cashflow"]
+    },
+    {
+      "prompt": "How do I apply for AFLPA or alumni financial assistance grants?",
+      "pillar": "financial",
+      "subpillar": "grants",
+      "audience": ["player"],
+      "keywords": ["AFLPA", "grant", "financial assistance", "alumni"]
+    },
+    {
+      "prompt": "What are my superannuation and insurance options after retirement?",
+      "pillar": "financial",
+      "subpillar": "superannuation",
+      "audience": ["player"],
+      "keywords": ["superannuation", "insurance", "retirement", "funds"]
+    },
+    {
+      "prompt": "Where can players get help managing sudden income changes?",
+      "pillar": "financial",
+      "subpillar": "transition",
+      "audience": ["player", "partner"],
+      "keywords": ["income change", "financial planning", "budget", "counselling"]
+    }
   ],
-  "Environmental Risk Factors – Alcohol, Drugs, Gambling": [
-    "I’m worried about my mate’s drinking since he left the game — what should I do?",
-    "Where can I get help for gambling problems in the sporting community?",
-    "What resources are available for players struggling with prescription painkiller use?",
-    "How can partners support players dealing with drug or alcohol dependency?",
-    "What Australian helplines or services provide confidential support for addiction?"
+
+  "Environmental – Alcohol, Drugs & Gambling": [
+    {
+      "prompt": "I’m worried about my mate’s drinking — what confidential help is available?",
+      "pillar": "environmental",
+      "subpillar": "alcohol",
+      "audience": ["player", "partner"],
+      "keywords": ["alcohol", "addiction", "help", "confidential", "support"]
+    },
+    {
+      "prompt": "Where can athletes or families find gambling support services?",
+      "pillar": "environmental",
+      "subpillar": "gambling",
+      "audience": ["player", "family"],
+      "keywords": ["gambling", "addiction", "support", "helpline"]
+    },
+    {
+      "prompt": "What Australian programs address substance or medication misuse?",
+      "pillar": "environmental",
+      "subpillar": "substance",
+      "audience": ["player", "partner"],
+      "keywords": ["substance", "drugs", "dependency", "treatment", "rehab"]
+    },
+    {
+      "prompt": "How can partners support recovery or harm reduction safely?",
+      "pillar": "environmental",
+      "subpillar": "recovery",
+      "audience": ["partner", "carer"],
+      "keywords": ["recovery", "support", "harm reduction", "addiction"]
+    }
   ],
-  "Female Players Transition – Specific Issues (e.g. Motherhood)": [
-    "What support is there for female players balancing motherhood and life after football?",
-    "Are there programs specifically designed for retired AFLW players?",
-    "How can women access injury rehab and health services tailored for female athletes?",
-    "What resources address menstrual health, pregnancy, and return to sport?",
-    "How can female alumni stay connected to networks after retiring?"
+
+  "Female – Women’s Health, Motherhood & Career": [
+    {
+      "prompt": "What support exists for female players balancing motherhood and life after sport?",
+      "pillar": "female",
+      "subpillar": "motherhood",
+      "audience": ["player"],
+      "keywords": ["female", "motherhood", "career transition", "support"]
+    },
+    {
+      "prompt": "Where can retired AFLW players find tailored career and health services?",
+      "pillar": "female",
+      "subpillar": "career",
+      "audience": ["player"],
+      "keywords": ["AFLW", "career transition", "health", "network"]
+    },
+    {
+      "prompt": "What resources address menstrual health, pregnancy, and return to sport safely?",
+      "pillar": "female",
+      "subpillar": "health",
+      "audience": ["player"],
+      "keywords": ["pregnancy", "postpartum", "menstrual", "return to sport", "pelvic"]
+    },
+    {
+      "prompt": "Where can female athletes find pelvic health or postpartum rehabilitation?",
+      "pillar": "female",
+      "subpillar": "rehab",
+      "audience": ["player"],
+      "keywords": ["pelvic health", "postnatal", "rehab", "physiotherapy"]
+    },
+    {
+      "prompt": "How can women stay connected to networks after retirement?",
+      "pillar": "female",
+      "subpillar": "community",
+      "audience": ["player"],
+      "keywords": ["female", "network", "community", "alumni"]
+    }
   ]
 }
