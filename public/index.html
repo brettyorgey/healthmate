@@ -321,7 +321,8 @@
 
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
-    let CURRENT_PROMPT_ID = ''; // track last clicked prompt (slug)
+    let CURRENT_PROMPT_ID = '';    // stable slug for selected prompt
+    let CURRENT_PROMPT_META = null; // holds full object ({ prompt, pillar, ... }) when available
 
     // DOM
     const categoryView=document.getElementById('categoryView');
@@ -543,7 +544,9 @@
             thread_id: threadId,
             message: originalUserText,
             categoryLabel: promptTitle.textContent || '',
-            categoryKey: canonicalCategoryKey(promptTitle.textContent || '')
+            categoryKey: canonicalCategoryKey(promptTitle.textContent || ''),
+            promptId: CURRENT_PROMPT_ID || '',
+            promptMeta: CURRENT_PROMPT_META || null
           })
         }, 15000);
         const data = await r.json().catch(()=> ({}));
@@ -553,6 +556,7 @@
             addMsg('assistant', 'Sorry — server error ('+data.error+')');
           } else {
             const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
+            // Triage after assistant reply (polling path)
             triageEvaluateAndRender({
               category: promptTitle.textContent || '',
               promptId: CURRENT_PROMPT_ID || '',
@@ -574,8 +578,8 @@
       const inp=document.getElementById('msg');
       const content=(txt||inp.value||'').trim(); if(!content) return;
 
-      // If message is typed (no prompt button), clear any old prompt id
-      if (typeof txt === 'undefined') CURRENT_PROMPT_ID = '';
+      // If message is typed (no prompt button), clear any old prompt id/meta
+      if (typeof txt === 'undefined') { CURRENT_PROMPT_ID = ''; CURRENT_PROMPT_META = null; }
 
       addMsg('user',content);
       inp.value=''; document.getElementById('sendBtn').disabled=true;
@@ -594,7 +598,9 @@
             followup: isFollowUp,
             thread_id: threadId,
             categoryLabel: promptTitle.textContent || '',
-            categoryKey: catKey
+            categoryKey: catKey,
+            promptId: CURRENT_PROMPT_ID || '',
+            promptMeta: CURRENT_PROMPT_META || null
           })
         }, 30000);
         const data = await r.json().catch(()=> ({}));
@@ -667,7 +673,7 @@
         { key: 'Female',         emoji: '♀️' }
       ];
       const hit = map.find(m => label.startsWith(m.key));
-      return hit ? hit.emoji : '❖';
+      return hit ? m.emoji : '❖';
     }
 
     async function loadPrompts(){
@@ -696,6 +702,14 @@
       document.getElementById('msg').value='';
       clearActiveCategory();
       CURRENT_PROMPT_ID = '';
+      CURRENT_PROMPT_META = null;
+    }
+
+    // Backwards compatible: supports string prompts and object prompts
+    function asPromptText(p){ return (typeof p === 'string') ? p : (p?.prompt || ''); }
+    function asPromptSlug(p){
+      const base = asPromptText(p);
+      return base.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
     }
 
     function showPrompts(label){
@@ -703,21 +717,26 @@
       promptTitle.textContent = label;
       setActiveCategory(label);
       promptList.innerHTML = '';
+
       (PROMPTS[label]||[]).forEach(p=>{
+        const text = asPromptText(p);
         const btn=document.createElement('button');
         btn.className='prompt-btn';
         btn.type='button';
-        btn.textContent=p;
+        btn.textContent=text;
         btn.addEventListener('click',()=>{
-          CURRENT_PROMPT_ID = (p || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-          sendMsg(p);
+          CURRENT_PROMPT_ID   = asPromptSlug(p);
+          CURRENT_PROMPT_META = (typeof p === 'object' && p) ? p : { prompt: text };
+          sendMsg(text);
         });
         promptList.appendChild(btn);
       });
+
       categoryView.classList.remove('active');
       promptView.classList.add('active');
       document.getElementById('scrollArea').scrollTop=0;
     }
+
     function showCategories(){ renderCategories(); }
 
     // Init
