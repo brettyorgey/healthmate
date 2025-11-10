@@ -20,6 +20,9 @@ Always finish with:
 "Information only — not a medical diagnosis. In an emergency call 000."
 `;
 
+const MAX_SOURCES = 4;               // client renders up to 4 curated sources
+const LINK_VERIFY_MODE = (process.env.LINK_VERIFY || '').toLowerCase(); // 'head' to enable quick reachability check
+
 const CAT_SYNONYMS = {
   physical: ["injury","rehab","rehabilitation","fitness","exercise","pain","knee","shoulder","hip","ankle","physio","physiotherapy","mobility","strength"],
   psychological: ["mental","mood","anxiety","depression","stress","relationship","support"],
@@ -114,7 +117,6 @@ async function loadLinks(req) {
 function normalizeCategoryKey(input) {
   if (!input) return null;
   const s = String(input).trim().toLowerCase();
-  // accept either canonical key or a display label head (e.g. "Brain Health")
   const map = {
     'physical': 'physical',
     'psychological': 'psychological',
@@ -135,9 +137,59 @@ function canonicalFromLabel(label='') {
   return normalizeCategoryKey(head);
 }
 
+/* -------------------- link utilities -------------------- */
+function safeUrlOrNull(u){
+  try {
+    const url = new URL(u);
+    if (!/^https?:$/.test(url.protocol)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+function domainOf(u){
+  try { return new URL(u).hostname.replace(/^www\./,'').toLowerCase(); }
+  catch { return ''; }
+}
+function dedupeByDomain(arr){
+  const seen = new Set();
+  const out = [];
+  for (const s of arr){
+    const d = domainOf(s.url || '');
+    const key = d || (s.url || s.title || '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
+async function headReachable(url, ms=2000){
+  try {
+    const r = await fetchWithTimeout(url, { method:'HEAD', redirect:'follow' }, ms);
+    // Accept 2xx and 3xx; some sites reject HEAD -> try GET if HEAD is 405
+    if (r.ok || (r.status >= 300 && r.status < 400)) return true;
+    if (r.status === 405) {
+      const g = await fetchWithTimeout(url, { method:'GET' }, Math.max(1500, ms));
+      return g.ok || (g.status >= 300 && g.status < 400);
+    }
+    return false;
+  } catch { return false; }
+}
+async function verifyLinksQuick(links){
+  if (LINK_VERIFY_MODE !== 'head') return links;
+  const checks = links.map(async l => {
+    const ok = await headReachable(l.url, 2000);
+    return ok ? l : null;
+  });
+  const res = await Promise.allSettled(checks);
+  const filtered = res.map(x => (x.status === 'fulfilled' ? x.value : null)).filter(Boolean);
+  // if all failed, fall back to original (avoid empty box due to transient blocks)
+  return filtered.length ? filtered : links;
+}
+
 /* -------------------- link scoring -------------------- */
 function inferCategoryFromText(text = "") {
-  const t = text.toLowerCase();
+  const t = (text || '').toLowerCase();
   if (/(knee|shoulder|ankle|hip|physio|physiotherapy|rehab|exercise|pain)\b/.test(t)) return 'physical';
   let best = null, bestHits = 0;
   for (const [cat, words] of Object.entries(CAT_SYNONYMS)) {
@@ -146,45 +198,107 @@ function inferCategoryFromText(text = "") {
   }
   return best;
 }
-function scoreLink(link, prompt, cat) {
-  const p = (prompt || '').toLowerCase();
-  const c = (cat || '').toLowerCase();
+
+/**
+ * Score a single link against:
+ * - resolved category
+ * - prompt text and message
+ * - optional meta: keywords[], subpillar, audience
+ */
+function scoreLink(link, context) {
+  const { promptText, category, meta, combinedText } = context;
+  const p = (promptText || '').toLowerCase();
+  const c = (category || '').toLowerCase();
+  const bag = (combinedText || '').toLowerCase();
+
   let score = 0, catScore = 0, kwHits = 0;
 
   const lcats = (link.category || []).map(x => (x||'').toLowerCase());
   if (lcats.includes(c)) { score += 6; catScore = 6; }
-  else if (lcats.some(x => c && (c.includes(x) || x.includes(c)))) { score += 4; catScore = 4; }
+  else if (lcats.some(x => c && (c.includes(x) || x.includes(c)))) { score += 4; catScore = Math.max(catScore, 4); }
 
+  // keywords on link
   if (Array.isArray(link.keywords)) {
     for (const k of link.keywords) {
-      if (k && p.includes((k||'').toLowerCase())) { score += 4; kwHits++; }
+      const kk = (k||'').toLowerCase();
+      if (!kk) continue;
+      if (p.includes(kk)) { score += 4; kwHits++; }
+      else if (bag.includes(kk)) { score += 3; kwHits++; }
     }
   }
+
+  // category synonyms
   for (const s of (CAT_SYNONYMS[c] || [])) if (p.includes(s)) score += 2;
+
+  // simple title/domain match
   if (link.title && p.includes((link.title||'').toLowerCase())) score += 1;
   if (link.domain && p.includes((link.domain||'').toLowerCase())) score += 1;
 
+  // meta-aware boosts (backward-compatible)
+  if (meta) {
+    const metaKw = Array.isArray(meta.keywords) ? meta.keywords : [];
+    for (const k of metaKw) if (k && bag.includes(String(k).toLowerCase())) score += 2;
+
+    if (meta.subpillar && bag.includes(String(meta.subpillar).toLowerCase())) score += 2;
+    if (meta.audience && bag.includes(String(meta.audience).toLowerCase())) score += 1;
+
+    // If link declares subpillars/audience (optional in links.json)
+    const linkSubs = (link.subpillars || []).map(x => String(x||'').toLowerCase());
+    if (meta.subpillar && linkSubs.includes(String(meta.subpillar).toLowerCase())) score += 2;
+
+    const linkAudience = (link.audience || []).map(x => String(x||'').toLowerCase());
+    if (meta.audience && linkAudience.includes(String(meta.audience).toLowerCase())) score += 1;
+  }
+
+  // safety: prefer https and valid url
+  if (safeUrlOrNull(link.url)) score += 1;
+
   return { score, catScore, kwHits };
 }
-function findBestLinks(links, category, prompt, max = 4) {
+
+function findBestLinks(links, opts) {
+  const {
+    category, promptText, userMessage, meta, max = MAX_SOURCES
+  } = opts;
+
+  // Build a combined bag of words to softly match
+  const parts = [
+    promptText || '',
+    userMessage || '',
+    Array.isArray(meta?.keywords) ? meta.keywords.join(' ') : '',
+    meta?.subpillar || '',
+    meta?.audience || ''
+  ];
+  const combinedText = parts.filter(Boolean).join(' ').trim();
+
+  const ctx = { promptText, category, meta, combinedText };
   const c = (category || '').toLowerCase();
+
   const scored = [];
-  for (const l of links) {
+  for (const l of (links || [])) {
     if (!l?.url) continue;
-    const s = scoreLink(l, prompt, c);
+    const s = scoreLink(l, ctx);
     scored.push({ ...l, ...s });
   }
-  const bestCat = Math.max(0, ...scored.map(s => s.catScore));
+
+  // If we have at least a reasonably strong category signal, prefer those
+  const bestCat = Math.max(0, ...scored.map(s => s.catScore || 0));
   let filtered = scored;
   if (bestCat >= 4) filtered = scored.filter(s => s.catScore >= 4);
   else {
     const hasKW = scored.some(s => s.kwHits > 0);
     if (hasKW) filtered = scored.filter(s => s.kwHits > 0);
   }
-  return filtered
-    .sort((a,b) => b.score - a.score)
-    .slice(0, max)
-    .map(({ id, title, url, domain }) => ({ id, title, url, domain }));
+
+  // Sort, dedupe by domain, clamp, and strip down fields
+  const sorted = filtered.sort((a,b) => b.score - a.score);
+  const deduped = dedupeByDomain(sorted);
+  const top = deduped.slice(0, max).map(({ id, title, url, domain, filename, file_id }) => {
+    const clean = safeUrlOrNull(url);
+    return clean ? { id, title, url: clean, domain } : (file_id ? { id, title: filename || 'Document', file_id } : null);
+  }).filter(Boolean);
+
+  return top;
 }
 
 /* -------------------- OpenAI helpers -------------------- */
@@ -211,7 +325,9 @@ module.exports = async function handler(req, res) {
       followup,
       thread_id: clientThreadId,
       categoryLabel,
-      categoryKey,   // <-- NEW: canonical key from client when available
+      categoryKey,     // canonical key from client when available
+      promptId,        // stable slug from client (optional)
+      promptMeta,      // richer prompt metadata (optional)
       peek
     } = body || {};
 
@@ -247,6 +363,7 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({ role: 'user', content: message }),
       }, 12000, 0);
 
+      // We pass follow-up instructions only after the very first model answer
       const runCreateBody = {
         assistant_id: process.env.OPENAI_ASSISTANT_ID,
         ...( !firstTurn && followup === true ? { instructions: FOLLOWUP_INSTRUCTIONS } : {} )
@@ -261,15 +378,36 @@ module.exports = async function handler(req, res) {
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
-    // Peek mode: only return 200 when we truly have an assistant message
+    // Peek mode: return only when an assistant message exists
     const text = await getLatestAssistantText(thread_id);
     if (!text) {
       return sendJson(res, 202, { pending: true, thread_id });
     }
 
-    // Curate sources using the *current* user message and resolved category
-    const curatedSources = message ? findBestLinks(links, effectiveCategory, message, 4) : [];
-    return sendJson(res, 200, { output: text, sources: curatedSources, thread_id });
+    // Curate sources using the current user message, resolved category, and prompt metadata
+    let curatedSources = [];
+    if (message) {
+      const promptText = (promptMeta && typeof promptMeta === 'object' && promptMeta.prompt) ? String(promptMeta.prompt) : '';
+      const meta = (promptMeta && typeof promptMeta === 'object') ? promptMeta : null;
+
+      const preliminary = findBestLinks(links, {
+        category: effectiveCategory,
+        promptText: promptText || message, // always include message terms
+        userMessage: message,
+        meta,
+        max: MAX_SOURCES
+      });
+
+      curatedSources = LINK_VERIFY_MODE === 'head'
+        ? await verifyLinksQuick(preliminary)
+        : preliminary;
+    }
+
+    return sendJson(res, 200, {
+      output: text,
+      sources: curatedSources,
+      thread_id
+    });
 
   } catch (e) {
     console.error('mascot error:', e);
