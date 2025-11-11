@@ -124,6 +124,16 @@
       .triage-btns { flex-direction:column; align-items:stretch; }
       .triage-cta__btn { width:100%; justify-content:center; font-size:15px; padding:12px 14px; }
     }
+    
+    /* Simple inline alert for data-load errors */
+    .alert {
+    background:#fff7ed;
+    color:#7c2d12;
+    border:1px solid #fdba74;
+    border-radius:10px;
+    padding:10px 12px;
+    margin:12px 0;
+    }
   </style>
 </head>
 <body>
@@ -729,12 +739,119 @@
       return hit ? m.emoji : '❖';
     }
 
-    async function loadPrompts(){
-      const res = await fetch('/prompts.json');
-      if (!res.ok) { console.error('Failed to load /prompts.json'); return; }
-      PROMPTS = await res.json();
-      renderCategories();
+    // Convert various /prompts.json shapes into the expected { "Label – Sub": [prompts...] }
+    function normalizePromptsShape(data) {
+      if (!data) return {};
+    
+      // Case A: Already correct shape
+      if (!Array.isArray(data) && typeof data === 'object') return data;
+    
+      // Case B: Array of objects: [{ label, prompts }]
+      if (Array.isArray(data)) {
+        const out = {};
+        for (const item of data) {
+          if (item && typeof item === 'object') {
+            const label = String(item.label || '').trim();
+            const prompts = Array.isArray(item.prompts) ? item.prompts : [];
+            if (label) out[label] = prompts;
+          }
+        }
+        return out;
+      }
+    
+      return {};
     }
+    
+    // Inline alert if /prompts.json can’t load
+    function showInlineAlert(msg) {
+      const el = document.createElement('div');
+      el.className = 'alert';
+      el.textContent = msg;
+      const wrap = document.querySelector('.wrap') || document.body;
+      wrap.insertBefore(el, wrap.firstChild.nextSibling);
+    }
+
+    async function loadPrompts(){
+  try {
+    const res = await fetch('/prompts.json', { cache: 'no-store' });
+    if (!res.ok) {
+      console.error('Failed to fetch /prompts.json:', res.status);
+      showInlineAlert('Unable to load categories (prompts.json not available).');
+      PROMPTS = {};
+      renderCategories();
+      return;
+    }
+
+    const raw = await res.json();
+    const norm = normalizePromptsShape(raw);
+
+    if (!norm || typeof norm !== 'object' || !Object.keys(norm).length) {
+      console.warn('prompts.json loaded but appears empty or malformed:', raw);
+      showInlineAlert('No categories found in prompts.json. Please check its format.');
+      PROMPTS = {};
+    } else {
+      PROMPTS = norm;
+    }
+
+    function renderCategories(){
+  categoryView.innerHTML = '';
+
+  const labels = Object.keys(PROMPTS || {});
+  if (!labels.length) {
+    const empty = document.createElement('div');
+    empty.className = 'alert';
+    empty.innerHTML = [
+      'No categories to display.',
+      ' Check that <code>/prompts.json</code> exists and contains keys like ',
+      '<code>"Psychological – Mental Health"</code> or <code>"Physical – Injury Management"</code>.'
+    ].join('');
+    categoryView.appendChild(empty);
+    categoryView.classList.add('active');
+    promptView.classList.remove('active');
+    resetChat();
+    document.getElementById('msg').value='';
+    clearActiveCategory();
+    CURRENT_PROMPT_ID = '';
+    CURRENT_PROMPT_META = null;
+    return;
+  }
+
+  labels.forEach(label=>{
+    const { head, sub } = parseLabel(label);
+    const card=document.createElement('div');
+    card.className='category-card';
+
+    const em=document.createElement('div');
+    em.className='category-emoji';
+    em.textContent = categoryEmoji(head || label);
+
+    const textWrap=document.createElement('div');
+    const title=document.createElement('div');
+    title.className='category-title';
+    title.textContent = head || label;
+    textWrap.appendChild(title);
+
+    if (sub) {
+      const subEl=document.createElement('div');
+      subEl.className='category-sub';
+      subEl.textContent = sub;
+      textWrap.appendChild(subEl);
+    }
+
+    card.appendChild(em);
+    card.appendChild(textWrap);
+    card.addEventListener('click',()=>showPrompts(label));
+    categoryView.appendChild(card);
+  });
+
+  categoryView.classList.add('active');
+  promptView.classList.remove('active');
+  resetChat();
+  document.getElementById('msg').value='';
+  clearActiveCategory();
+  CURRENT_PROMPT_ID = '';
+  CURRENT_PROMPT_META = null;
+}
 
     function renderCategories(){
       categoryView.innerHTML='';
