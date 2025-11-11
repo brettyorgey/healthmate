@@ -124,15 +124,15 @@
       .triage-btns { flex-direction:column; align-items:stretch; }
       .triage-cta__btn { width:100%; justify-content:center; font-size:15px; padding:12px 14px; }
     }
-    
+
     /* Simple inline alert for data-load errors */
     .alert {
-    background:#fff7ed;
-    color:#7c2d12;
-    border:1px solid #fdba74;
-    border-radius:10px;
-    padding:10px 12px;
-    margin:12px 0;
+      background:#fff7ed;
+      color:#7c2d12;
+      border:1px solid #fdba74;
+      border-radius:10px;
+      padding:10px 12px;
+      margin:12px 0;
     }
   </style>
 </head>
@@ -201,10 +201,7 @@
       const ctxCat = triageCanonical(ctx.category);
       const wantCats = (w.categories || []).map(triageCanonical);
 
-      // category match (head-aware, case-insensitive)
       if (w.categories && w.categories.length && !wantCats.includes(ctxCat)) return false;
-
-      // keyword logic
       if (w.anyKeywords && w.anyKeywords.length && !triageTextHasAny(ctx.userText, w.anyKeywords)) return false;
       if (w.allKeywords && w.allKeywords.length && !w.allKeywords.every(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
       if (w.excludeKeywords && w.excludeKeywords.length && w.excludeKeywords.some(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
@@ -295,9 +292,6 @@
       if (sources && sources.parentElement === container) container.insertBefore(wrapper, sources);
       else container.appendChild(wrapper);
     }
-    /**
-     * ctx = { category, promptId, userText, assistantEl }
-     */
     async function triageEvaluateAndRender(ctx){
       const rules = await triageLoadRules();
       const matches = rules
@@ -322,7 +316,6 @@
     }
 
     /* ---------- Robust label parsing ---------- */
-    // Accepts "Head – Sub", "Head - Sub", "Head: Sub", with/without spaces.
     function parseLabel(label=''){
       const raw = String(label || '');
       const m = raw.match(/^\s*([^–\-:]+?)\s*[–\-:]\s+(.+)\s*$/);
@@ -352,8 +345,8 @@
 
     // State
     const TRANSCRIPT=[]; let PROMPTS={};
-    let CURRENT_PROMPT_ID = '';     // stable slug for selected prompt
-    let CURRENT_PROMPT_META = null; // holds full object ({ prompt, pillar, ... }) when available
+    let CURRENT_PROMPT_ID = '';
+    let CURRENT_PROMPT_META = null;
 
     // DOM
     const categoryView=document.getElementById('categoryView');
@@ -367,7 +360,6 @@
     /* ---------- Model-link hardening ---------- */
     const STRIP_MODEL_LINKS = true;
 
-    // Remove "Sources"/"Relevant sources" blocks (any heading style) from model text
     function stripAnySourcesBlocks(md){
       if(!md) return md;
       return md.replace(
@@ -375,17 +367,13 @@
         '$1'
       );
     }
-
-    // Remove inline links and bare URLs from model body
     function stripModelLinks(md){
       if(!md) return md;
       let s = md;
-      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, '$1'); // [label](url) -> label
-      s = s.replace(/https?:\/\/[^\s)]+/gi, '').replace(/[ \t]{2,}/g,' '); // bare URLs -> remove
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, '$1');
+      s = s.replace(/https?:\/\/[^\s)]+/gi, '').replace(/[ \t]{2,}/g,' ');
       return s;
     }
-
-    // Remove model "## Sources" section (legacy)
     function stripSourcesSection(md){
       if (!md) return md;
       return md.replace(/(^|\n)##\s*Sources[\s\S]*?(?=(\n##\s)|\n?$)/i, '$1');
@@ -394,33 +382,23 @@
     // Escape HTML
     function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    // Minimal Markdown → HTML (links, h2/h3, bold, bullet lists, paragraphs)
+    // Minimal Markdown → HTML
     function mdToHtml(md){
       if(!md) return '';
       let s = esc(md);
-
-      // clickable links: [label](https://...) (disabled when STRIP_MODEL_LINKS is true)
       if (!STRIP_MODEL_LINKS) {
         s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
           (_m,label,url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
       }
-
-      // headings (do h3 before h2)
       s = s.replace(/^###\s+(.*)$/gm,'<h3>$1</h3>');
       s = s.replace(/^##\s+(.*)$/gm,'<h2>$1</h2>');
-
-      // bold
       s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-
-      // simple bullet lists (pure blocks of "- " lines)
       s = s.replace(/(^|\n)(?:- .*(?:\n- .*)*)/g, (block) => {
         const lines = block.trim().split('\n');
         if (!lines.every(l => l.trim().startsWith('- '))) return block;
         const items = lines.map(l => `<li>${l.trim().slice(2)}</li>`).join('');
         return `\n<ul>${items}</ul>`;
       });
-
-      // paragraphs / line breaks (avoid wrapping existing block elements)
       const blocks = s.split(/\n{2,}/).map(chunk => {
         if (/^\s*(<h2|<h3|<ul|<p|<blockquote|<pre|<table|<ol)/i.test(chunk)) return chunk;
         return `<p>${chunk.replace(/\n/g,'<br/>')}</p>`;
@@ -428,7 +406,7 @@
       return blocks.join('\n');
     }
 
-    // Sources box (ONLY from data.sources)
+    // Sources box for curated sources only
     function renderSourcesBox(parent, sources){
       if(!Array.isArray(sources) || !sources.length) return;
       parent.querySelectorAll('.sources, .inline-controls').forEach(n => n.remove());
@@ -506,7 +484,7 @@
       return out;
     }
 
-    /* TTS (Listen) */
+    /* TTS */
     function speakText(text){
       if(!('speechSynthesis' in window)){ alert('Speech not supported on this browser'); return; }
       try{
@@ -517,7 +495,7 @@
       }catch(e){ console.warn('TTS error:', e); }
     }
 
-    /* STT (Mic) */
+    /* STT */
     let recognition = null, listening = false;
     function getRecognition(){
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -562,7 +540,6 @@
         cleaned = cleanFooterHeading(cleaned);
         cleaned = removeDeadLinkMarkers(cleaned);
 
-        // Harden against model-emitted links/sections
         cleaned = stripAnySourcesBlocks(cleaned);
         cleaned = stripSourcesSection(cleaned);
         if (STRIP_MODEL_LINKS) cleaned = stripModelLinks(cleaned);
@@ -616,7 +593,6 @@
             addMsg('assistant', 'Sorry — server error ('+data.error+')');
           } else {
             const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
-            // Triage after assistant reply (polling path)
             triageEvaluateAndRender({
               category: parseLabel(promptTitle.textContent || '').head || '',
               promptId: CURRENT_PROMPT_ID || '',
@@ -638,7 +614,6 @@
       const inp=document.getElementById('msg');
       const content=(txt||inp.value||'').trim(); if(!content) return;
 
-      // If message is typed (no prompt button), clear any old prompt id/meta
       if (typeof txt === 'undefined') { CURRENT_PROMPT_ID = ''; CURRENT_PROMPT_META = null; }
 
       addMsg('user',content);
@@ -666,7 +641,6 @@
         }, 30000);
         const data = await r.json().catch(()=> ({}));
 
-        // still working? switch to polling
         if (r.status === 202 && data.pending && data.thread_id){
           sessionStorage.setItem('fq_thread_id', data.thread_id);
           await pollUntilReady(data.thread_id, content, thinkingEl);
@@ -680,7 +654,6 @@
           return;
         }
 
-        // race guard: got thread but not the content yet
         if (data.thread_id && (data.output || '').trim().toLowerCase() === 'no response') {
           sessionStorage.setItem('fq_thread_id', data.thread_id);
           const thinkingAgain = showThinking();
@@ -688,11 +661,9 @@
           return;
         }
 
-        // success
         const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
         if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
 
-        // Triage after assistant reply
         triageEvaluateAndRender({
           category: parseLabel(promptTitle.textContent || '').head || '',
           promptId: CURRENT_PROMPT_ID || '',
@@ -736,17 +707,13 @@
         { key: 'Female',         emoji: '♀️' }
       ];
       const hit = map.find(m => head.toLowerCase().startsWith(m.key.toLowerCase()));
-      return hit ? m.emoji : '❖';
+      return hit ? hit.emoji : '❖';   /* <-- fixed (was m.emoji) */
     }
 
-    // Convert various /prompts.json shapes into the expected { "Label – Sub": [prompts...] }
+    // ---------- prompts.json helpers ----------
     function normalizePromptsShape(data) {
       if (!data) return {};
-    
-      // Case A: Already correct shape
-      if (!Array.isArray(data) && typeof data === 'object') return data;
-    
-      // Case B: Array of objects: [{ label, prompts }]
+      if (!Array.isArray(data) && typeof data === 'object') return data; // already object map
       if (Array.isArray(data)) {
         const out = {};
         for (const item of data) {
@@ -758,11 +725,8 @@
         }
         return out;
       }
-    
       return {};
     }
-    
-    // Inline alert if /prompts.json can’t load
     function showInlineAlert(msg) {
       const el = document.createElement('div');
       el.className = 'alert';
@@ -771,91 +735,61 @@
       wrap.insertBefore(el, wrap.firstChild.nextSibling);
     }
 
+    // ---------- load & render categories ----------
     async function loadPrompts(){
-  try {
-    const res = await fetch('/prompts.json', { cache: 'no-store' });
-    if (!res.ok) {
-      console.error('Failed to fetch /prompts.json:', res.status);
-      showInlineAlert('Unable to load categories (prompts.json not available).');
-      PROMPTS = {};
-      renderCategories();
-      return;
-    }
+      try {
+        const res = await fetch('/prompts.json', { cache: 'no-store' });
+        if (!res.ok) {
+          console.error('Failed to fetch /prompts.json:', res.status);
+          showInlineAlert('Unable to load categories (prompts.json not available).');
+          PROMPTS = {};
+          renderCategories();
+          return;
+        }
 
-    const raw = await res.json();
-    const norm = normalizePromptsShape(raw);
+        const raw = await res.json();
+        const norm = normalizePromptsShape(raw);
 
-    if (!norm || typeof norm !== 'object' || !Object.keys(norm).length) {
-      console.warn('prompts.json loaded but appears empty or malformed:', raw);
-      showInlineAlert('No categories found in prompts.json. Please check its format.');
-      PROMPTS = {};
-    } else {
-      PROMPTS = norm;
+        if (!norm || typeof norm !== 'object' || !Object.keys(norm).length) {
+          console.warn('prompts.json loaded but appears empty or malformed:', raw);
+          showInlineAlert('No categories found in prompts.json. Please check its format.');
+          PROMPTS = {};
+        } else {
+          PROMPTS = norm;
+        }
+        renderCategories();
+      } catch (e) {
+        console.error('Error loading /prompts.json:', e);
+        showInlineAlert('Error loading categories. See console for details.');
+        PROMPTS = {};
+        renderCategories();
+      }
     }
 
     function renderCategories(){
-  categoryView.innerHTML = '';
+      categoryView.innerHTML = '';
 
-  const labels = Object.keys(PROMPTS || {});
-  if (!labels.length) {
-    const empty = document.createElement('div');
-    empty.className = 'alert';
-    empty.innerHTML = [
-      'No categories to display.',
-      ' Check that <code>/prompts.json</code> exists and contains keys like ',
-      '<code>"Psychological – Mental Health"</code> or <code>"Physical – Injury Management"</code>.'
-    ].join('');
-    categoryView.appendChild(empty);
-    categoryView.classList.add('active');
-    promptView.classList.remove('active');
-    resetChat();
-    document.getElementById('msg').value='';
-    clearActiveCategory();
-    CURRENT_PROMPT_ID = '';
-    CURRENT_PROMPT_META = null;
-    return;
-  }
+      const labels = Object.keys(PROMPTS || {});
+      if (!labels.length) {
+        const empty = document.createElement('div');
+        empty.className = 'alert';
+        empty.innerHTML = [
+          'No categories to display.',
+          ' Check that <code>/prompts.json</code> exists and contains keys like ',
+          '<code>"Psychological – Mental Health"</code> or <code>"Physical – Injury Management"</code>.'
+        ].join('');
+        categoryView.appendChild(empty);
+        categoryView.classList.add('active');
+        promptView.classList.remove('active');
+        resetChat();
+        document.getElementById('msg').value='';
+        clearActiveCategory();
+        CURRENT_PROMPT_ID = '';
+        CURRENT_PROMPT_META = null;
+        return;
+      }
 
-  labels.forEach(label=>{
-    const { head, sub } = parseLabel(label);
-    const card=document.createElement('div');
-    card.className='category-card';
-
-    const em=document.createElement('div');
-    em.className='category-emoji';
-    em.textContent = categoryEmoji(head || label);
-
-    const textWrap=document.createElement('div');
-    const title=document.createElement('div');
-    title.className='category-title';
-    title.textContent = head || label;
-    textWrap.appendChild(title);
-
-    if (sub) {
-      const subEl=document.createElement('div');
-      subEl.className='category-sub';
-      subEl.textContent = sub;
-      textWrap.appendChild(subEl);
-    }
-
-    card.appendChild(em);
-    card.appendChild(textWrap);
-    card.addEventListener('click',()=>showPrompts(label));
-    categoryView.appendChild(card);
-  });
-
-  categoryView.classList.add('active');
-  promptView.classList.remove('active');
-  resetChat();
-  document.getElementById('msg').value='';
-  clearActiveCategory();
-  CURRENT_PROMPT_ID = '';
-  CURRENT_PROMPT_META = null;
-}
-
-    function renderCategories(){
-      categoryView.innerHTML='';
-      Object.keys(PROMPTS).forEach(label=>{
+      labels.forEach(label=>{
         const { head, sub } = parseLabel(label);
 
         const card=document.createElement('div'); card.className='category-card';
@@ -892,7 +826,7 @@
 
     function showPrompts(label){
       sessionStorage.clear();
-      promptTitle.textContent = label; // keep full label in header
+      promptTitle.textContent = label;
       setActiveCategory(label);
       promptList.innerHTML = '';
 
