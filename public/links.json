@@ -178,17 +178,7 @@
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["ACCHO","First Nations","Indigenous","13YARN"]
-  },
-    {
-    "id": "prideinsport-lgbtq+",
-    "title": "Pridein Sport: Explore LGBTQ+ sports clubs across Australia",
-    "url": "https://prideinsport.com.au/resources-and-initiatives/lgbtq-sports-club-directory/",
-    "domain": "prideinsport.com.au",
-    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
-    "audience": ["player","partner","carer","official"],
-    "region": "AU",
-    "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
-  },
+    },
     {
     "id": "proud2play-lgbtq+",
     "title": "Proud2Play: YOU.ME.US",
@@ -198,23 +188,13 @@
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
-   },
-   {
-    "id": "QLIVES-lgbtq+",
-    "title": "QLIVES: LGBTIQA+SB Communities",
-    "url": "https://www.qlife.org.au/resources/",
-    "domain": "qlife.org.au",
-    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
-    "audience": ["player","partner","carer","official"],
-    "region": "AU",
-    "keywords": ["LGBTQ+","Inclusion","Sexuality","Diversity"]
-   },
+    },
     {
     "id": "usc-retirement-identity",
     "title": "USC: Changes in Athletic Identity and Life Satisfaction",
     "url": "https://research.usc.edu.au/esploro/outputs/journalArticle/Changes-in-Athletic-Identity-and-Life/99448830502621",
     "domain": "usc.edu.au",
-    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "category": ["Identity","Transition, Inclusion & Belonging"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["after sport", "identity","transition","retirement","Diversity"]
@@ -224,10 +204,20 @@
     "title": "UQ: Social Identity after Sport",
     "url": "https://sign.centre.uq.edu.au/products-services/products/social-connection-for-sport-retirement",
     "domain": "uq.edu.au",
-    "category": ["Identity","Sexuality, Gender & Inclusion in Sport"],
+    "category": ["Identity","Transition, Inclusion & Belonging"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
     "keywords": ["after sport", "identity","transition","retirement","Diversity"]
+   },
+   {
+    "id": "AFLPA-Alumni",
+    "title": "AFLPA: Alumni Program Benefits",
+    "url": "https://www.aflplayers.com.au/players-home/alumni",
+    "domain": "aflplayers.com.au",
+    "category": ["Identity","Transition, Inclusion & Belonging"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["alumni", "benefits","entitlements","retirement","transition"]
    },
    {
     "id": "galaxy-sport-finance",
