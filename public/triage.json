@@ -3,7 +3,7 @@
     "id": "headache_memory_story_or_forum",
     "when": {
       "categories": [
-        "Psychological",
+        "Psychological – Mental Health, Concussion & Brain Health",
         "Brain health"
       ],
       "anyKeywords": [
@@ -14,7 +14,6 @@
         "confus",
         "dizzy",
         "cognitive"
-        "brain health"
       ]
     },
     "action": {
