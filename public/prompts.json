@@ -189,6 +189,13 @@
       "subpillar": "diversity",
       "audience": ["official"],
       "keywords": ["diversity", "inclusion", "team", "club culture"]
+    },
+    {
+      "prompt": "I'm an AFLPA Alumni member, what benefits do I have access to?",
+      "pillar": "identity",
+      "subpillar": "transition",
+      "audience": ["player, carer"],
+      "keywords": ["AFLPA", "Alumni", "benefits", "club culture"]
     }
   ],
 
