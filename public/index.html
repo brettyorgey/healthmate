@@ -119,6 +119,7 @@
     .triage-cta__btn.secondary-blue { background:#fff; color:#0ea5e9; border:1px solid #0ea5e9; }
     .triage-cta__btn.secondary-blue:hover { background:#e0f2fe; }
     .triage-note { margin:6px 0 0; font-size:12px; color:#64748b; opacity:0; animation: triageFadeIn .4s ease forwards; }
+    @keyframes triageFadeIn { from {opacity:0; transform:translateY(2px);} to {opacity:1; transform:translateY(0);} }
     @media (max-width: 480px){
       .triage-btns { flex-direction:column; align-items:stretch; }
       .triage-cta__btn { width:100%; justify-content:center; font-size:15px; padding:12px 14px; }
@@ -182,17 +183,22 @@
       return list.some(k => t.includes(k.toLowerCase()));
     }
     function triageCanonical(label){
-    const { head } = parseLabel(label || '');
-    return (head || '').trim().toLowerCase();
+      const { head } = parseLabel(label || '');
+      return (head || '').trim().toLowerCase();
     }
     function triageMatches(rule, ctx){
+      const w = rule.when || {};
       const ctxCat = triageCanonical(ctx.category);
       const wantCats = (w.categories || []).map(triageCanonical);
+
+      // category match (head-aware, case-insensitive)
       if (w.categories && w.categories.length && !wantCats.includes(ctxCat)) return false;
-      if (w.categories && w.categories.length && !w.categories.includes(ctx.category)) return false;
+
+      // keyword logic
       if (w.anyKeywords && w.anyKeywords.length && !triageTextHasAny(ctx.userText, w.anyKeywords)) return false;
       if (w.allKeywords && w.allKeywords.length && !w.allKeywords.every(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
       if (w.excludeKeywords && w.excludeKeywords.length && w.excludeKeywords.some(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
+
       return true;
     }
     function triageBuildStoryUrl(btnOrAction, ctx){
@@ -364,10 +370,8 @@
     function stripModelLinks(md){
       if(!md) return md;
       let s = md;
-      // [label](https://...) -> label
-      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, '$1');
-      // bare URLs -> removed
-      s = s.replace(/https?:\/\/[^\s)]+/gi, '').replace(/[ \t]{2,}/g,' ');
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, '$1'); // [label](url) -> label
+      s = s.replace(/https?:\/\/[^\s)]+/gi, '').replace(/[ \t]{2,}/g,' '); // bare URLs -> remove
       return s;
     }
 
@@ -604,12 +608,11 @@
             const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
             // Triage after assistant reply (polling path)
             triageEvaluateAndRender({
-            category: parseLabel(promptTitle.textContent || '').head || '',
-            promptId: CURRENT_PROMPT_ID || '',
-            userText: /* originalUserText or content */,
-            assistantEl
+              category: parseLabel(promptTitle.textContent || '').head || '',
+              promptId: CURRENT_PROMPT_ID || '',
+              userText: originalUserText || '',
+              assistantEl
             });
-
           }
           return;
         }
@@ -681,10 +684,10 @@
 
         // Triage after assistant reply
         triageEvaluateAndRender({
-        category: parseLabel(promptTitle.textContent || '').head || '',
-        promptId: CURRENT_PROMPT_ID || '',
-        userText: /* originalUserText or content */,
-        assistantEl
+          category: parseLabel(promptTitle.textContent || '').head || '',
+          promptId: CURRENT_PROMPT_ID || '',
+          userText: content || '',
+          assistantEl
         });
 
       }catch(e){
@@ -723,7 +726,7 @@
         { key: 'Female',         emoji: '♀️' }
       ];
       const hit = map.find(m => head.toLowerCase().startsWith(m.key.toLowerCase()));
-      return hit ? hit.emoji : '❖';
+      return hit ? m.emoji : '❖';
     }
 
     async function loadPrompts(){
