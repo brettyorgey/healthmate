@@ -181,8 +181,14 @@
       const t = (text||'').toLowerCase();
       return list.some(k => t.includes(k.toLowerCase()));
     }
+    function triageCanonical(label){
+    const { head } = parseLabel(label || '');
+    return (head || '').trim().toLowerCase();
+    }
     function triageMatches(rule, ctx){
-      const w = rule.when || {};
+      const ctxCat = triageCanonical(ctx.category);
+      const wantCats = (w.categories || []).map(triageCanonical);
+      if (w.categories && w.categories.length && !wantCats.includes(ctxCat)) return false;
       if (w.categories && w.categories.length && !w.categories.includes(ctx.category)) return false;
       if (w.anyKeywords && w.anyKeywords.length && !triageTextHasAny(ctx.userText, w.anyKeywords)) return false;
       if (w.allKeywords && w.allKeywords.length && !w.allKeywords.every(k => (ctx.userText||'').toLowerCase().includes(k.toLowerCase()))) return false;
@@ -598,11 +604,12 @@
             const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
             // Triage after assistant reply (polling path)
             triageEvaluateAndRender({
-              category: promptTitle.textContent || '',
-              promptId: CURRENT_PROMPT_ID || '',
-              userText: originalUserText || '',
-              assistantEl
+            category: parseLabel(promptTitle.textContent || '').head || '',
+            promptId: CURRENT_PROMPT_ID || '',
+            userText: /* originalUserText or content */,
+            assistantEl
             });
+
           }
           return;
         }
@@ -674,10 +681,10 @@
 
         // Triage after assistant reply
         triageEvaluateAndRender({
-          category: promptTitle.textContent || '',
-          promptId: CURRENT_PROMPT_ID || '',
-          userText: content || '',
-          assistantEl
+        category: parseLabel(promptTitle.textContent || '').head || '',
+        promptId: CURRENT_PROMPT_ID || '',
+        userText: /* originalUserText or content */,
+        assistantEl
         });
 
       }catch(e){
