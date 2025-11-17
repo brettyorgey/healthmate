@@ -1,13 +1,13 @@
 [
   {
-    "id": "healthdirect-concussion",
-    "title": "Healthdirect: Concussion",
-    "url": "https://www.healthdirect.gov.au/concussion",
-    "domain": "healthdirect.gov.au",
+    "id": "concussion-foundation",
+    "title": "Concussion Foundation: Fighting for a world without CTE",
+    "url": "https://concussionfoundation.org/en-au/",
+    "domain": "concussionfoundation.org",
     "category": ["Psychological"],
     "audience": ["player","partner","carer","official"],
     "region": "AU",
-    "keywords": ["head knocks","post-concussion","concussion"]
+    "keywords": ["head knocks","post-concussion","concussion","CTE","Brain Health"]
   },
   {
     "id": "healthdirect-memory-loss",
