@@ -30,6 +30,16 @@
     "keywords": ["headache","migraine","concussion"]
   },
   {
+    "id": "aflpa-alumni",
+    "title": "AFLPA: Alumni Services",
+    "url": "https://www.aflplayers.com.au/",
+    "domain": "aflplayers.com.au",
+    "category": ["Physical","Health and Fitness","Injury Rehab"],
+    "audience": ["player","partner","carer","official"],
+    "region": "AU",
+    "keywords": ["aflpa alumni","exercise","physiotherapy","rehabilitation","therapy","health","fitness","activity","community","injury rehab"]
+  },
+  {
     "id": "healthdirect-physical-activity",
     "title": "Healthdirect: Physical Activity Guidelines",
     "url": "https://www.healthdirect.gov.au/physical-activity-guidelines-for-older-adults",
