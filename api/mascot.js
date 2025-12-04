@@ -33,7 +33,8 @@ const CAT_SYNONYMS = {
   identity: ["identity","foreclosure","retirement","lgbtqi","gender","sexuality","inclusion"],
   financial: ["money","budget","grant","superannuation","financial","cost"],
   environmental: ["alcohol","drugs","gambling","dependency","addiction"],
-  female: ["women","female","motherhood","menstrual","pregnancy","aflw"]
+  female: ["women","female","motherhood","menstrual","pregnancy","aflw"],
+  aged care: ["care","housing","support","respite","residential"]
 };
 
 /* -------------------- small helpers -------------------- */
@@ -120,8 +121,6 @@ function normalizeCategoryKey(input) {
   const map = {
     'physical': 'physical',
     'psychological': 'psychological',
-    'brain health': 'brain-health',
-    'brain-health': 'brain-health',
     'career': 'career',
     'family': 'family',
     'cultural': 'cultural',
@@ -129,6 +128,7 @@ function normalizeCategoryKey(input) {
     'financial': 'financial',
     'environmental': 'environmental',
     'female': 'female'
+    'aged care': 'aged care'
   };
   return map[s] || null;
 }
