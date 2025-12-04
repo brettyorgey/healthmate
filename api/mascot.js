@@ -127,8 +127,8 @@ function normalizeCategoryKey(input) {
     'identity': 'identity',
     'financial': 'financial',
     'environmental': 'environmental',
-    'female': 'female'
-    'aged care': 'aged care'
+    'female': 'female',
+    'aged care': 'aged_care'
   };
   return map[s] || null;
 }
