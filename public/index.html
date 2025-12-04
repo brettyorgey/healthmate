@@ -330,15 +330,14 @@
       const map = {
         'physical': 'physical',
         'psychological': 'psychological',
-        'brain health': 'brain-health',
-        'brain-health': 'brain-health',
         'career': 'career',
         'family': 'family',
         'cultural': 'cultural',
         'identity': 'identity',
         'financial': 'financial',
         'environmental': 'environmental',
-        'female': 'female'
+        'female': 'female',
+        'aged care': 'aged care'
       };
       return map[key] || null;
     }
@@ -704,7 +703,8 @@
         { key: 'Identity',       emoji: '🎭' },
         { key: 'Financial',      emoji: '💰' },
         { key: 'Environmental',  emoji: '⚠️' },
-        { key: 'Female',         emoji: '♀️' }
+        { key: 'Female',         emoji: '♀️' },
+        { key: 'AgedCare',       emoji: '🧓' }
       ];
       const hit = map.find(m => head.toLowerCase().startsWith(m.key.toLowerCase()));
       return hit ? hit.emoji : '❖';   /* <-- fixed (was m.emoji) */
