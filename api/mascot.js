@@ -34,7 +34,7 @@ const CAT_SYNONYMS = {
   financial: ["money","budget","grant","superannuation","financial","cost"],
   environmental: ["alcohol","drugs","gambling","dependency","addiction"],
   female: ["women","female","motherhood","menstrual","pregnancy","aflw"],
-  aged care: ["care","housing","support","respite","residential"]
+  aged_care: ["care","housing","support","respite","residential"]
 };
 
 /* -------------------- small helpers -------------------- */
@@ -128,7 +128,8 @@ function normalizeCategoryKey(input) {
     'financial': 'financial',
     'environmental': 'environmental',
     'female': 'female',
-    'aged care': 'aged_care'
+    'aged care': 'aged_care',
+    'aged_care': 'aged_care'
   };
   return map[s] || null;
 }
