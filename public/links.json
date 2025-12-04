@@ -524,7 +524,17 @@
   "title": "Care Guidance: We care as you do",
   "url": "https://careguidance.com.au/",
   "domain": "careguidance.com.au",
-  "category": ["Family, Community and Social Connection"],
+  "category": ["Aged Care"],
+  "audience": ["player", "partner", "carer", "official"],
+  "region": "AU",
+  "keywords": ["aged care", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
+  },
+  {
+  "id": "myagedcare",
+  "title": "myagedcare: Helping you navigate aged care",
+  "url": "https://www.myagedcare.gov.au/",
+  "domain": "myagedcare.gov.au",
+  "category": ["Aged Care"],
   "audience": ["player", "partner", "carer", "official"],
   "region": "AU",
   "keywords": ["aged care", "connection", "transition", "peer networks", "strategy", "community", "share experience", "past players"]
