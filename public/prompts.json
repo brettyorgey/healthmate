@@ -304,5 +304,43 @@
       "audience": ["player"],
       "keywords": ["female", "network", "community", "alumni"]
     }
+  ],
+
+  "Aged Care - Three-Layer Navigation Framework": [
+    {
+      "prompt": "Which aged care services are available for the person (former athlete) I care for?",
+      "pillar": "aged care",
+      "subpillar": "services",
+      "audience": ["carer"],
+      "keywords": ["care", "housing", "residential", "respite"]
+    },
+    {
+      "prompt": "How do I apply for my partner’s aged care assessment?",
+      "pillar": "ages care",
+      "subpillar": "assessment",
+      "audience": ["carer"],
+      "keywords": ["apply", "assessment", "residential", "care"]
+    },
+    {
+      "prompt": "What help is available for me as a carer? What is respite care?",
+      "pillar": "aged care",
+      "subpillar": "respite",
+      "audience": ["carer"],
+      "keywords": ["respite", "care", "relief", "break", "service"]
+    },
+    {
+      "prompt": "How to access aged care services?",
+      "pillar": "aged care",
+      "subpillar": "access",
+      "audience": ["player"],
+      "keywords": ["care", "housing", "assessment", "support"]
+    },
+    {
+      "prompt": "What should I do if they have no one else to help them?",
+      "pillar": "aged care",
+      "subpillar": "support",
+      "audience": ["carer"],
+      "keywords": ["support", "housing", "assessment", "services"]
+    }
   ]
 }
