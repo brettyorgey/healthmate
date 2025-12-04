@@ -315,7 +315,7 @@
       "keywords": ["care", "housing", "residential", "respite"]
     },
     {
-      "prompt": "How do I apply for my partner’s aged care assessment?",
+      "prompt": "How do I apply for my partner’s aged care services assessment?",
       "pillar": "ages care",
       "subpillar": "assessment",
       "audience": ["carer"],
@@ -336,7 +336,7 @@
       "keywords": ["care", "housing", "assessment", "support"]
     },
     {
-      "prompt": "What should I do if they have no one else to help them?",
+      "prompt": "What should I do regarding aged care services if they have no one else to help them?",
       "pillar": "aged care",
       "subpillar": "support",
       "audience": ["carer"],
