@@ -16,21 +16,21 @@
     },
     {
       "prompt": "What’s the difference between post-concussion symptoms and CTE — and who can assess this?",
-      "pillar": "brain-health",
+      "pillar": "psychological",
       "subpillar": "cte",
       "audience": ["player", "partner"],
       "keywords": ["concussion", "CTE", "neurology", "head injury", "brain health"]
     },
     {
       "prompt": "How can carers track memory, behaviour, or mood changes after head knocks?",
-      "pillar": "brain-health",
+      "pillar": "psychological",
       "subpillar": "monitoring",
       "audience": ["carer", "partner"],
       "keywords": ["memory", "behaviour", "symptom diary", "carer", "monitoring"]
     },
     {
       "prompt": "What brain health or concussion clinics specialise in former athletes?",
-      "pillar": "brain-health",
+      "pillar": "psychological",
       "subpillar": "clinics",
       "audience": ["player"],
       "keywords": ["concussion clinic", "neurology", "sports medicine", "brain health"]
@@ -156,7 +156,7 @@
       "prompt": "How can clubs ensure cultural safety during and after players’ careers?",
       "pillar": "cultural",
       "subpillar": "club-practice",
-      "audience": ["official"],
+      "audience": ["official","player","carer"],
       "keywords": ["cultural safety", "inclusive", "training", "policy"]
     }
   ],
@@ -194,7 +194,7 @@
       "prompt": "I'm an AFLPA Alumni member, what benefits do I have access to?",
       "pillar": "identity",
       "subpillar": "transition",
-      "audience": ["player, carer"],
+      "audience": ["player", "carer"],
       "keywords": ["AFLPA", "Alumni", "benefits", "club culture"]
     }
   ],
@@ -309,35 +309,35 @@
   "Aged Care - Three-Layer Navigation Framework": [
     {
       "prompt": "Which aged care services are available for the person (former athlete) I care for?",
-      "pillar": "aged care",
+      "pillar": "aged-care",
       "subpillar": "services",
       "audience": ["carer"],
       "keywords": ["care", "housing", "residential", "respite"]
     },
     {
       "prompt": "How do I apply for my partner’s aged care services assessment?",
-      "pillar": "ages care",
+      "pillar": "aged-care",
       "subpillar": "assessment",
       "audience": ["carer"],
       "keywords": ["apply", "assessment", "residential", "care"]
     },
     {
       "prompt": "What help is available for me as a carer? What is respite care?",
-      "pillar": "aged care",
+      "pillar": "aged-care",
       "subpillar": "respite",
       "audience": ["carer"],
       "keywords": ["respite", "care", "relief", "break", "service"]
     },
     {
       "prompt": "How to access aged care services?",
-      "pillar": "aged care",
+      "pillar": "aged-care",
       "subpillar": "access",
       "audience": ["player"],
       "keywords": ["care", "housing", "assessment", "support"]
     },
     {
       "prompt": "What should I do regarding aged care services if they have no one else to help them?",
-      "pillar": "aged care",
+      "pillar": "aged-care",
       "subpillar": "support",
       "audience": ["carer"],
       "keywords": ["support", "housing", "assessment", "services"]
