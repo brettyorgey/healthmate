@@ -99,14 +99,16 @@
        so the composer overlay aligns to its bottom edge without encroaching on the footer. */
     .chat-area{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
 
-    /* Scroll area: the only element that scrolls within the chat pane. The top fade is
-       viewport-relative (always fades content as it scrolls under the header). The bottom is left
-       unmasked — padding-bottom keeps real content clear of the composer overlay entirely, so the
-       last message is never cropped once scrolled fully into view. */
+    /* Scroll area: the only element that scrolls within the chat pane. The top fade only applies
+       once scrolled (.is-scrolled, toggled in JS) so the very first message is never cropped when
+       there's nothing above it. The bottom is left unmasked — padding-bottom keeps real content
+       clear of the composer overlay entirely, so the last message is never cropped either. */
     .scroll-area{
       display:flex; flex-direction:column; overflow:auto; flex:1 1 auto; min-height:0; padding-right:4px;
       overscroll-behavior-y: contain;
       padding-bottom:104px;
+    }
+    .scroll-area.is-scrolled{
       -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 100%);
       mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 100%);
     }
@@ -133,11 +135,15 @@
     }
     .msg.assistant h2:first-of-type,
     .msg.assistant h3:first-of-type { margin-top: 12px; }
-    .msg.assistant p { margin: 8px 0 12px; }
+    .msg.assistant p { margin: 6px 0; }
 
     /* Assistant list styling (for markdown lists) */
-    .msg.assistant ul { margin: 0.25rem 0 0.75rem 1.25rem; padding: 0; }
-    .msg.assistant li { margin: 0.25rem 0; }
+    .msg.assistant ul { margin: 4px 0 4px 1.25rem; padding: 0; }
+    .msg.assistant li { margin: 2px 0; }
+
+    /* Remove the bubble's own padding + first/last child margin stacking */
+    .msg.assistant > *:first-child { margin-top: 0; }
+    .msg.assistant > *:last-child { margin-bottom: 0; }
 
     /* Sources box */
     .sources { margin-top:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; }
@@ -157,10 +163,9 @@
 
     /* Composer — single rounded card housing the textarea + control row (mimics Claude's input) */
     .inputRow{
-      display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.88); border:1px solid #eee2d3; border-radius:26px;
+      display:flex; flex-direction:column; gap:6px; background:#fff; border:1px solid #eee2d3; border-radius:26px;
       padding:12px 14px 10px; transition: box-shadow .15s ease, border-color .15s ease;
       position:absolute; left:0; right:0; bottom:0; z-index:2;
-      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     }
     .inputRow:focus-within{ border-color:var(--brand); box-shadow:0 0 0 3px var(--ring); }
     textarea#msg{
@@ -702,11 +707,8 @@
 
     function showThinking(){
       const d = addMsg('assistant','');
-      d.innerHTML = `
-        <span class="thinking" role="status" aria-live="polite">
-          Thinking…
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        </span>`;
+      d.style.width = 'fit-content';
+      d.innerHTML = '<span class="thinking" role="status" aria-live="polite">Thinking… <span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
       return d;
     }
 
@@ -1016,7 +1018,7 @@
       // no dead space beyond that, but not flush against it either.
       const inputRowEl = document.querySelector('.inputRow');
       const scrollAreaEl = document.getElementById('scrollArea');
-      const COMPOSER_GAP = 16;
+      const COMPOSER_GAP = 32;
       const syncComposerClearance = ()=>{
         scrollAreaEl.style.paddingBottom = (inputRowEl.getBoundingClientRect().height + COMPOSER_GAP) + 'px';
       };
@@ -1026,6 +1028,12 @@
         window.addEventListener('resize', syncComposerClearance);
       }
       syncComposerClearance();
+
+      // Only fade the top edge once there's actually content scrolled above it.
+      scrollAreaEl.addEventListener('scroll', ()=>{
+        scrollAreaEl.classList.toggle('is-scrolled', scrollAreaEl.scrollTop > 0);
+      });
+
       msgEl.addEventListener('focus', refreshPromptVisibility);
       msgEl.addEventListener('blur', refreshPromptVisibility);
       msgEl.addEventListener('input', refreshPromptVisibility);
