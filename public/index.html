@@ -13,44 +13,113 @@
   <meta charset="UTF-8" />
   <title>FifthQtr Healthmate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --card-bg:#ffffff; --page-bg:#f7f9fc; --text:#0f172a; --muted:#4b5563; --brand:#0ea5e9; }
-    body { margin:0; background:var(--page-bg); color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    .wrap { width:70%; max-width:1000px; min-width:320px; margin:24px auto; padding:0 16px; }
-  
+    :root {
+      --card-bg:#ffffff; --page-bg:#faf7f2; --text:#1e293b; --muted:#5b6779;
+      --brand:#3C5B9A; --brand-dark:#2A406C; --brand-soft:#E2E6F0;
+      --accent:#f97316; --ring: rgba(60,91,154,.35);
+      --heading-font: 'Quicksand', system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing:border-box; }
+    .sr-only {
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+      clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
+    }
+    html { background:var(--page-bg); height:100%; }
+    body {
+      margin:0; background:var(--page-bg); color:var(--text); font-family: var(--heading-font);
+      height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+    }
+    a:focus-visible, button:focus-visible, .category-card:focus-visible, .prompt-btn:focus-visible {
+      outline: 3px solid var(--ring); outline-offset: 2px;
+    }
+    .wrap {
+      width:100%; max-width:820px; margin:24px auto; padding:0 20px;
+      flex:1; display:flex; flex-direction:column; min-height:0; overflow-y:auto;
+    }
+    @media (max-width: 640px){
+      .wrap { margin:12px auto; padding:0 12px; }
+    }
+
     /* Header */
-    .hero { background: rgb(0,91,181); border-radius:16px; padding:24px; box-shadow:0 4px 14px rgba(15,23,42,0.08); margin-bottom:12px; color:#fff; }
-    .hero h1 { margin:0 0 8px; font-size:28px; line-height:1.2; color:#fff; }
-    .hero p { margin:6px 0 0; color:#e0e7ff; }
+    .hero { background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%); border-radius:20px; padding:28px; box-shadow:0 8px 24px rgba(15,94,89,0.18); margin-bottom:16px; color:#fff; }
+    .hero h1 { margin:0 0 8px; font-size:30px; font-weight:700; line-height:1.25; color:#fff; letter-spacing:.2px; }
+    .hero p { margin:6px 0 0; color:#e6fffa; }
+    @media (max-width: 480px){
+      .hero { padding:20px; border-radius:16px; }
+      .hero h1 { font-size:22px; }
+      .hero p { font-size:14px; }
+    }
 
     /* Categories */
-    .categories { display:flex; flex-direction:column; gap:10px; margin:16px 0; }
-    .category-card{ display:flex; gap:12px; align-items:center; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.05); }
-    .category-card:hover{ background:#f9fafb; }
-    .category-emoji{ font-size:22px; }
+    .categories { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; margin:16px 0; }
+    .category-card{
+      display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #eee2d3; border-radius:14px;
+      padding:16px; cursor:pointer; box-shadow:0 2px 6px rgba(15,23,42,.05); width:100%; text-align:left;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .category-card:hover{ transform:translateY(-2px); box-shadow:0 8px 18px rgba(15,94,89,.12); border-color:var(--brand-soft); }
+    .category-emoji{
+      font-size:20px; width:44px; height:44px; flex:none; display:flex; align-items:center; justify-content:center;
+      border-radius:12px; background:var(--brand-soft);
+    }
     .category-title{ font-weight:700; }
-    .category-sub{ color:#64748b; font-size:14px; }
+    .category-sub{ color:var(--muted); font-size:14px; }
 
     /* Panel */
-    .prompt-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:12px; min-height:70vh; }
-    .prompt-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
-    .back-link{ color:var(--brand); text-decoration:underline; cursor:pointer; font-size:14px; }
+    .prompt-panel{
+      background:#fff; border:1px solid #eee2d3; border-radius:16px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05);
+      display:flex; flex-direction:column; gap:12px; animation: fadeIn .25s ease;
+      flex:1; min-height:0; position:relative;
+    }
+    .prompt-header{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+    .back-btn{
+      flex:none; width:36px; height:36px; border-radius:50%; border:0; background:transparent; color:var(--text);
+      cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background .15s ease;
+    }
+    .back-btn:hover{ background:var(--brand-soft); color:var(--brand-dark); }
+    .panel-title{ font-weight:700; }
+    .panel-subtitle{ color:var(--muted); font-weight:500; font-size:14px; margin-top:2px; }
 
     .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-    .prompt-btn{ text-align:left; border:1px solid #e5e7eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:15px; }
-    .prompt-btn:hover{ background:#f9fafb; }
+    .prompts.is-hidden{ visibility:hidden; }
+    .prompts.is-gone{ display:none; }
+    .prompt-btn{ text-align:left; border:1px solid #eee2d3; background:#fff; border-radius:12px; padding:12px 14px; cursor:pointer; font-size:15px; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+    .prompt-btn:hover{ background:var(--brand-soft); border-color:var(--brand-soft); transform:translateX(2px); }
 
-    .cat-tag{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600; margin:8px 0 16px; }
-    .cat-tag .dot{ width:6px; height:6px; border-radius:50%; background:#0ea5e9; display:inline-block; }
+    @keyframes fadeIn { from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:translateY(0);} }
 
-    /* Scroll area so footer can stick */
-    .scroll-area{ display:flex; flex-direction:column; gap:12px; overflow:auto; max-height: calc(70vh - 150px); padding-right:4px; }
+    /* Chat area: positioning context sized exactly to the space between header and footer,
+       so the composer overlay aligns to its bottom edge without encroaching on the footer. */
+    .chat-area{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+
+    /* Scroll area: the only element that scrolls within the chat pane. The top fade is
+       viewport-relative (always fades content as it scrolls under the header). The bottom is left
+       unmasked — padding-bottom keeps real content clear of the composer overlay entirely, so the
+       last message is never cropped once scrolled fully into view. */
+    .scroll-area{
+      display:flex; flex-direction:column; overflow:auto; flex:1 1 auto; min-height:0; padding-right:4px;
+      overscroll-behavior-y: contain;
+      padding-bottom:104px;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 100%);
+      mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 100%);
+    }
+    .scroll-content{ display:flex; flex-direction:column; gap:12px; }
 
     /* Chat */
-    .chat{ background:#fff; border-radius:12px; padding:12px; border:1px dashed #e5e7eb; display:flex; flex-direction:column; gap:10px; }
+    .chat{ display:flex; flex-direction:column; gap:14px; }
+    .chat:empty{ display:none; }
+    .msg-row{ display:flex; align-items:flex-start; animation: fadeIn .2s ease; }
+    .msg-row.user{ justify-content:flex-end; }
     .msg{ max-width:80%; white-space:pre-wrap; }
-    .msg.user{ align-self:flex-end; background:#dbeafe; color:#0f172a; padding:10px 12px; border-radius:12px 12px 0 12px; text-align:right; }
-    .msg.assistant{ display:flex; flex-direction:column; align-self:flex-start; background:#f8fafc; color:#0f172a; padding:10px 12px; border-radius:12px 12px 12px 0; }
+    .msg.user{ background:var(--brand-soft); color:var(--brand-dark); padding:10px 14px; border-radius:14px 14px 2px 14px; text-align:left; }
+    .msg.assistant{ display:flex; flex-direction:column; background:#f8f6f2; color:var(--text); padding:12px 14px; border-radius:14px 14px 14px 2px; }
     .msg.assistant .sources { order: 2; }
     .inline-controls{ order: 3; margin-top: 8px; align-self: flex-start; }
 
@@ -83,26 +152,54 @@
     .dot:nth-child(2){ animation-delay:.15s; } .dot:nth-child(3){ animation-delay:.3s; }
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
 
-    /* Input + footer */
-    .inputRow{ display:flex; gap:10px; align-items:stretch; }
-    textarea#msg{ flex:1; padding:14px 16px; font-size:16px; line-height:1.35; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; min-height:72px; max-height:300px; }
-    button.send{ padding:14px 18px; border-radius:12px; border:0; background:var(--brand); color:#fff; cursor:pointer; font-size:16px; font-weight:600; }
-    button.send[disabled]{ opacity:.6; cursor:not-allowed; }
+    /* Form controls should use the body font, not the browser's default UI font */
+    textarea, input, button, select { font-family: inherit; }
 
-    .chat-footer{ position:sticky; bottom:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px 0 6px; font-size:13px; color:#475569; display:flex; flex-direction:column; gap:8px; }
+    /* Composer — single rounded card housing the textarea + control row (mimics Claude's input) */
+    .inputRow{
+      display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.88); border:1px solid #eee2d3; border-radius:26px;
+      padding:12px 14px 10px; transition: box-shadow .15s ease, border-color .15s ease;
+      position:absolute; left:0; right:0; bottom:0; z-index:2;
+      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    }
+    .inputRow:focus-within{ border-color:var(--brand); box-shadow:0 0 0 3px var(--ring); }
+    textarea#msg{
+      flex:0 1 auto; width:100%; padding:4px 4px 6px; font-size:16px; line-height:1.4; border:0; resize:none;
+      background:transparent; min-height:26px; max-height:320px; overflow-y:auto;
+      scrollbar-width:none; -ms-overflow-style:none;
+    }
+    textarea#msg::-webkit-scrollbar{ display:none; }
+    textarea#msg:focus{ outline:none; }
+    .composer-row{ display:flex; align-items:center; justify-content:flex-end; gap:14px; }
+
+    button.send{
+      width:36px; height:36px; padding:0; border-radius:50%; border:0; background:var(--brand); color:#fff; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; flex:none;
+      transition: background .15s ease, transform .1s ease;
+    }
+    button.send svg{ width:18px; height:18px; }
+    button.send:hover{ background:var(--brand-dark); }
+    button.send:active{ transform:scale(.94); }
+    button.send[disabled]{ opacity:.5; cursor:not-allowed; }
+
+    .chat-footer{ position:sticky; bottom:0; background:#fff; padding:10px 0 6px; font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:8px; }
     .chat-controls{ display:flex; gap:10px; }
-    .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; }
-    .btn-sm:hover{ background:#f9fafb; }
+    .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #eee2d3; background:#fff; cursor:pointer; font-size:13px; transition: background .15s ease; }
+    .btn-sm:hover{ background:var(--brand-soft); }
 
-    /* Mic button */
-    .btn-icon{ padding:0 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; min-width:56px; }
-    .btn-icon:hover{ background:#f9fafb; }
+    /* Mic button — icon-only, lives inside the composer row */
+    .btn-icon{
+      height:36px; width:36px; padding:0; border-radius:50%; border:0; background:transparent; color:var(--muted); cursor:pointer;
+      font-size:16px; display:flex; align-items:center; justify-content:center; flex:none; transition: background .15s ease;
+    }
+    .btn-icon:hover{ background:var(--brand-soft); }
     .mic-recording{ color:#dc2626; border-color:#fecaca; background:#fff5f5; }
     .mic-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-left:6px; animation:pulse 1s infinite; }
     @keyframes pulse{ 0%{ transform:scale(.85); opacity:.7;} 50%{ transform:scale(1); opacity:1;} 100%{ transform:scale(.85); opacity:.7;} }
 
     #categoryView, #promptView { display:none; }
-    #categoryView.active, #promptView.active { display:block; }
+    #categoryView.active { display:grid; animation: fadeIn .25s ease; }
+    #promptView.active { display:flex; flex:1; min-height:0; animation: fadeIn .25s ease; }
 
     /* ---------- Triage CTA card (tight) ---------- */
     .triage-cta {
@@ -134,6 +231,12 @@
       .triage-cta__btn { width:100%; justify-content:center; font-size:15px; padding:12px 14px; }
     }
 
+    .site-footer{
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      padding:20px 16px 28px; font-size:13px; color:var(--muted);
+    }
+    .footer-logo{ height:16px; width:auto; display:block; }
+
     /* Simple inline alert for data-load errors */
     .alert {
       background:#fff7ed;
@@ -147,9 +250,8 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
+    <div class="hero" id="hero">
       <h1>Welcome — we’re here to support past players & families.</h1>
-      <p>Information only — not a medical diagnosis. Please see your GP for advice. In an emergency call 000.</p>
       <p>Please select a category from the options below, you'll then be provided prompt options or you can type your question into the chat.</p>
     </div>
 
@@ -159,25 +261,32 @@
     <!-- Prompts + chat -->
     <div id="promptView" class="prompt-panel" aria-live="polite">
       <div class="prompt-header">
-        <div id="promptTitle" class="category-title"></div>
-        <div class="back-link" onclick="showCategories()">← Back to Categories</div>
+        <button class="back-btn" onclick="showCategories()" type="button" aria-label="Back to categories">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div id="promptTitle" class="panel-title"></div>
       </div>
 
-      <div id="activeCategory" class="cat-tag" style="display:none;">
-        <span class="dot"></span>
-        <span id="activeCategoryText">You’re asking about: …</span>
-        <a href="javascript:void(0)" onclick="showCategories()">Change category</a>
-      </div>
+      <div class="chat-area">
+        <div class="scroll-area" id="scrollArea">
+          <div class="scroll-content">
+            <div id="promptList" class="prompts"></div>
+            <div class="chat" id="chat" aria-live="polite"></div>
+          </div>
+        </div>
 
-      <div class="scroll-area" id="scrollArea">
-        <div id="promptList" class="prompts"></div>
-        <div class="chat" id="chat" aria-live="polite"></div>
-      </div>
-
-      <div class="inputRow">
-        <button class="btn-icon" id="micBtn" title="Speak your question" type="button">🎤</button>
-        <textarea id="msg" rows="3" placeholder="Type your question…"></textarea>
-        <button class="send" id="sendBtn" type="button" onclick="sendMsg()">Send</button>
+        <div class="inputRow">
+          <label for="msg" class="sr-only">Type your question</label>
+          <textarea id="msg" rows="1" placeholder="Type your question…"></textarea>
+          <div class="composer-row">
+            <button class="btn-icon" id="micBtn" title="Speak your question" aria-label="Speak your question" type="button">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
+            </button>
+            <button class="send" id="sendBtn" type="button" onclick="sendMsg()" aria-label="Send message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="chat-footer">
@@ -189,6 +298,13 @@
       </div>
     </div>
   </div>
+
+  <footer class="site-footer">
+    <span>Powered by</span>
+    <a href="https://fifthqtr.org.au/" target="_blank" rel="noopener noreferrer">
+      <img src="/assets/fifthqtr-logo.png" alt="FifthQtr" class="footer-logo" />
+    </a>
+  </footer>
 
   <script>
     /* ---------- TRIAGE HELPERS (client-side) ---------- */
@@ -355,6 +471,7 @@
     const TRANSCRIPT=[]; let PROMPTS={};
     let CURRENT_PROMPT_ID = '';
     let CURRENT_PROMPT_META = null;
+    let CURRENT_CATEGORY_LABEL = '';
 
     // DOM
     const categoryView=document.getElementById('categoryView');
@@ -362,8 +479,17 @@
     const promptTitle=document.getElementById('promptTitle');
     const promptList=document.getElementById('promptList');
     const chatEl=document.getElementById('chat');
-    const activeCategoryEl=document.getElementById('activeCategory');
-    const activeCategoryTextEl=document.getElementById('activeCategoryText');
+
+    // Once the chat has started, remove the prompt list from layout entirely (space is precious in
+    // the fixed-height chat pane). Before that, hide it (but keep its space reserved, so the
+    // composer doesn't jump) while the user is mid-typing; bring it back once the box is empty.
+    function refreshPromptVisibility(){
+      const msgEl = document.getElementById('msg');
+      if(!msgEl) return;
+      const chatStarted = chatEl.children.length > 0;
+      promptList.classList.toggle('is-gone', chatStarted);
+      promptList.classList.toggle('is-hidden', !chatStarted && msgEl.value.trim().length > 0);
+    }
 
     /* ---------- Model-link hardening ---------- */
     const STRIP_MODEL_LINKS = true;
@@ -510,11 +636,12 @@
       if(!SR) return null;
       const r = new SR(); r.lang='en-AU'; r.interimResults=false; r.maxAlternatives=1; return r;
     }
+    const MIC_ICON_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>';
     function updateMicUI(active){
       const btn = document.getElementById('micBtn');
       if(!btn) return;
-      if(active){ btn.classList.add('mic-recording'); btn.innerHTML='⏺️<span class="mic-dot"></span>'; btn.title='Stop recording'; }
-      else { btn.classList.remove('mic-recording'); btn.textContent='🎤'; btn.title='Speak your question'; }
+      if(active){ btn.classList.add('mic-recording'); btn.innerHTML = MIC_ICON_SVG + '<span class="mic-dot"></span>'; btn.title='Stop recording'; }
+      else { btn.classList.remove('mic-recording'); btn.innerHTML = MIC_ICON_SVG; btn.title='Speak your question'; }
     }
     function startListening(){
       if(listening) return;
@@ -538,6 +665,8 @@
     function addMsg(role,text,sources){
       const entry = {role, text: text || ''};
       TRANSCRIPT.push(entry);
+
+      const row=document.createElement('div'); row.className='msg-row '+role;
       const div=document.createElement('div'); div.className='msg '+role;
 
       if(role==='assistant'){
@@ -562,8 +691,12 @@
       } else {
         div.textContent = text;
       }
-      chatEl.appendChild(div);
-      chatEl.scrollTop=chatEl.scrollHeight;
+      row.appendChild(div);
+      chatEl.appendChild(row);
+      const scrollAreaEl = document.getElementById('scrollArea');
+      if(scrollAreaEl) scrollAreaEl.scrollTop = scrollAreaEl.scrollHeight;
+      refreshPromptVisibility();
+      div.remove = () => row.remove();
       return div;
     }
 
@@ -580,7 +713,7 @@
     async function pollUntilReady(threadId, originalUserText, thinkingEl, tries=12){
       for (let i=0; i<tries; i++){
         await new Promise(r=>setTimeout(r, 2500));
-        const { head } = parseLabel(promptTitle.textContent || '');
+        const { head } = parseLabel(CURRENT_CATEGORY_LABEL || '');
         const r = await fetchWithTimeout('/api/mascot', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
@@ -588,7 +721,7 @@
             peek:true,
             thread_id: threadId,
             message: originalUserText,
-            categoryLabel: promptTitle.textContent || '',
+            categoryLabel: CURRENT_CATEGORY_LABEL || '',
             categoryKey: canonicalCategoryKey(head || ''),
             promptId: CURRENT_PROMPT_ID || '',
             promptMeta: CURRENT_PROMPT_META || null
@@ -602,7 +735,7 @@
           } else {
             const assistantEl = addMsg('assistant', data.output || 'No response', data.sources || []);
             triageEvaluateAndRender({
-              category: parseLabel(promptTitle.textContent || '').head || '',
+              category: parseLabel(CURRENT_CATEGORY_LABEL || '').head || '',
               promptId: CURRENT_PROMPT_ID || '',
               userText: originalUserText || '',
               assistantEl
@@ -625,13 +758,13 @@
       if (typeof txt === 'undefined') { CURRENT_PROMPT_ID = ''; CURRENT_PROMPT_META = null; }
 
       addMsg('user',content);
-      inp.value=''; document.getElementById('sendBtn').disabled=true;
+      inp.value=''; inp.style.height='auto'; refreshPromptVisibility(); document.getElementById('sendBtn').disabled=true;
       const thinkingEl = showThinking();
 
       try{
         const isFollowUp = sessionStorage.getItem('fq_has_initial_answer') === '1';
         const threadId   = sessionStorage.getItem('fq_thread_id') || null;
-        const { head }   = parseLabel(promptTitle.textContent || '');
+        const { head }   = parseLabel(CURRENT_CATEGORY_LABEL || '');
         const catKey     = canonicalCategoryKey(head || '');
 
         const r = await fetchWithTimeout('/api/mascot',{
@@ -641,7 +774,7 @@
             message: content,
             followup: isFollowUp,
             thread_id: threadId,
-            categoryLabel: promptTitle.textContent || '',
+            categoryLabel: CURRENT_CATEGORY_LABEL || '',
             categoryKey: catKey,
             promptId: CURRENT_PROMPT_ID || '',
             promptMeta: CURRENT_PROMPT_META || null
@@ -673,7 +806,7 @@
         if (data.thread_id) sessionStorage.setItem('fq_thread_id', data.thread_id);
 
         triageEvaluateAndRender({
-          category: parseLabel(promptTitle.textContent || '').head || '',
+          category: parseLabel(CURRENT_CATEGORY_LABEL || '').head || '',
           promptId: CURRENT_PROMPT_ID || '',
           userText: content || '',
           assistantEl
@@ -687,18 +820,7 @@
       }
     }
 
-    function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); }
-
-    function setActiveCategory(label){
-      const { head } = parseLabel(label || '');
-      const short = head || label || 'General';
-      activeCategoryTextEl.textContent=`You’re asking about: ${short}`;
-      activeCategoryEl.style.display='inline-flex';
-    }
-    function clearActiveCategory(){
-      activeCategoryEl.style.display='none';
-      activeCategoryTextEl.textContent='You’re asking about: …';
-    }
+    function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); refreshPromptVisibility(); }
 
     function categoryEmoji(label){
       const { head } = parseLabel(label || '');
@@ -776,6 +898,7 @@
     }
 
     function renderCategories(){
+      document.getElementById('hero').style.display = '';
       categoryView.innerHTML = '';
 
       const labels = Object.keys(PROMPTS || {});
@@ -792,7 +915,6 @@
         promptView.classList.remove('active');
         resetChat();
         document.getElementById('msg').value='';
-        clearActiveCategory();
         CURRENT_PROMPT_ID = '';
         CURRENT_PROMPT_META = null;
         return;
@@ -801,8 +923,9 @@
       labels.forEach(label=>{
         const { head, sub } = parseLabel(label);
 
-        const card=document.createElement('div'); card.className='category-card';
+        const card=document.createElement('button'); card.type='button'; card.className='category-card';
         const em=document.createElement('div'); em.className='category-emoji'; em.textContent = categoryEmoji(head || label);
+        em.setAttribute('aria-hidden','true');
 
         const textWrap=document.createElement('div');
         const title=document.createElement('div'); title.className='category-title'; title.textContent = head || label;
@@ -821,7 +944,6 @@
       promptView.classList.remove('active');
       resetChat();
       document.getElementById('msg').value='';
-      clearActiveCategory();
       CURRENT_PROMPT_ID = '';
       CURRENT_PROMPT_META = null;
     }
@@ -835,8 +957,19 @@
 
     function showPrompts(label){
       sessionStorage.clear();
-      promptTitle.textContent = label;
-      setActiveCategory(label);
+      document.getElementById('hero').style.display = 'none';
+      CURRENT_CATEGORY_LABEL = label;
+      const { head, sub } = parseLabel(label);
+      promptTitle.innerHTML = '';
+      const titleMain = document.createElement('div');
+      titleMain.textContent = head || label;
+      promptTitle.appendChild(titleMain);
+      if (sub) {
+        const titleSub = document.createElement('div');
+        titleSub.className = 'panel-subtitle';
+        titleSub.textContent = sub;
+        promptTitle.appendChild(titleSub);
+      }
       promptList.innerHTML = '';
 
       (PROMPTS[label]||[]).forEach(p=>{
@@ -856,6 +989,7 @@
       categoryView.classList.remove('active');
       promptView.classList.add('active');
       document.getElementById('scrollArea').scrollTop=0;
+      refreshPromptVisibility();
     }
 
     function showCategories(){ renderCategories(); }
@@ -867,9 +1001,34 @@
         TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n') || '(empty)'
       ));
       document.getElementById('resetBtn').addEventListener('click', resetChat);
-      document.getElementById('msg').addEventListener('keydown', (e)=>{
+      const msgEl = document.getElementById('msg');
+      msgEl.addEventListener('keydown', (e)=>{
         if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
       });
+      const resizeNow = ()=>{ msgEl.style.height='auto'; msgEl.style.height = Math.min(msgEl.scrollHeight, 320)+'px'; };
+      const autoGrow = ()=>{ resizeNow(); requestAnimationFrame(resizeNow); };
+      msgEl.addEventListener('input', autoGrow);
+      msgEl.addEventListener('paste', autoGrow);
+      autoGrow();
+
+      // Keep the scroll area's bottom clearance matching the composer's real height (plus a small
+      // breathing-room gap), so the last message always ends just above the composer's top —
+      // no dead space beyond that, but not flush against it either.
+      const inputRowEl = document.querySelector('.inputRow');
+      const scrollAreaEl = document.getElementById('scrollArea');
+      const COMPOSER_GAP = 16;
+      const syncComposerClearance = ()=>{
+        scrollAreaEl.style.paddingBottom = (inputRowEl.getBoundingClientRect().height + COMPOSER_GAP) + 'px';
+      };
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(syncComposerClearance).observe(inputRowEl);
+      } else {
+        window.addEventListener('resize', syncComposerClearance);
+      }
+      syncComposerClearance();
+      msgEl.addEventListener('focus', refreshPromptVisibility);
+      msgEl.addEventListener('blur', refreshPromptVisibility);
+      msgEl.addEventListener('input', refreshPromptVisibility);
       document.getElementById('micBtn').addEventListener('click', ()=> listening ? stopListening() : startListening());
     });
   </script>
