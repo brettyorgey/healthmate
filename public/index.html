@@ -106,7 +106,7 @@
     .scroll-area{
       display:flex; flex-direction:column; overflow:auto; flex:1 1 auto; min-height:0; padding-right:4px;
       overscroll-behavior-y: contain;
-      padding-bottom:104px;
+      padding-bottom:140px;
     }
     .scroll-area.is-scrolled{
       -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 100%);
@@ -159,7 +159,9 @@
     @keyframes b { 0%,80%,100%{ transform:scale(0.7); opacity:.4; } 40%{ transform:scale(1); opacity:1; } }
 
     /* Form controls should use the body font, not the browser's default UI font */
-    textarea, input, button, select { font-family: inherit; }
+    /* Safari applies its default tint (blue) to <button> text unless color is explicitly
+       inherited — real buttons introduced for keyboard accessibility need this reset. */
+    textarea, input, button, select { font-family: inherit; color: inherit; }
 
     /* Frosted rectangular backdrop behind the composer — square corners, same blur/tint as the
        composer itself, so content is softly blurred everywhere in that footprint (including the
@@ -506,6 +508,18 @@
       const chatStarted = chatEl.children.length > 0;
       promptList.classList.toggle('is-gone', chatStarted);
       promptList.classList.toggle('is-hidden', !chatStarted && msgEl.value.trim().length > 0);
+    }
+
+    const COMPOSER_GAP = 32;
+    function syncComposerClearance(){
+      const inputRowEl = document.querySelector('.inputRow');
+      const backdropEl = document.querySelector('.composer-backdrop');
+      const scrollAreaEl = document.getElementById('scrollArea');
+      if (!inputRowEl || !backdropEl || !scrollAreaEl) return;
+      const h = inputRowEl.getBoundingClientRect().height;
+      if (h <= 0) return; // composer not visible yet (e.g. still on categoryView) — nothing to sync
+      scrollAreaEl.style.paddingBottom = (h + COMPOSER_GAP) + 'px';
+      backdropEl.style.height = h + 'px';
     }
 
     /* ---------- Model-link hardening ---------- */
@@ -926,6 +940,7 @@
 
     function renderCategories(){
       document.getElementById('hero').style.display = '';
+      document.querySelector('.site-footer').style.display = '';
       categoryView.innerHTML = '';
 
       const labels = Object.keys(PROMPTS || {});
@@ -1017,6 +1032,8 @@
       promptView.classList.add('active');
       document.getElementById('scrollArea').scrollTop=0;
       refreshPromptVisibility();
+      document.querySelector('.site-footer').style.display = 'none';
+      requestAnimationFrame(syncComposerClearance);
     }
 
     function showCategories(){ renderCategories(); }
@@ -1041,21 +1058,15 @@
       // Keep the scroll area's bottom clearance matching the composer's real height (plus a small
       // breathing-room gap), so the last message always ends just above the composer's top —
       // no dead space beyond that, but not flush against it either.
-      const inputRowEl = document.querySelector('.inputRow');
-      const backdropEl = document.querySelector('.composer-backdrop');
       const scrollAreaEl = document.getElementById('scrollArea');
-      const COMPOSER_GAP = 32;
-      const syncComposerClearance = ()=>{
-        const h = inputRowEl.getBoundingClientRect().height;
-        scrollAreaEl.style.paddingBottom = (h + COMPOSER_GAP) + 'px';
-        backdropEl.style.height = h + 'px';
-      };
       if ('ResizeObserver' in window) {
-        new ResizeObserver(syncComposerClearance).observe(inputRowEl);
+        new ResizeObserver(syncComposerClearance).observe(document.querySelector('.inputRow'));
       } else {
         window.addEventListener('resize', syncComposerClearance);
       }
       syncComposerClearance();
+      window.addEventListener('load', syncComposerClearance);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncComposerClearance);
 
       // Only fade the top edge once there's actually content scrolled above it.
       scrollAreaEl.addEventListener('scroll', ()=>{
