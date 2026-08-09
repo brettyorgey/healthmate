@@ -161,11 +161,21 @@
     /* Form controls should use the body font, not the browser's default UI font */
     textarea, input, button, select { font-family: inherit; }
 
+    /* Frosted rectangular backdrop behind the composer — square corners, same blur/tint as the
+       composer itself, so content is softly blurred everywhere in that footprint (including the
+       corner gaps outside the composer's own rounded shape) rather than showing through sharply. */
+    .composer-backdrop{
+      position:absolute; left:0; right:0; bottom:0; z-index:1;
+      background:rgba(255,255,255,0.88);
+      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    }
+
     /* Composer — single rounded card housing the textarea + control row (mimics Claude's input) */
     .inputRow{
-      display:flex; flex-direction:column; gap:6px; background:#fff; border:1px solid #eee2d3; border-radius:26px;
+      display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.88); border:1px solid #eee2d3; border-radius:26px;
       padding:12px 14px 10px; transition: box-shadow .15s ease, border-color .15s ease;
       position:absolute; left:0; right:0; bottom:0; z-index:2;
+      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     }
     .inputRow:focus-within{ border-color:var(--brand); box-shadow:0 0 0 3px var(--ring); }
     textarea#msg{
@@ -187,7 +197,7 @@
     button.send:active{ transform:scale(.94); }
     button.send[disabled]{ opacity:.5; cursor:not-allowed; }
 
-    .chat-footer{ position:sticky; bottom:0; background:#fff; padding:10px 0 6px; font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:8px; }
+    .chat-footer{ position:sticky; bottom:0; background:#fff; padding:0 0 6px; font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:12px; }
     .chat-controls{ display:flex; gap:10px; }
     .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #eee2d3; background:#fff; cursor:pointer; font-size:13px; transition: background .15s ease; }
     .btn-sm:hover{ background:var(--brand-soft); }
@@ -237,8 +247,8 @@
     }
 
     .site-footer{
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      padding:20px 16px 28px; font-size:13px; color:var(--muted);
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      padding:28px 16px; font-size:13px; color:var(--muted);
     }
     .footer-logo{ height:16px; width:auto; display:block; }
 
@@ -280,6 +290,7 @@
           </div>
         </div>
 
+        <div class="composer-backdrop"></div>
         <div class="inputRow">
           <label for="msg" class="sr-only">Type your question</label>
           <textarea id="msg" rows="1" placeholder="Type your question…"></textarea>
@@ -477,6 +488,7 @@
     let CURRENT_PROMPT_ID = '';
     let CURRENT_PROMPT_META = null;
     let CURRENT_CATEGORY_LABEL = '';
+    let LAST_USER_ROW = null;
 
     // DOM
     const categoryView=document.getElementById('categoryView');
@@ -699,7 +711,20 @@
       row.appendChild(div);
       chatEl.appendChild(row);
       const scrollAreaEl = document.getElementById('scrollArea');
-      if(scrollAreaEl) scrollAreaEl.scrollTop = scrollAreaEl.scrollHeight;
+      if (role === 'user') LAST_USER_ROW = row;
+      if (scrollAreaEl && LAST_USER_ROW) {
+        // Claude-style: pin the most recent user message near the top of the view, so the
+        // response (Thinking… then the reply) fills the space below it, rather than
+        // auto-scrolling to the bottom and pushing the user's own message off-screen. Re-run
+        // on each subsequent message too (thinking, then the reply) — right after sending there
+        // usually isn't enough content below yet to scroll that far, so it settles at the true
+        // top progressively as the response fills in.
+        const pinnedRow = LAST_USER_ROW;
+        requestAnimationFrame(()=>{
+          const delta = pinnedRow.getBoundingClientRect().top - scrollAreaEl.getBoundingClientRect().top;
+          scrollAreaEl.scrollTop += delta;
+        });
+      }
       refreshPromptVisibility();
       div.remove = () => row.remove();
       return div;
@@ -822,7 +847,7 @@
       }
     }
 
-    function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); refreshPromptVisibility(); }
+    function resetChat(){ TRANSCRIPT.length=0; chatEl.innerHTML=''; sessionStorage.clear(); LAST_USER_ROW=null; refreshPromptVisibility(); }
 
     function categoryEmoji(label){
       const { head } = parseLabel(label || '');
@@ -1017,10 +1042,13 @@
       // breathing-room gap), so the last message always ends just above the composer's top —
       // no dead space beyond that, but not flush against it either.
       const inputRowEl = document.querySelector('.inputRow');
+      const backdropEl = document.querySelector('.composer-backdrop');
       const scrollAreaEl = document.getElementById('scrollArea');
       const COMPOSER_GAP = 32;
       const syncComposerClearance = ()=>{
-        scrollAreaEl.style.paddingBottom = (inputRowEl.getBoundingClientRect().height + COMPOSER_GAP) + 'px';
+        const h = inputRowEl.getBoundingClientRect().height;
+        scrollAreaEl.style.paddingBottom = (h + COMPOSER_GAP) + 'px';
+        backdropEl.style.height = h + 'px';
       };
       if ('ResizeObserver' in window) {
         new ResizeObserver(syncComposerClearance).observe(inputRowEl);
