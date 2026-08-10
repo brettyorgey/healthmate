@@ -69,8 +69,8 @@
       font-size:20px; width:44px; height:44px; flex:none; display:flex; align-items:center; justify-content:center;
       border-radius:12px; background:var(--brand-soft);
     }
-    .category-title{ font-weight:700; }
-    .category-sub{ color:var(--muted); font-size:14px; }
+    .category-title{ font-weight:700; font-size:14px; line-height:1.4; }
+    .category-sub{ color:var(--muted); font-size:14px; line-height:1.4; margin-top:2px; }
 
     /* Panel */
     .prompt-panel{
@@ -218,30 +218,33 @@
     #categoryView.active { display:grid; animation: fadeIn .25s ease; }
     #promptView.active { display:flex; flex:1; min-height:0; animation: fadeIn .25s ease; }
 
-    /* ---------- Triage CTA card (tight) ---------- */
+    /* ---------- Triage CTA card ---------- */
     .triage-cta {
-      margin: 6px 0 4px !important;
-      padding-top: 8px;
-      border-top: 1px solid #cbd5e1;
+      margin: 10px 0 4px !important;
+      padding-top: 12px;
+      border-top: 1px solid #eee2d3;
       animation: triageFadeIn 0.4s ease forwards;
     }
     .triage-cta__inner {
-      border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px;
-      background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,.04);
+      border:1px solid #eee2d3; border-radius:14px; padding:14px 16px;
+      background:#ffffff; box-shadow:0 2px 6px rgba(15,23,42,.05);
     }
-    .triage-cta__inner h3 { margin:2px 0 4px !important; font-size:16px; border-left:3px solid #0ea5e9; padding-left:6px; }
-    .triage-cta__inner p  { margin:0 0 6px !important; color:#475569; }
-    .triage-btns { display:flex; gap:6px; flex-wrap:wrap; }
+    .triage-cta__inner h3 {
+      margin:2px 0 4px !important; font-size:16px; font-family:var(--heading-font);
+      border-left:3px solid var(--brand); padding-left:8px;
+    }
+    .triage-cta__inner p  { margin:0 0 10px !important; color:var(--muted); }
+    .triage-btns { display:flex; gap:8px; flex-wrap:wrap; }
     .triage-cta__btn {
       display:inline-flex; align-items:center; gap:6px; justify-content:center; line-height:1.2;
-      padding:8px 12px; border-radius:10px;
-      border:1px solid #0284c7; background:#0ea5e9; color:#fff;
-      text-decoration:none; font-weight:600; transition:all .15s ease;
+      padding:10px 14px; border-radius:12px;
+      border:1px solid var(--brand); background:var(--brand); color:#fff;
+      text-decoration:none; font-weight:600; font-family:var(--heading-font); transition:background .15s ease, border-color .15s ease;
     }
-    .triage-cta__btn:hover { background:#0284c7; border-color:#0284c7; opacity:1; }
-    .triage-cta__btn.secondary-blue { background:#fff; color:#0ea5e9; border:1px solid #0ea5e9; }
-    .triage-cta__btn.secondary-blue:hover { background:#e0f2fe; }
-    .triage-note { margin:6px 0 0; font-size:12px; color:#64748b; opacity:0; animation: triageFadeIn .4s ease forwards; }
+    .triage-cta__btn:hover { background:var(--brand-dark); border-color:var(--brand-dark); }
+    .triage-cta__btn.secondary-blue { background:#fff; color:var(--brand); border:1px solid var(--brand); }
+    .triage-cta__btn.secondary-blue:hover { background:var(--brand-soft); }
+    .triage-note { margin:8px 0 0; font-size:12px; color:var(--muted); opacity:0; animation: triageFadeIn .4s ease forwards; }
     @keyframes triageFadeIn { from {opacity:0; transform:translateY(2px);} to {opacity:1; transform:translateY(0);} }
     @media (max-width: 480px){
       .triage-btns { flex-direction:column; align-items:stretch; }
