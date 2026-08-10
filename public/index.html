@@ -41,7 +41,7 @@
     }
     .wrap {
       width:100%; max-width:820px; margin:24px auto; padding:0 20px;
-      flex:1; display:flex; flex-direction:column; min-height:0; overflow-y:auto;
+      flex:1 1 auto; display:flex; flex-direction:column; min-height:0; overflow-y:auto;
     }
     @media (max-width: 640px){
       .wrap { margin:12px auto; padding:0 12px; }
@@ -76,7 +76,7 @@
     .prompt-panel{
       background:#fff; border:1px solid #eee2d3; border-radius:16px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05);
       display:flex; flex-direction:column; gap:12px; animation: fadeIn .25s ease;
-      flex:1; min-height:0; position:relative;
+      flex:1 1 auto; min-height:0; position:relative;
     }
     .prompt-header{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }
     .back-btn{
@@ -97,7 +97,7 @@
 
     /* Chat area: positioning context sized exactly to the space between header and footer,
        so the composer overlay aligns to its bottom edge without encroaching on the footer. */
-    .chat-area{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+    .chat-area{ position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
 
     /* Scroll area: the only element that scrolls within the chat pane. The top fade only applies
        once scrolled (.is-scrolled, toggled in JS) so the very first message is never cropped when
@@ -216,7 +216,7 @@
 
     #categoryView, #promptView { display:none; }
     #categoryView.active { display:grid; animation: fadeIn .25s ease; }
-    #promptView.active { display:flex; flex:1; min-height:0; animation: fadeIn .25s ease; }
+    #promptView.active { display:flex; flex:1 1 auto; min-height:0; animation: fadeIn .25s ease; }
 
     /* ---------- Triage CTA card ---------- */
     .triage-cta {
@@ -524,6 +524,24 @@
       scrollAreaEl.style.paddingBottom = (h + COMPOSER_GAP) + 'px';
       backdropEl.style.height = h + 'px';
     }
+
+    // Deeply nested `flex:1; min-height:0` chains (wrap > promptView > prompt-panel > chat-area >
+    // scroll-area) are unreliable on Safari for forcing the innermost overflow:auto container to
+    // actually constrain — it can end up unbounded, so nothing ever needs to scroll and the
+    // composer overlay just sits on top of whatever content happens to be there. Set the panel's
+    // height explicitly in px (measured against the real viewport) as a robust fallback that
+    // doesn't depend on flexbox resolving correctly across that many nested levels.
+    function syncPanelHeight(){
+      const panel = document.querySelector('.prompt-panel');
+      if (!panel || !panel.offsetParent) return; // not visible (e.g. still on categoryView)
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const top = panel.getBoundingClientRect().top;
+      const available = vh - top - 16; // small breathing room at the very bottom
+      panel.style.height = Math.max(available, 280) + 'px';
+    }
+    window.addEventListener('resize', syncPanelHeight);
+    window.addEventListener('orientationchange', ()=> setTimeout(syncPanelHeight, 50));
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', syncPanelHeight);
 
     /* ---------- Model-link hardening ---------- */
     const STRIP_MODEL_LINKS = true;
@@ -1036,7 +1054,7 @@
       document.getElementById('scrollArea').scrollTop=0;
       refreshPromptVisibility();
       document.querySelector('.site-footer').style.display = 'none';
-      requestAnimationFrame(syncComposerClearance);
+      requestAnimationFrame(()=>{ syncPanelHeight(); syncComposerClearance(); });
     }
 
     function showCategories(){ renderCategories(); }
