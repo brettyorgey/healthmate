@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --card-bg:#ffffff; --page-bg:#faf7f2; --text:#1e293b; --muted:#5b6779;
+      --card-bg:#ffffff; --page-bg:#F6F9FC; --page-bg-top:#F1F4FC; --border-tint:#DCE4F4; --text:#1e293b; --muted:#5b6779;
       --brand:#3C5B9A; --brand-dark:#2A406C; --brand-soft:#E2E6F0;
       --accent:#f97316; --ring: rgba(60,91,154,.35);
       --heading-font: 'Quicksand', system-ui, -apple-system, sans-serif;
@@ -31,9 +31,10 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
     }
-    html { background:var(--page-bg); height:100%; }
+    html { background:linear-gradient(180deg, var(--page-bg-top) 0%, var(--page-bg) 100%); height:100%; }
     body {
-      margin:0; background:var(--page-bg); color:var(--text); font-family: var(--heading-font);
+      margin:0; background:linear-gradient(180deg, var(--page-bg-top) 0%, var(--page-bg) 100%); background-attachment:fixed;
+      color:var(--text); font-family: var(--heading-font);
       height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
     }
     a:focus-visible, button:focus-visible, .category-card:focus-visible, .prompt-btn:focus-visible {
@@ -60,7 +61,7 @@
     /* Categories */
     .categories { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; margin:16px 0; }
     .category-card{
-      display:flex; gap:14px; align-items:center; background:#fff; border:1px solid #eee2d3; border-radius:14px;
+      display:flex; gap:14px; align-items:center; background:#fff; border:1px solid var(--border-tint); border-radius:14px;
       padding:16px; cursor:pointer; box-shadow:0 2px 6px rgba(15,23,42,.05); width:100%; text-align:left;
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     }
@@ -74,7 +75,7 @@
 
     /* Panel */
     .prompt-panel{
-      background:#fff; border:1px solid #eee2d3; border-radius:16px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05);
+      background:#fff; border:1px solid var(--border-tint); border-radius:16px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,.05);
       display:flex; flex-direction:column; gap:12px; animation: fadeIn .25s ease;
       flex:1 1 auto; min-height:0; position:relative;
     }
@@ -90,7 +91,7 @@
     .prompts{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
     .prompts.is-hidden{ visibility:hidden; }
     .prompts.is-gone{ display:none; }
-    .prompt-btn{ text-align:left; border:1px solid #eee2d3; background:#fff; border-radius:12px; padding:12px 14px; cursor:pointer; font-size:15px; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+    .prompt-btn{ text-align:left; border:1px solid var(--border-tint); background:#fff; border-radius:12px; padding:12px 14px; cursor:pointer; font-size:15px; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
     .prompt-btn:hover{ background:var(--brand-soft); border-color:var(--brand-soft); transform:translateX(2px); }
 
     @keyframes fadeIn { from{ opacity:0; transform:translateY(4px);} to{ opacity:1; transform:translateY(0);} }
@@ -174,7 +175,7 @@
 
     /* Composer — single rounded card housing the textarea + control row (mimics Claude's input) */
     .inputRow{
-      display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.88); border:1px solid #eee2d3; border-radius:26px;
+      display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.88); border:1px solid var(--border-tint); border-radius:26px;
       padding:12px 14px 10px; transition: box-shadow .15s ease, border-color .15s ease;
       position:absolute; left:0; right:0; bottom:0; z-index:2;
       backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -201,7 +202,7 @@
 
     .chat-footer{ position:sticky; bottom:0; background:#fff; padding:0 0 6px; font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:12px; }
     .chat-controls{ display:flex; gap:10px; }
-    .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid #eee2d3; background:#fff; cursor:pointer; font-size:13px; transition: background .15s ease; }
+    .btn-sm{ padding:8px 10px; border-radius:10px; border:1px solid var(--border-tint); background:#fff; cursor:pointer; font-size:13px; transition: background .15s ease; }
     .btn-sm:hover{ background:var(--brand-soft); }
 
     /* Mic button — icon-only, lives inside the composer row */
@@ -222,11 +223,11 @@
     .triage-cta {
       margin: 10px 0 4px !important;
       padding-top: 12px;
-      border-top: 1px solid #eee2d3;
+      border-top: 1px solid var(--border-tint);
       animation: triageFadeIn 0.4s ease forwards;
     }
     .triage-cta__inner {
-      border:1px solid #eee2d3; border-radius:14px; padding:14px 16px;
+      border:1px solid var(--border-tint); border-radius:14px; padding:14px 16px;
       background:#ffffff; box-shadow:0 2px 6px rgba(15,23,42,.05);
     }
     .triage-cta__inner h3 {
@@ -252,10 +253,150 @@
     }
 
     .site-footer{
-      display:flex; align-items:center; justify-content:center; gap:6px;
+      display:flex; flex-direction:column; align-items:center; gap:10px;
       padding:28px 16px; font-size:13px; color:var(--muted);
     }
+    .site-footer__brand{ display:flex; align-items:center; gap:6px; }
     .footer-logo{ height:16px; width:auto; display:block; }
+
+    .feedback-link{
+      display:inline-flex; align-items:center; gap:4px; margin-top:4px;
+      color:var(--muted); font-family:inherit; font-size:12px; text-decoration:none; opacity:.8;
+      transition: opacity .15s ease, color .15s ease;
+    }
+    .feedback-link:hover{ opacity:1; color:var(--text); }
+    .feedback-link svg{ width:13px; height:13px; flex:none; }
+
+    /* ---------- Coming-soon feature banner (standalone card, below hero, glass surface) ---------- */
+    .stories-banner{
+      position:relative; display:flex; align-items:center; gap:16px;
+      background:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.7);
+      -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+      border-radius:16px; padding:14px 40px 14px 14px; margin:0;
+      box-shadow:0 2px 6px rgba(15,23,42,.05);
+      animation: fadeIn .3s ease; transition: opacity .2s ease, transform .2s ease;
+    }
+    .stories-banner.is-leaving{ opacity:0; transform:scale(.98); }
+    .stories-banner.is-gone{ display:none; }
+
+    /* Fan of photo cards — tightly stacked at rest, spreads apart on hover */
+    .stories-banner__fan{
+      position:relative; flex:none; width:76px; height:48px;
+      /* extra breathing room so the hover spread never clips against the card edge */
+      margin-right:8px;
+    }
+    .stories-banner__card{
+      position:absolute; width:29px; height:38px; border-radius:8px;
+      overflow:hidden; border:2px solid rgba(255,255,255,0.9);
+      box-shadow:0 4px 10px rgba(15,23,42,.25);
+      transition: transform .35s cubic-bezier(.25,1,.4,1), box-shadow .35s ease;
+    }
+    .stories-banner__card img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .stories-banner__card--l{ left:2px; top:6px; transform:rotate(-9deg) translateX(0); z-index:1; }
+    .stories-banner__card--r{ left:45px; top:6px; transform:rotate(9deg) translateX(0); z-index:1; }
+    .stories-banner__card--c{ left:24px; top:0; width:32px; height:44px; transform:rotate(0deg); z-index:2; }
+
+    .stories-banner:hover .stories-banner__card,
+    .stories-banner.is-fanned .stories-banner__card{
+      box-shadow:0 8px 18px rgba(15,23,42,.32);
+    }
+    .stories-banner:hover .stories-banner__card--l,
+    .stories-banner.is-fanned .stories-banner__card--l{ transform:rotate(-16deg) translate(-8px, 2px); }
+    .stories-banner:hover .stories-banner__card--r,
+    .stories-banner.is-fanned .stories-banner__card--r{ transform:rotate(16deg) translate(8px, 2px); }
+    .stories-banner:hover .stories-banner__card--c,
+    .stories-banner.is-fanned .stories-banner__card--c{ transform:rotate(0deg) translateY(-4px) scale(1.06); }
+
+    .stories-banner__text{ min-width:0; }
+    .stories-banner__eyebrow{
+      display:block; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--brand);
+      text-transform:uppercase; margin-bottom:2px;
+    }
+    .stories-banner__title{ font-weight:700; font-size:15px; margin:0 0 2px; color:var(--text); }
+    .stories-banner__desc{ margin:0; color:var(--muted); font-size:13px; line-height:1.4; }
+
+    .stories-banner__close{
+      position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%; border:0;
+      background:transparent; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition: background .15s ease;
+    }
+    .stories-banner__close:hover{ background:var(--brand-soft); color:var(--brand-dark); }
+    .stories-banner__close svg{ width:16px; height:16px; }
+
+    @media (max-width: 480px){
+      .stories-banner{ padding:12px 36px 12px 12px; gap:12px; }
+      .stories-banner__desc{ font-size:12.5px; }
+    }
+
+    .stories-banner__learnmore{
+      display:inline; padding:0; border:0; background:none; cursor:pointer;
+      font-family:inherit; font-weight:700; font-size:13px; color:var(--brand);
+      text-decoration:underline; text-underline-offset:2px;
+    }
+    .stories-banner__learnmore:hover{ color:var(--brand-dark); }
+
+    /* ---------- Story overlay: centered modal on desktop, full takeover on mobile ---------- */
+    .story-overlay{
+      position:fixed; inset:0; z-index:60; display:none;
+      align-items:center; justify-content:center; padding:24px;
+      background:rgba(15,23,42,0.45);
+    }
+    .story-overlay.active{ display:flex; animation: fadeIn .2s ease; }
+
+    .story-modal{
+      position:relative; width:100%; max-width:420px; max-height:90vh; overflow-y:auto;
+      background:linear-gradient(180deg, var(--page-bg-top) 0%, var(--page-bg) 100%);
+      border-radius:24px; box-shadow:0 30px 60px rgba(15,23,42,.35);
+      padding:32px 24px 28px;
+      animation: storyModalIn .3s cubic-bezier(.25,1,.4,1);
+    }
+    @keyframes storyModalIn{ from{ opacity:0; transform:translateY(16px) scale(.98);} to{ opacity:1; transform:translateY(0) scale(1);} }
+
+    @media (max-width: 640px){
+      .story-overlay{ padding:0; background:transparent; }
+      .story-modal{
+        max-width:none; width:100%; height:100%; max-height:none; border-radius:0;
+        box-shadow:none; padding:48px 24px 32px;
+        animation: storyTakeoverIn .3s ease;
+      }
+      @keyframes storyTakeoverIn{ from{ opacity:0; transform:translateY(40px);} to{ opacity:1; transform:translateY(0);} }
+    }
+
+    .story-fan{ position:relative; width:100%; max-width:342px; height:210px; margin:8px auto 0; }
+    .story-fan__card{
+      position:absolute; border-radius:14px; overflow:hidden; box-shadow:0 12px 24px rgba(74,115,196,.25);
+    }
+    .story-fan__card img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .story-fan__card--l{
+      left:6px; top:26px; width:132px; height:172px;
+      animation: storyFanL .45s cubic-bezier(.25,1,.4,1) .12s both;
+    }
+    .story-fan__card--r{
+      right:6px; top:26px; width:132px; height:172px;
+      animation: storyFanR .45s cubic-bezier(.25,1,.4,1) .24s both;
+    }
+    .story-fan__card--c{
+      left:50%; top:0; width:148px; height:196px; margin-left:-74px; z-index:2;
+      box-shadow:0 16px 32px rgba(74,115,196,.32);
+      animation: storyFanC .45s cubic-bezier(.25,1,.4,1) both;
+    }
+    @keyframes storyFanL{ from{ transform:translateX(90px) rotate(0deg) scale(.85); opacity:0;} to{ transform:translateX(0) rotate(-9deg) scale(1); opacity:1;} }
+    @keyframes storyFanR{ from{ transform:translateX(-90px) rotate(0deg) scale(.85); opacity:0;} to{ transform:translateX(0) rotate(9deg) scale(1); opacity:1;} }
+    @keyframes storyFanC{ from{ transform:translateY(8px) scale(.85); opacity:0;} to{ transform:translateY(0) scale(1); opacity:1;} }
+
+    .story-modal__body{ text-align:center; max-width:300px; margin:36px auto 0; }
+    .story-modal__eyebrow{
+      font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--brand);
+    }
+    .story-modal__title{ margin:10px 0; font-size:26px; line-height:1.25; font-weight:700; color:var(--text); }
+    .story-modal__desc{ margin:0; font-size:14.5px; line-height:1.5; color:var(--muted); }
+
+    .story-modal__cta{
+      display:flex; align-items:center; justify-content:center; width:100%; max-width:300px; margin:32px auto 0;
+      height:52px; border-radius:999px; border:0; background:var(--brand); color:#fff; cursor:pointer;
+      font-family:inherit; font-weight:700; font-size:15px; transition: background .15s ease;
+    }
+    .story-modal__cta:hover{ background:var(--brand-dark); }
 
     /* Simple inline alert for data-load errors */
     .alert {
@@ -273,6 +414,29 @@
     <div class="hero" id="hero">
       <h1>Welcome — we’re here to support past players & families.</h1>
       <p>Please select a category from the options below, you'll then be provided prompt options or you can type your question into the chat.</p>
+    </div>
+
+    <!-- Coming-soon feature banner -->
+    <div class="stories-banner" id="storiesBanner">
+      <button class="stories-banner__close" id="storiesBannerClose" type="button" aria-label="Dismiss">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="stories-banner__fan" aria-hidden="true">
+        <div class="stories-banner__card stories-banner__card--l">
+          <img src="https://app.paper.design/file-assets/01KYE2C05AE5EQMERMDWMJ8BSR/6C4PSEPM1SGRQM87DA8FMD3FQ7.jpg" alt="" />
+        </div>
+        <div class="stories-banner__card stories-banner__card--r">
+          <img src="https://app.paper.design/file-assets/01KYE2C05AE5EQMERMDWMJ8BSR/69D35PNNBM6Y383873WBPRRVXY.jpg" alt="" />
+        </div>
+        <div class="stories-banner__card stories-banner__card--c">
+          <img src="https://app.paper.design/file-assets/01KYE2C05AE5EQMERMDWMJ8BSR/0Y0ZE6APPK108JCBS4HMHBQM0S.jpg" alt="" />
+        </div>
+      </div>
+      <div class="stories-banner__text">
+        <span class="stories-banner__eyebrow">Coming soon</span>
+        <p class="stories-banner__title">Healthmate Stories</p>
+        <p class="stories-banner__desc">Hear from players, carers and coaches who've been where you are. <button class="stories-banner__learnmore" id="storiesLearnMore" type="button">Learn more</button></p>
+      </div>
     </div>
 
     <!-- Categories (first screen) -->
@@ -321,11 +485,42 @@
   </div>
 
   <footer class="site-footer">
-    <span>Powered by</span>
-    <a href="https://fifthqtr.org.au/" target="_blank" rel="noopener noreferrer">
-      <img src="/assets/fifthqtr-logo.png" alt="FifthQtr" class="footer-logo" />
+    <div class="site-footer__brand">
+      <span>Powered by</span>
+      <a href="https://fifthqtr.org.au/" target="_blank" rel="noopener noreferrer">
+        <img src="/assets/fifthqtr-logo.png" alt="FifthQtr" class="footer-logo" />
+      </a>
+    </div>
+    <a class="feedback-link" href="https://forms.cloud.microsoft/r/Q8axmZ7TVq" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Give feedback
     </a>
   </footer>
+
+  <!-- Healthmate Stories: modal on desktop, full takeover on mobile -->
+  <div class="story-overlay" id="storyOverlay" role="dialog" aria-modal="true" aria-labelledby="storyModalTitle">
+    <div class="story-modal">
+      <div class="story-fan" aria-hidden="true">
+        <div class="story-fan__card story-fan__card--l">
+          <img src="https://app.paper.design/file-assets/01KYE2C05AE5EQMERMDWMJ8BSR/6C4PSEPM1SGRQM87DA8FMD3FQ7.jpg" alt="" />
+        </div>
+        <div class="story-fan__card story-fan__card--r">
+          <img src="https://app.paper.design/file-assets/01KYE2C05AE5EQMERMDWMJ8BSR/69D35PNNBM6Y383873WBPRRVXY.jpg" alt="" />
+        </div>
+        <div class="story-fan__card story-fan__card--c">
+          <img src="https://app.paper.design/file-assets/01KYE2C05AE5EQMERMDWMJ8BSR/0Y0ZE6APPK108JCBS4HMHBQM0S.jpg" alt="" />
+        </div>
+      </div>
+
+      <div class="story-modal__body">
+        <div class="story-modal__eyebrow">Coming soon</div>
+        <h2 class="story-modal__title" id="storyModalTitle">Healthmate Stories</h2>
+        <p class="story-modal__desc">As you chat, you'll hear from players, carers and coaches who've been where you are. Their stories show up when they're relevant, along with what helped them.</p>
+      </div>
+
+      <button class="story-modal__cta" id="storyModalCta" type="button">Got it</button>
+    </div>
+  </div>
 
   <script>
     /* ---------- TRIAGE HELPERS (client-side) ---------- */
@@ -959,9 +1154,50 @@
       }
     }
 
+    /* ---------- Coming-soon banner ---------- */
+    const STORIES_BANNER_KEY = 'hm_stories_banner_dismissed';
+    function initStoriesBanner(){
+      const el = document.getElementById('storiesBanner');
+      if(!el) return;
+      if(localStorage.getItem(STORIES_BANNER_KEY) === '1'){ el.classList.add('is-gone'); return; }
+      document.getElementById('storiesBannerClose').addEventListener('click', ()=>{
+        el.classList.add('is-leaving');
+        localStorage.setItem(STORIES_BANNER_KEY, '1');
+        el.addEventListener('transitionend', ()=> el.classList.add('is-gone'), { once:true });
+      });
+    }
+
+    /* ---------- Story overlay: modal (desktop) / full takeover (mobile) ---------- */
+    function initStoryOverlay(){
+      const overlay = document.getElementById('storyOverlay');
+      const learnMoreBtn = document.getElementById('storiesLearnMore');
+      if(!overlay || !learnMoreBtn) return;
+
+      const openOverlay = ()=>{
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      };
+      const closeOverlay = ()=>{
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      };
+
+      learnMoreBtn.addEventListener('click', openOverlay);
+      document.getElementById('storyModalCta').addEventListener('click', closeOverlay);
+      overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeOverlay(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && overlay.classList.contains('active')) closeOverlay(); });
+    }
+
+    function syncStoriesBannerVisibility(show){
+      const el = document.getElementById('storiesBanner');
+      if(!el || localStorage.getItem(STORIES_BANNER_KEY) === '1') return;
+      el.style.display = show ? '' : 'none';
+    }
+
     function renderCategories(){
       document.getElementById('hero').style.display = '';
       document.querySelector('.site-footer').style.display = '';
+      syncStoriesBannerVisibility(true);
       categoryView.innerHTML = '';
 
       const labels = Object.keys(PROMPTS || {});
@@ -1021,6 +1257,7 @@
     function showPrompts(label){
       sessionStorage.clear();
       document.getElementById('hero').style.display = 'none';
+      syncStoriesBannerVisibility(false);
       CURRENT_CATEGORY_LABEL = label;
       const { head, sub } = parseLabel(label);
       promptTitle.innerHTML = '';
@@ -1061,6 +1298,8 @@
 
     // Init
     document.addEventListener('DOMContentLoaded', ()=>{
+      initStoriesBanner();
+      initStoryOverlay();
       loadPrompts();
       document.getElementById('copyBtn').addEventListener('click', ()=>navigator.clipboard.writeText(
         TRANSCRIPT.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n') || '(empty)'
