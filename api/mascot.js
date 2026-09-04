@@ -309,23 +309,36 @@ function formatCitationsForUser(rawText) {
     return `${String(claim).trim()} [${number}]`;
   });
 
-  // If the model already produced a Sources section using exact filenames,
-  // make those names readable while keeping the source mapping internally.
+  // Replace raw filenames anywhere else in the response with readable titles.
   for (const citation of citations) {
     const escaped = citation.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     text = text.replace(new RegExp(escaped, 'g'), citation.title);
   }
 
-  // If citations were used but the model omitted a Sources section, add a
-  // concise one. Normally the Healthmate instructions already request it.
-  if (citations.length && !/(^|\n)#{0,6}\s*\*{0,2}Sources\*{0,2}\s*($|\n)/im.test(text)) {
+  // Remove any model-generated Sources section. We rebuild it deterministically
+  // from the citations actually parsed above, so [1], [2], etc. always have a
+  // matching readable source entry.
+  text = text.replace(
+    /(?:^|\n)\s*(?:#{1,6}\s*)?\*{0,2}Sources\*{0,2}\s*\n[\s\S]*?(?=\n\s*#{1,6}\s+|\n\s*Information only\s+—|$)/gi,
+    '\n'
+  );
+
+  // Normalise ordered-list formatting. The model can emit escaped Markdown
+  // markers (1\\.) or place multiple numbered steps on one line. Convert these
+  // to standard Markdown list items on separate lines.
+  text = text
+    .replace(/(^|\n)\s*(\d+)\\\.\s+/g, '$1$2. ')
+    .replace(/\s{2,}(\d+)\\?\.\s+/g, '\n$1. ')
+    .replace(/(^|\n)\s+(\d+)\.\s+/g, '$1$2. ');
+
+  if (citations.length) {
     const footer = 'Information only — not a medical diagnosis. In an emergency call 000.';
-    const sourceBlock = `**Sources**\n${citations.map(c => `${c.number}. ${c.title}`).join('\n')}`;
+    const sourceBlock = `## Sources\n${citations.map(c => `${c.number}. ${c.title}`).join('\n')}`;
     const footerIndex = text.lastIndexOf(footer);
 
     if (footerIndex >= 0) {
       const before = text.slice(0, footerIndex).trimEnd();
-      const after = text.slice(footerIndex);
+      const after = text.slice(footerIndex).trimStart();
       text = `${before}\n\n${sourceBlock}\n\n${after}`;
     } else {
       text = `${text.trimEnd()}\n\n${sourceBlock}`;
