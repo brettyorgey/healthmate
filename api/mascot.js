@@ -333,7 +333,7 @@ function formatCitationsForUser(rawText) {
 
   if (citations.length) {
     const footer = 'Information only — not a medical diagnosis. In an emergency call 000.';
-    const sourceBlock = `## Sources\n${citations.map(c => `${c.number}. ${c.title}`).join('\n')}`;
+    const sourceBlock = `## References used\n${citations.map(c => `${c.number}. ${c.title}`).join('\n')}`;
     const footerIndex = text.lastIndexOf(footer);
 
     if (footerIndex >= 0) {
