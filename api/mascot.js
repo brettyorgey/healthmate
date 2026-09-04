@@ -252,6 +252,89 @@ function extractResponseText(response) {
   return text || null;
 }
 
+/* -------------------- user-friendly citation formatting -------------------- */
+function filenameToDisplayTitle(filename = '') {
+  return String(filename)
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.[A-Za-z0-9]{1,8}$/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\bAnd\b/g, 'and')
+    .replace(/\bFor\b/g, 'for')
+    .replace(/\bOf\b/g, 'of')
+    .replace(/\bThe\b/g, 'the')
+    .replace(/^./, c => c.toUpperCase());
+}
+
+/**
+ * Healthmate asks the model to use exact filenames inside <cite> tags so that
+ * grounding can be audited. This function keeps that internal traceability but
+ * converts the raw markup into a cleaner user-facing form:
+ *
+ *   <cite source="document-name.pdf">Claim</cite>
+ * becomes
+ *   Claim [1]
+ *
+ * It also replaces raw filenames elsewhere in the response (especially the
+ * model-generated Sources section) with readable titles.
+ */
+function formatCitationsForUser(rawText) {
+  if (!rawText) return { text: rawText, citations: [] };
+
+  // Models/Markdown renderers sometimes escape the angle brackets. Normalise
+  // those variants before parsing.
+  let text = String(rawText)
+    .replace(/\\<cite\b/gi, '<cite')
+    .replace(/\\<\/cite\>/gi, '</cite>');
+
+  const citations = [];
+  const byFilename = new Map();
+  const citeRegex = /<cite\s+source=["']([^"']+)["']\s*>([\s\S]*?)<\/cite>/gi;
+
+  text = text.replace(citeRegex, (_match, filename, claim) => {
+    const cleanFilename = String(filename).trim();
+    let number = byFilename.get(cleanFilename);
+
+    if (!number) {
+      number = citations.length + 1;
+      byFilename.set(cleanFilename, number);
+      citations.push({
+        number,
+        filename: cleanFilename,
+        title: filenameToDisplayTitle(cleanFilename)
+      });
+    }
+
+    return `${String(claim).trim()} [${number}]`;
+  });
+
+  // If the model already produced a Sources section using exact filenames,
+  // make those names readable while keeping the source mapping internally.
+  for (const citation of citations) {
+    const escaped = citation.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    text = text.replace(new RegExp(escaped, 'g'), citation.title);
+  }
+
+  // If citations were used but the model omitted a Sources section, add a
+  // concise one. Normally the Healthmate instructions already request it.
+  if (citations.length && !/(^|\n)#{0,6}\s*\*{0,2}Sources\*{0,2}\s*($|\n)/im.test(text)) {
+    const footer = 'Information only — not a medical diagnosis. In an emergency call 000.';
+    const sourceBlock = `**Sources**\n${citations.map(c => `${c.number}. ${c.title}`).join('\n')}`;
+    const footerIndex = text.lastIndexOf(footer);
+
+    if (footerIndex >= 0) {
+      const before = text.slice(0, footerIndex).trimEnd();
+      const after = text.slice(footerIndex);
+      text = `${before}\n\n${sourceBlock}\n\n${after}`;
+    } else {
+      text = `${text.trimEnd()}\n\n${sourceBlock}`;
+    }
+  }
+
+  return { text: text.trim(), citations };
+}
+
 /* -------------------- links.json (cached) -------------------- */
 const LINKS_CACHE = { data: null, ts: 0 };
 async function loadLinks(req) {
@@ -558,13 +641,16 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const text = extractResponseText(response);
-    if (!text) {
+    const rawText = extractResponseText(response);
+    if (!rawText) {
       return sendJson(res, 202, {
         pending: true,
         thread_id: clientResponseId
       });
     }
+
+    const formatted = formatCitationsForUser(rawText);
+    const text = formatted.text;
 
     /* ---------- preserve existing curated links.json sources ---------- */
     let curatedSources = [];
@@ -590,6 +676,7 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 200, {
       output: text,
       sources: curatedSources,
+      citations: formatted.citations,
       thread_id: clientResponseId
     });
 
